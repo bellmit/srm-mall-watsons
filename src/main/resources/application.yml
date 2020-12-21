@@ -1,0 +1,261 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://192.168.7.147:3306/srm?useUnicode=true&characterEncoding=utf-8&useSSL=false}
+    username: ${SPRING_DATASOURCE_USERNAME:srm}
+    password: ${SPRING_DATASOURCE_PASSWORD:NS#vp733g#tJ6pfX}
+    hikari:
+      # 连接池最小空闲连接数
+      minimum-idle: ${SPRING_DATASOURCE_MINIMUM_IDLE:20}
+      # 连接池允许的最大连接数
+      maximum-pool-size: ${SPRING_DATASOURCE_MAXIMUM_POOL_SIZE:200}
+      # 等待连接池分配连接的最大时长（毫秒）
+      connection-timeout: ${SPRING_DATASOURCE_CONNECTION_TIMEOUT:30000}
+  cloud:
+    # consul设置false，在cloud下级
+    consul:
+      enabled: false
+    stream:
+      default-binder: rocketmq
+      rocketmq:
+        binder:
+          namesrv-addr: ${ROCKETMQ_NAMESRV_ADDR:192.168.3.213:9876}
+      event-topic: ${EVENT_TOPIC:EVENT_MESSAGE_LOCAL_DEV}
+      record-event-data: ${RECORD_EVENT_DATA:true}
+      bindings:
+        input:
+          #商品推送临时topic ： PRODUCT_PUSH_TOPIC,同时需要修改group消费,并将record-event-data修改为false，减小数据库io
+          destination: ${EVENT_TOPIC:EVENT_MESSAGE_LOCAL_DEV}
+          group: ${CONSUMER_GROUP:SRM-MALL-LOCAL-DEV}
+  redis:
+    host: ${SPRING_REDIS_HOST:192.168.3.154}
+    port: ${SPRING_REDIS_PORT:6379}
+    database: ${SPRING_REDIS_DATABASE:1}
+    password: ${SPRING_REDIS_PASSWORD:}
+    jedis:
+      pool:
+        # 资源池中最大连接数
+        # 默认8，-1表示无限制；可根据服务并发redis情况及服务端的支持上限调整
+        max-active: ${SPRING_REDIS_POOL_MAX_ACTIVE:50}
+        # 资源池运行最大空闲的连接数
+        # 默认8，-1表示无限制；可根据服务并发redis情况及服务端的支持上限调整，一般建议和max-active保持一致，避免资源伸缩带来的开销
+        max-idle: ${SPRING_REDIS_POOL_MAX_IDLE:50}
+        # 当资源池连接用尽后，调用者的最大等待时间(单位为毫秒)
+        # 默认 -1 表示永不超时，设置5秒
+        max-wait: ${SPRING_REDIS_POOL_MAX_WAIT:5000}
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 512MB
+      max-request-size: 512MB
+message-pool:
+  namesrvaddr: ${ROCKETMQ_NAMESRV_ADDR:192.168.3.213:9876}
+
+feign:
+  hystrix:
+    enabled: true
+
+hystrix:
+  threadpool:
+    default:
+      # 执行命令线程池的核心线程数，也是命令执行的最大并发量
+      # 默认10
+      coreSize: ${HYSTRIX_THREADPOOL_DEFAULT_CORE_SIZE:1000}
+      # 最大执行线程数
+      maximumSize: ${HYSTRIX_THREADPOOL_DEFAULT_MAXMUM_SIZE:1000}
+  command:
+    default:
+      execution:
+        timeout:
+          enabled: true
+        isolation:
+          strategy: SEMAPHORE
+          thread:
+            timeoutInMilliseconds: ${HYSTRIX_COMMAND_TIMEOUT_IN_MILLISECONDS:40000}
+            # 信号量配置
+          semaphore:
+            maxConcurrentRequests: 1000
+
+ribbon:
+  ReadTimeout: ${RIBBON_READ_TIMEOUT:30000}
+  ConnectTimeout: ${RIBBON_CONNECT_TIMEOUT:3000}
+  OkToRetryOnAllOperations: false
+  # 访问实例失败(超时)，允许自动重试，设置重试次数，失败后会更换实例访问，请一定确保接口的幂等性，否则重试可能导致数据异常。
+  MaxAutoRetries: 1
+  MaxAutoRetriesNextServer: 1
+
+  #eureka设置true，在ribbon下级
+  eureka:
+    enabled: true
+
+mybatis:
+  mapperLocations: classpath*:/mapper/*.xml
+  configuration:
+    default-statement-timeout: ${MYBATIS_DEFAULT_STATEMENT_TIMEOUT:60}
+    mapUnderscoreToCamelCase: true
+    callSettersOnNulls: true
+
+hzero:
+  lov:
+    sql:
+      enabled: true
+  data:
+    permission:
+      enable: true
+      db-owner: ${HZERO_DB_OWNER:}
+  cache-value:
+    enable: true
+  scheduler:
+    executor-code: ${SCHEDULER_EXECUTOR_CODE:SMAL.EXECUTOR}
+    auto-register: true
+  export:
+    enable-async: true
+  service:
+    # 注册中心
+    register:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+    # 网关
+    gateway:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+    # 配置中心
+    config:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+    # 认证服务
+    oauth:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+    # 用户身份服务
+    iam:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+    # swagger
+    swagger:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+    # governanceswagger
+    governance:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+    # 平台服务
+    platform:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+    # 文件服务
+    file:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+    # 消息服务
+    message:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+    # 调度服务
+    scheduler:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+    # 导入服务
+    import:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+    # 报表服务
+    report:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+    # 工作流
+    workflow-plus:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+    # 监控服务
+    monitor:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+  lock:
+    # 单节点模式  single
+    # 集群模式    cluster
+    # 主从模式    master_slave
+    pattern: ${LOCK-PATTERN:single}
+    single-server:
+      # 节点地址
+      address: ${SPRING_REDIS_HOST:192.168.3.154}
+      # 节点端口
+      port: ${SPRING_REDIS_PORT:6379}
+      # 数据库编号
+      database: ${SPRING_REDIS_DATABASE:1}
+      password: ${SPRING_REDIS_PASSWORD:}
+    cluster-server:
+      # 集群节点地址
+      node-addresses: ${LOCK_NODE_ADDRESS:127.0.0.1:6379,127.0.0.1:6389}
+      password: ${SPRING_REDIS_PASSWORD:}
+    master-slave-server:
+      master-address: ${LOCK_MASTER_ADDRESS:127.0.0.1:6379}
+      slave-addresses: ${LOCK_SLAVE_ADDRESS:127.0.0.1:6389,127.0.0.1:6399}
+      database: ${SPRING_REDIS_DATABASE:1}
+      password: ${SPRING_REDIS_PASSWORD:}
+    value:
+      # 新增修改商品接口锁等待时间(秒)
+      add-product-wait-time: ${ADD_PRODUCT_WAIT_TIME:5}
+  mybatis-mapper:
+    data-security:
+      default-open: true
+      as-default-key: true
+      security-key: RGarqXE1wpAnW6V5hQs0Lg==
+
+
+server:
+  undertow:
+    # 允许url中存在特殊字符
+    allow-unescaped-characters-in-url: ${SERVER_UNDERTOW_SPECIAL_SYMPOL:true}
+
+srm:
+  service:
+    # srm 平台服务redis_db
+    platform:
+      redis-db: ${SPRING_REDIS_DATABASE:1}
+  mq:
+    env: ${SRM_MQ_ENV:dev}
+    topic-config-ref:
+      smal_auto_create_agreement: SMAL_AUTO_CREATE_AGREEMENT_DEV
+      srm-mall-test-demo: wangmin-test
+    open-async-message-send: true
+
+
+amkt:
+  gateway:
+    url: ${AMKT_GATEWAY_URL:http://dev.market-gateway.going-link.com}
+  oauth:
+    clientId: ${AMKT_OAUTH_CLIENT_ID:g21xWQfQyOII}
+    clientSecret: ${AMKT_OAUTH_CLIENT_SECRET:4iApyLk6n0lWv4aI}
+  schedule:
+    cron: '0 0/30 * * * ? '  #（根据项目需求配置定时任务执行时间，默认每隔5分钟）
+    enabled: false            # (是否开启定时任务，默认为false)
+  feign:
+    name: srm-supplier-lifecycle  #(配置客户端feign调用的服务名称)
+  client:
+    code: ${AMKT_CLIENT_CODE:DEV_CLIENT}
+    publicKey: ${AMKT_CLIENT_PUBLIC_KEY:MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCLx08UNFU2SRlSNucqRUbYGFykA6ti6nngH7pqu/jxXVrCCfZYqHlIqzD20thC+G4aqIgoZCV/6Eyt3i6pwQ7d3Hf52uQIcxS4bYVw/yWQVsuYJmDFAtLiJJZMeqlc/qYkgGPFq1jhofr0A6YsfXUxbcwnWiTT9cBRp0paa9LqwQIDAQAB}
+    privateKey: ${AMKT_CLIENT_PRIVATE_KEY:MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBAIvHTxQ0VTZJGVI25ypFRtgYXKQDq2LqeeAfumq7+PFdWsIJ9lioeUirMPbS2EL4bhqoiChkJX/oTK3eLqnBDt3cd/na5AhzFLhthXD/JZBWy5gmYMUC0uIklkx6qVz+piSAY8WrWOGh+vQDpix9dTFtzCdaJNP1wFGnSlpr0urBAgMBAAECgYBuBGbysSosuyZp9nrGY5aaObqZAaZhCcr5pB93KRKM73yi43J5X8lucAfvDg9Xzu/inanlmMWHQlEwPIOf6yuGNse6tYT4IWBtHZHHhbFg3U5esZ16deOl8AkLQ1Oi0Ngk8SyjZQ9K3XPm743r69pcZaRw1gRZ1jvtSbFwrzBAAQJBAOdzePTozd9PJbyKcG8Sif8nEQTyvzkews2UDbbnblSkGSvtqnM+c5IQng66VCB3u63KdJ9lAMA8xTACJKuUnQECQQCamq19Ep7eya9OqpuuGacEWsO/Sb5dhvsgmdHgmi8Ub+I4iY7XPAOa09E47F0pNgQBgKQkLgGtsi6nk8DDT43BAkB5sEujMJe1Vi64D22H6I5neYnIOTzy8kpnvfTr+ogWtmSJpR6eEvK+lEAV7D95BprFiBGDEJ6xdAIU+LuA/tUBAkADlygESZRq9CAgIZIv/uSEE1+MZ7gGEAZxAWGAZ9REEz0btwYcNYaX5+dp/QNE275IEqa9OFxNnl+7AJFvd7+BAkAGSztfaOzAZbxrv8N4wGxYoIeIRAAZohp1z3eK+eE+gQ39ZUHZSZAVggS8X5HEthSKiMNEyxcSLnL2Jg521xqn}
+# 下面是alpha和omega的配置
+alpha:
+  cluster:
+    register:
+      type: eureka #标识注册中心是eureka
+    address:
+    serviceId: srm-saga # alpha服务名
+omega:
+  enabled: true #作为omega端，启用标识
+  connection:
+    sending:
+      timeout: 1000
+
+
+#图片导入zip路径
+imageImport:
+  #复用搜索服务的文件路径
+  path: ${SMALL_DICTIONARY_ROOT:/srm-repo/srm-mall}
+
+
+logging:
+  level:
+    org.apache.ibatis: ${LOG_LEVEL:debug}
+    io.choerodon: ${LOG_LEVEL:debug}
+    org.srm.mall: ${LOG_LEVEL:debug}
+    org.springframework.data.elasticsearch: ${LOG_LEVEL:debug}
+
+oms:
+  #订单转发开关
+  order-transmit: ${ORDER-TRANSMIT:true}
+
+
+smal:
+  requestScheme: ${REQUEST_SCHEME:https}
+  punchoutName: ${PUNCHOUT_NAME:/smal/v1/punchout/check-out/}
+  shoppingCartUrl: ${SHOPPING_CART_URL:new.dev.going-buy.com/cart}
+  homeUrl: ${HOME_URL:srm.dev.isrm.going-link.com}
+
+
