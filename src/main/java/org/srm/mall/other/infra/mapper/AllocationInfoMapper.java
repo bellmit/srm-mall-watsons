@@ -1,6 +1,6 @@
 package org.srm.mall.other.infra.mapper;
 
-import org.srm.mall.other.domain.entity.CostAllocationInfo;
+import org.srm.mall.other.domain.entity.AllocationInfo;
 import io.choerodon.mybatis.common.BaseMapper;
 
 /**
@@ -8,6 +8,6 @@ import io.choerodon.mybatis.common.BaseMapper;
  *
  * @author yuewen.wei@hand-china.com 2020-12-21 15:35:27
  */
-public interface CostAllocationInfoMapper extends BaseMapper<CostAllocationInfo> {
+public interface AllocationInfoMapper extends BaseMapper<AllocationInfo> {
 
 }

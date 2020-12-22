@@ -1,8 +1,8 @@
 package org.srm.mall.other.infra.repository.impl;
 
 import org.hzero.mybatis.base.impl.BaseRepositoryImpl;
-import org.srm.mall.other.domain.entity.CostAllocationInfo;
-import org.srm.mall.other.domain.repository.CostAllocationInfoRepository;
+import org.srm.mall.other.domain.entity.AllocationInfo;
+import org.srm.mall.other.domain.repository.AllocationInfoRepository;
 import org.springframework.stereotype.Component;
 
 /**
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * @author yuewen.wei@hand-china.com 2020-12-21 15:35:27
  */
 @Component
-public class CostAllocationInfoRepositoryImpl extends BaseRepositoryImpl<CostAllocationInfo> implements CostAllocationInfoRepository {
+public class AllocationInfoRepositoryImpl extends BaseRepositoryImpl<AllocationInfo> implements AllocationInfoRepository {
 
 
 }
