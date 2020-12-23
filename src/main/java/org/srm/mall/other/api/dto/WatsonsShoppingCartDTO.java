@@ -1,4 +1,4 @@
-package org.srm.mall.other.api.controller.v1.dto;
+package org.srm.mall.other.api.dto;
 
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;

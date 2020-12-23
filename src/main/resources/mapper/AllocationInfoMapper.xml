@@ -5,7 +5,7 @@
     <resultMap id="BaseResultMap" type="org.srm.mall.other.domain.entity.AllocationInfo">
         <result column="allocation_id" property="allocationId" jdbcType="DECIMAL"/>
         <result column="cart_id" property="cartId" jdbcType="DECIMAL"/>
-        <result column="receive_type" property="receiveType" jdbcType="VARCHAR"/>
+        <result column="delivery_type" property="deliveryType" jdbcType="VARCHAR"/>
         <result column="cost_shop_id" property="costShopId" jdbcType="DECIMAL"/>
         <result column="cost_shop_code" property="costShopCode" jdbcType="VARCHAR"/>
         <result column="cost_shop_name" property="costShopName" jdbcType="VARCHAR"/>
@@ -23,4 +23,23 @@
         <result column="last_update_date" property="lastUpdateDate" jdbcType="DATE"/>
         <result column="object_version_number" property="objectVersionNumber" jdbcType="DECIMAL"/>
     </resultMap>
+
+
+    <select id="selectAllocationShopOrganization" resultType="org.srm.mall.other.api.dto.OrganizationInfoDTO">
+        SELECT
+        h.organization_id, h.organization_code, h.organization_name, h.ou_id, h.tenant_id
+        FROM hpfm_inv_organization h
+        WHERE
+        h.enabled_flag = 1
+        AND h.attribute2 = #{type}
+        <if test="organizationCode != null and organizationCode != ''">
+            <bind name="organizationCodeLike" value="'%' + organizationCode + '%'" />
+            AND h.organization_code like #{organizationCodeLike}
+        </if>
+        <if test="organizationName != null and organizationName != ''">
+            <bind name="organizationNameLike" value="'%' + organizationName + '%'" />
+            AND h.organization_name like #{organizationNameLike}
+        </if>
+    </select>
+
 </mapper>

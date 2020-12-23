@@ -1,5 +1,9 @@
 package org.srm.mall.other.app.service;
 
+import io.choerodon.core.domain.Page;
+import io.choerodon.mybatis.pagehelper.domain.PageRequest;
+import org.srm.mall.other.api.dto.AllocationInfoDTO;
+import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 
@@ -40,4 +44,13 @@ public interface AllocationInfoService {
      * 删除屈臣氏费用分配表
      */
     WatsonsShoppingCart remove(WatsonsShoppingCart watsonsShoppingCart);
+
+    /**
+     * 批量插入
+     * @param organizationId
+     * @param allocationInfoDTO
+     * @return
+     */
+    AllocationInfoDTO batchCreate(Long organizationId, AllocationInfoDTO allocationInfoDTO);
+
 }

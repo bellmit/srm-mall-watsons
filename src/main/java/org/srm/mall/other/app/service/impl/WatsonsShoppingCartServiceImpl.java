@@ -2,7 +2,6 @@ package org.srm.mall.other.app.service.impl;
 
 import io.choerodon.core.exception.CommonException;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.xmlbeans.impl.xb.xsdschema.All;
 import org.hzero.core.base.BaseConstants;
 import org.hzero.core.message.MessageAccessor;
 import org.hzero.mybatis.domian.Condition;
@@ -17,13 +16,12 @@ import org.srm.mall.agreement.domain.entity.ProductPool;
 import org.srm.mall.agreement.domain.entity.ProductPoolLadder;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.infra.constant.WatsonsConstants;
-import org.srm.mall.other.api.controller.v1.dto.WatsonsShoppingCartDTO;
+import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
 import org.srm.mall.other.app.service.PunchoutService;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.srm.mall.other.domain.entity.BudgetInfo;
 import org.srm.mall.other.domain.entity.ShoppingCart;
-import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 import org.srm.mall.other.domain.repository.AllocationInfoRepository;
 import org.srm.mall.other.domain.repository.BudgetInfoRepository;
 import org.srm.mall.other.domain.repository.ShoppingCartRepository;
@@ -80,17 +78,20 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl {
         List<ShoppingCartDTO> shoppingCartDTOList = super.shppingCartEnter(organizationId, shoppingCart);
 
         if (!CollectionUtils.isEmpty(shoppingCartDTOList)) {
-
             List<AllocationInfo> allocationInfoList = allocationInfoRepository.selectByCondition(Condition.builder(AllocationInfo.class).andWhere(Sqls.custom()
                     .andIn(AllocationInfo.FIELD_CART_ID, shoppingCartDTOList.stream().map(ShoppingCartDTO::getCartId).collect(Collectors.toList()))).build());
-            Map<Long, List<AllocationInfo>> map = allocationInfoList.stream().collect(Collectors.groupingBy(AllocationInfo::getCartId));
-
-            return shoppingCartDTOList.stream().map(s -> {
-                WatsonsShoppingCartDTO watsonsShoppingCart = new WatsonsShoppingCartDTO();
-                BeanUtils.copyProperties(s, watsonsShoppingCart);
-                watsonsShoppingCart.setCostAllocationInfoList(map.get(s.getCartId()));
-                return watsonsShoppingCart;
-            }).collect(Collectors.toList());
+            if (!CollectionUtils.isEmpty(allocationInfoList)){
+                for (AllocationInfo allocationInfo : allocationInfoList){
+                    allocationInfo.setAmount(allocationInfo.getPrice().multiply(new BigDecimal(allocationInfo.getQuantity())));
+                }
+                Map<Long, List<AllocationInfo>> map = allocationInfoList.stream().collect(Collectors.groupingBy(AllocationInfo::getCartId));
+                return shoppingCartDTOList.stream().map(s -> {
+                    WatsonsShoppingCartDTO watsonsShoppingCart = new WatsonsShoppingCartDTO();
+                    BeanUtils.copyProperties(s, watsonsShoppingCart);
+                    watsonsShoppingCart.setCostAllocationInfoList(map.get(s.getCartId()));
+                    return watsonsShoppingCart;
+                }).collect(Collectors.toList());
+            }
         }
         return shoppingCartDTOList;
     }

@@ -34,7 +34,7 @@ public class AllocationInfo extends AuditDomain {
 
     public static final String FIELD_ALLOCATION_ID = "allocationId";
     public static final String FIELD_CART_ID = "cartId";
-    public static final String FIELD_RECEIVE_TYPE = "receiveType";
+    public static final String FIELD_DELIVERY_TYPE = "deliveryType";
     public static final String FIELD_COST_SHOP_ID = "costShopId";
     public static final String FIELD_COST_SHOP_CODE = "costShopCode";
     public static final String FIELD_COST_SHOP_NAME = "costShopName";
@@ -71,9 +71,9 @@ public class AllocationInfo extends AuditDomain {
     @NotNull
     @Encrypt
     private Long cartId;
-    @ApiModelProperty(value = "收货方式", required = true)
+    @ApiModelProperty(value = "送货方式", required = true)
     @NotBlank
-    private String receiveType;
+    private String deliveryType;
     @ApiModelProperty(value = "地址id", required = true)
     @NotNull
     @Encrypt
@@ -119,10 +119,21 @@ public class AllocationInfo extends AuditDomain {
     @Transient
     private BigDecimal amount;
 
+    @Transient
+    private BigDecimal percent;
+
 //
 // getter/setter
 // ------------------------------------------------------------------------------
 
+
+    public BigDecimal getPercent() {
+        return percent;
+    }
+
+    public void setPercent(BigDecimal percent) {
+        this.percent = percent;
+    }
 
     public BigDecimal getAmount() {
         return amount;
@@ -165,15 +176,14 @@ public class AllocationInfo extends AuditDomain {
     }
 
     /**
-     * @return 收货方式
+     * @return 送货方式
      */
-    public String getReceiveType() {
-        return receiveType;
+    public String getDeliveryType() {
+        return deliveryType;
     }
 
-    public AllocationInfo setReceiveType(String receiveType) {
-        this.receiveType = receiveType;
-        return this;
+    public void setDeliveryType(String deliveryType) {
+        this.deliveryType = deliveryType;
     }
 
     /**
