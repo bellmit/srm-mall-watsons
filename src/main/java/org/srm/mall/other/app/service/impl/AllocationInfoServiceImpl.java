@@ -57,15 +57,17 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     public List<AllocationInfo> create(Long tenantId, WatsonsShoppingCart watsonsShoppingCart) {
         List<AllocationInfo> allocationInfoList = watsonsShoppingCart.getCostAllocationInfoList();
         for (AllocationInfo allocationInfo : allocationInfoList){
+            //查询对应的地址，待确认查询逻辑,此处先写成-1
+            allocationInfo.setAddressId(-1L);
+            
             if (allocationInfo.getAllocationId() == null){
-                //查询对应的地址,此处先写成-1
-                allocationInfo.setAddressId(-1L);
                 allocationInfoRepository.insertSelective(allocationInfo);
             } else {
                 allocationInfoRepository.updateByPrimaryKeySelective(allocationInfo);
             }
         }
-        //校验对应的地址商品是否可售
+        //校验对应的地址商品是否可售,等待价格服务提供接口
+
         //合并相同数据
         watsonsShoppingCart.setCostAllocationInfoList(mergeSameAllocationInfo(watsonsShoppingCart));
         return allocationInfoList;
