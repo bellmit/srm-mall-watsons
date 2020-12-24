@@ -38,7 +38,7 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements O
             String batchNum;
             //根据品类分组批次号
             if(batchNumMap.containsKey(Optional.ofNullable(preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId()))){
-                batchNum = batchNumMap.get(Optional.ofNullable(preRequestOrderDTO.getCategoryId()));
+                batchNum = batchNumMap.get(Optional.ofNullable(preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId()));
             }else {
                 batchNum = codeRuleBuilder.generateCode(ScecConstants.RuleCode.S2FUL_ORDER_BATCH_CODE, null);
                 batchNumMap.put(Optional.ofNullable(preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId()),batchNum);
