@@ -1,47 +1,76 @@
 package org.srm.mall.other.app.service.impl;
 
+import com.ctrip.framework.apollo.util.ExceptionUtil;
 import io.choerodon.core.exception.CommonException;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hzero.core.base.BaseConstants;
 import org.hzero.core.message.MessageAccessor;
+import org.hzero.core.util.ResponseUtils;
 import org.hzero.mybatis.domian.Condition;
 import org.hzero.mybatis.util.Sqls;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
+import org.srm.boot.common.CustomizeSettingCode;
+import org.srm.boot.common.cache.impl.AbstractKeyGenerator;
+import org.srm.boot.platform.configcenter.CnfHelper;
+import org.srm.boot.platform.customizesetting.CustomizeSettingHelper;
+import org.srm.common.convert.bean.BeanConvertor;
+import org.srm.mall.agreement.app.service.PostageService;
 import org.srm.mall.agreement.app.service.ProductPoolService;
 import org.srm.mall.agreement.domain.entity.ProductPool;
 import org.srm.mall.agreement.domain.entity.ProductPoolLadder;
 import org.srm.mall.common.constant.ScecConstants;
+import org.srm.mall.common.feign.SmdmRemoteService;
+import org.srm.mall.common.utils.snapshot.SnapshotUtil;
 import org.srm.mall.infra.constant.WatsonsConstants;
+import org.srm.mall.order.api.dto.PreRequestOrderDTO;
+import org.srm.mall.order.app.service.MallOrderCenterService;
+import org.srm.mall.other.api.dto.ItemOrgRel;
+import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
-import org.srm.mall.other.app.service.PunchoutService;
-import org.srm.mall.other.domain.entity.AllocationInfo;
-import org.srm.mall.other.domain.entity.BudgetInfo;
-import org.srm.mall.other.domain.entity.ShoppingCart;
+import org.srm.mall.other.app.service.*;
+import org.srm.mall.other.domain.entity.*;
 import org.srm.mall.other.domain.repository.AllocationInfoRepository;
 import org.srm.mall.other.domain.repository.BudgetInfoRepository;
+import org.srm.mall.other.domain.repository.MinPurchaseConfigRepository;
 import org.srm.mall.other.domain.repository.ShoppingCartRepository;
-import org.srm.mall.platform.domain.entity.EcClient;
-import org.srm.mall.platform.domain.entity.EcCompanyAssign;
-import org.srm.mall.platform.domain.entity.EcPlatform;
+import org.srm.mall.platform.domain.entity.*;
 import org.srm.mall.platform.domain.repository.EcClientRepository;
 import org.srm.mall.platform.domain.repository.EcCompanyAssignRepository;
 import org.srm.mall.platform.domain.repository.EcPlatformRepository;
+import org.srm.mall.product.api.dto.PriceResultDTO;
+import org.srm.mall.product.domain.entity.ScecProductCategory;
 import org.srm.mall.product.domain.repository.ComCategoryCatalogMapRepository;
+import org.srm.mall.product.infra.mapper.ScecProductCategoryMapper;
+import org.srm.mall.region.domain.entity.Address;
 import org.srm.mall.region.domain.repository.AddressRepository;
 import org.srm.web.annotation.Tenant;
-
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Service("watsonsShoppingCartService")
 @Tenant(WatsonsConstants.TENANT_NUMBER)
-public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl {
+public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl implements WatsonsShoppingCartService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ShoppingCartServiceImpl.class);
+
+    private static final String BUSINESS_CARD_CATEGORY_CODE = "BUSINESS_CARD";
 
     @Autowired
     private AllocationInfoRepository allocationInfoRepository;
@@ -73,6 +102,37 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl {
     @Autowired
     private ComCategoryCatalogMapRepository comCategoryCatalogMapRepository;
 
+    @Autowired
+    private ScecProductCategoryMapper scecProductCategoryMapper;
+
+    @Autowired
+    private CatalogPriceLimitService catalogPriceLimitService;
+
+    @Autowired
+    private MallOrderCenterService mallOrderCenterService;
+
+    @Autowired
+    private BudgetInfoService budgetInfoService;
+
+    @Autowired
+    private PostageService postageService;
+
+    @Autowired
+    private SnapshotUtil snapshotUtil;
+
+    @Autowired
+    private ShoppingCartService shoppingCartService;
+
+    @Autowired
+    private CustomizeSettingHelper customizeSettingHelper;
+
+    @Autowired
+    private MinPurchaseConfigRepository minPurchaseConfigRepository;
+
+    @Autowired
+    private SmdmRemoteService smdmRemoteService;
+
+
     @Override
     public List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart) {
         List<ShoppingCartDTO> shoppingCartDTOList = super.shppingCartEnter(organizationId, shoppingCart);
@@ -80,8 +140,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl {
         if (!CollectionUtils.isEmpty(shoppingCartDTOList)) {
             List<AllocationInfo> allocationInfoList = allocationInfoRepository.selectByCondition(Condition.builder(AllocationInfo.class).andWhere(Sqls.custom()
                     .andIn(AllocationInfo.FIELD_CART_ID, shoppingCartDTOList.stream().map(ShoppingCartDTO::getCartId).collect(Collectors.toList()))).build());
-            if (!CollectionUtils.isEmpty(allocationInfoList)){
-                for (AllocationInfo allocationInfo : allocationInfoList){
+            if (!CollectionUtils.isEmpty(allocationInfoList)) {
+                for (AllocationInfo allocationInfo : allocationInfoList) {
                     allocationInfo.setAmount(allocationInfo.getPrice().multiply(new BigDecimal(allocationInfo.getQuantity())));
                 }
                 Map<Long, List<AllocationInfo>> map = allocationInfoList.stream().collect(Collectors.groupingBy(AllocationInfo::getCartId));
@@ -292,5 +352,522 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl {
             shoppingCart.setLatestPrice(productPoolLadder.getTaxPrice());
             shoppingCart.setUnitPrice(productPoolLadder.getTaxPrice());
         }
+    }
+
+
+    // TODO: 2020/12/23
+    @Override
+    public List<PreRequestOrderDTO> watsonsPreRequestOrderView(Long tenantId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
+
+        //如果有服务商品，从底层list取出放到上层list
+        List<ShoppingCartDTO> re = new ArrayList<>();
+
+        //获取名片分类的categoryId
+        ScecProductCategory businessCardCategory = scecProductCategoryMapper.getCategoryByCode(BUSINESS_CARD_CATEGORY_CODE);
+        Long businessCardCategoryId = -1L;
+        if (businessCardCategory != null) {
+            businessCardCategoryId = businessCardCategory.getId();
+        }
+        // 批量获取价格
+        // 首先更加购物车的地址和组织进行分组调用获取价格
+
+
+        //watsonsShoppingCartDTOList转换成的shoppingCartDTOList用于后续检测
+        List<ShoppingCartDTO> shoppingCartDTOList = new ArrayList<>();
+        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
+            ShoppingCartDTO shoppingCartDTO4Transfer = new ShoppingCartDTO();
+            BeanUtils.copyProperties(watsonsShoppingCartDTO, shoppingCartDTO4Transfer);
+            shoppingCartDTOList.add(shoppingCartDTO4Transfer);
+        }
+
+        // eric 首先根据购物车的地址id和组织层级进行分组调用   异步获取商品价格
+        Map<String, Map<Long, PriceResultDTO>> priceResultDTOMap = queryPriceResult(shoppingCartDTOList);
+
+        Iterator iterator = shoppingCartDTOList.iterator();
+        while (iterator.hasNext()) {
+
+
+            ShoppingCartDTO shoppingCartDTO = (ShoppingCartDTO) iterator.next();
+
+
+            Map<Long, PriceResultDTO> resultDTOMap = priceResultDTOMap.get(shoppingCartDTO.skuRegionGroupKey());
+            if (ObjectUtils.isEmpty(resultDTOMap)) {
+                throw new CommonException(ScecConstants.ErrorCode.PRODUCT_CANNOT_SELL);
+            }
+            PriceResultDTO priceResultDTO = resultDTOMap.get(shoppingCartDTO.getProductId());
+            if (ObjectUtils.isEmpty(priceResultDTO) || !BaseConstants.Flag.YES.equals(priceResultDTO.getSaleEnable())) {
+                throw new CommonException(ScecConstants.ErrorCode.PRODUCT_CANNOT_SELL);
+            }
+            //判断是否满足最小包装量
+            BigDecimal number = new BigDecimal(shoppingCartDTO.getQuantity()).divide(shoppingCartDTO.getMinPackageQuantity(), 10, BigDecimal.ROUND_HALF_UP);
+            if (new BigDecimal(number.intValue()).compareTo(number) != 0) {
+                throw new CommonException("不满足最小包装量" + shoppingCartDTO.getMinPackageQuantity() + "的整数倍");
+            }
+            if (businessCardCategoryId.equals(shoppingCartDTO.getCid())) {
+                shoppingCartDTO.setBusinessCardFlag(1);
+            }
+            shoppingCartDTO.setAgreementLineId(priceResultDTO.getPurAgreementLineId());
+            if (!ObjectUtils.isEmpty(shoppingCartDTO.getCatalogId())) {
+                Integer count = comCategoryCatalogMapRepository.checkCatalog(shoppingCartDTO.getOwnerId(), priceResultDTO.getCatalogId(), shoppingCartDTO.getTenantId());
+                if (count > 0) {
+                    throw new CommonException(ScecConstants.ErrorCode.CATALOG_PERMISSION_NOT_PASS);
+                }
+                //校验目录价格限制
+                BigDecimal priceLimit = catalogPriceLimitService.priceLimit(new CatalogPriceLimit(shoppingCartDTO.getTenantId(), shoppingCartDTO.getOwnerId(), shoppingCartDTO.getProductId(), shoppingCartDTO.getCatalogId(), null));
+                if (Objects.nonNull(priceLimit) && priceLimit.compareTo(shoppingCartDTO.getLatestPrice()) == -1) {
+                    //存在商品价格限制，不通过
+                    //设置最小小数位2位，不足补0，最大小数位10位
+                    NumberFormat nf = NumberFormat.getInstance();
+                    nf.setMinimumFractionDigits(2);
+                    nf.setMaximumFractionDigits(10);
+                    nf.setGroupingUsed(false);
+                    throw new CommonException(ScecConstants.ErrorCode.CATALOG_OVER_LIMIT_PRICE, nf.format(priceLimit));
+                }
+            } else {
+                throw new CommonException(ScecConstants.ErrorCode.PRODUCT_CATALOG_NOT_EXISTS);
+            }
+            if (CollectionUtils.isNotEmpty(shoppingCartDTO.getSeSkuList())) {
+                re.addAll(shoppingCartDTO.getSeSkuList());
+            }
+            if (!ObjectUtils.isEmpty(shoppingCartDTO.getItemId())) {
+                shoppingCartDTO.setHasItemFlag(BaseConstants.Flag.YES);
+            } else {
+                shoppingCartDTO.setHasItemFlag(BaseConstants.Flag.NO);
+                shoppingCartDTO.setWarehousing(BaseConstants.Flag.YES);
+            }
+            checkPrice(shoppingCartDTO, priceResultDTO);
+            // 设置其余查询出来的参数
+            convertParam(shoppingCartDTO, priceResultDTO);
+        }
+
+
+        //检测条件完毕
+
+
+        //校验收货地址
+        validateShppingAddress(shoppingCartDTOList);
+        //验证商品存在购物车才能生成与采购申请单
+        validateShoppingExistCar(shoppingCartDTOList);
+        if (CollectionUtils.isNotEmpty(re)) {
+            validateShoppingExistCar(re);
+        }
+        boolean hideSupplier = mallOrderCenterService.checkHideField(tenantId, shoppingCartDTOList.get(0).getCompanyId(), ScecConstants.HideField.SUPPLIER);
+
+
+        if (CollectionUtils.isNotEmpty(shoppingCartDTOList)) {
+            List<PreRequestOrderDTO> preRequestOrderDTOList = new ArrayList<>();
+
+            //将每一个商品根据自己的多个费用拆成多个订单行
+            splitShoppingCartByCostConfig(watsonsShoppingCartDTOList);
+            //此时shoppingCartDTOList已经有   每一个商品根据自己的多个费用条拆成的多个订单行
+
+            PurReqMergeRule purReqMergeRule = PurReqMergeRule.getDefaultMergeRule();
+
+            // TODO: 2020/12/23   拼上key  只能用watsonsShoppingCartDTO 进行数据获取  所以必须使用watsonsshoppingcart
+
+            // TODO: 2020/12/23  shoppingCart中的addressid 和 authention中的addressid是不同的  所以必须用watsons进行合单
+
+            // TODO: 2020/12/23   因为子订单做同样的合单操作   watsonsShoppingCartDTO中的子订单这个类型   也要改成watsonsShoppingCartDTO类型
+
+            // TODO: 2020/12/23  需要先用默认的排一次  然后再拆单
+
+            Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(s -> s.watsonsGroupKey(tenantId, s, purReqMergeRule)));
+            result = watsonsGroupPurchaseRequest(tenantId, purReqMergeRule, result);
+
+
+            // TODO: 2020/12/23  即使是watsons中的seskulist 同样是shoppingcart类型的 天生没有合单归项的key的3个数据  所以还按原来的addressid排？差距就在addressid
+//            Map<String, List<ShoppingCartDTO>> reResult = re.stream().collect(Collectors.groupingBy(s -> s.groupKey(purReqMergeRule)));
+//            reResult = groupPurchaseRequest(tenantId, purReqMergeRule, reResult);
+
+
+            //拆单完成后判断是否还需要继续根据重复订单再行拆分
+            recursionSplitShoppingCart(result);
+
+            //用于前端区分采购申请s
+            int distinguishId = 0;
+            for (Map.Entry<String, List<WatsonsShoppingCartDTO>> entry : result.entrySet()) {
+                WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO = new WatsonsPreRequestOrderDTO();
+                List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList4Trans = entry.getValue();
+                List<ShoppingCartDTO> shoppingCartDTO4FrontEnd = new ArrayList<>();
+                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList4Trans) {
+                   ShoppingCartDTO shoppingCartDTO = new ShoppingCartDTO();
+                   BeanUtils.copyProperties(watsonsShoppingCartDTO,shoppingCartDTO);
+                   shoppingCartDTO4FrontEnd.add(shoppingCartDTO);
+                }
+                watsonsPreRequestOrderDTO.setShoppingCartDTOList(shoppingCartDTO4FrontEnd);
+                watsonsPreRequestOrderDTO.setDistinguishId(++distinguishId);
+                watsonsPreRequestOrderDTO.setCount(entry.getValue().stream().mapToLong(WatsonsShoppingCartDTO::getQuantity).sum());
+                WatsonsShoppingCartDTO watsonsShoppingCartDTO = entry.getValue().get(0);
+                watsonsPreRequestOrderDTO.setAddress(watsonsShoppingCartDTO.getAddress());
+                boolean checkHideSupplier = hideSupplier && ScecConstants.SourceType.CATALOGUE.equals(watsonsShoppingCartDTO.getProductSource());
+                watsonsPreRequestOrderDTO.setSupplierCompanyName(checkHideSupplier ? ScecConstants.HideField.HIDE_SUPPLIER_NAME_CODE : watsonsShoppingCartDTO.getSupplierCompanyName());
+                watsonsPreRequestOrderDTO.setOuName(watsonsShoppingCartDTO.getOuName());
+                watsonsPreRequestOrderDTO.setPurOrganizationName(watsonsShoppingCartDTO.getPurOrganizationName());
+                watsonsPreRequestOrderDTO.setPurOrganizationId(watsonsShoppingCartDTO.getPurOrganizationId());
+                watsonsPreRequestOrderDTO.setOrganizationName(watsonsShoppingCartDTO.getOrganizationName());
+                watsonsPreRequestOrderDTO.setReceiverContactName(watsonsShoppingCartDTO.getContactName());
+                watsonsPreRequestOrderDTO.setReceiverEmailAddress(watsonsShoppingCartDTO.getContactEmail());
+                watsonsPreRequestOrderDTO.setReceiverTelNum(watsonsShoppingCartDTO.getContactMobile());
+                watsonsPreRequestOrderDTO.setProxySupplierCompanyId(watsonsShoppingCartDTO.getProxySupplierCompanyId());
+                watsonsPreRequestOrderDTO.setProxySupplierCompanyName(watsonsShoppingCartDTO.getProxySupplierCompanyName());
+                watsonsPreRequestOrderDTO.setShowSupplierCompanyId(watsonsShoppingCartDTO.getShowSupplierCompanyId());
+                watsonsPreRequestOrderDTO.setShowSupplierName(checkHideSupplier ? ScecConstants.HideField.HIDE_SUPPLIER_NAME_CODE : watsonsShoppingCartDTO.getShowSupplierName());
+                // 订单总价(不含运费)
+                BigDecimal price = entry.getValue().stream().map(WatsonsShoppingCartDTO::getTotalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+//                if (reResult.containsKey(entry.getKey())) {
+//                    price = reResult.get(entry.getKey()).stream()
+//                            .filter(s -> s.getSkuType().equals(ScecConstants.ProductSkuType.SERVICE_PRODUCT))
+//                            .map(ShoppingCartDTO::getTotalPrice)
+//                            .reduce(price, BigDecimal::add);
+//                }
+                validateMinPurchaseAmount(tenantId, watsonsShoppingCartDTO, price, watsonsPreRequestOrderDTO);
+                // 代理运费和代理总价问题处理 运费以采购价来计算
+                BigDecimal freightPrice = price;
+                if (ScecConstants.AgreementType.SALE.equals(watsonsShoppingCartDTO.getAgreementType())) {
+                    //  如果是销售协议 运费需要用采购协议价来计算
+                    freightPrice = entry.getValue().stream().map(WatsonsShoppingCartDTO::getPurTotalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+//                    if (reResult.containsKey(entry.getKey())) {
+//                        freightPrice = reResult.get(entry.getKey()).stream()
+//                                .filter(s -> s.getSkuType().equals(ScecConstants.ProductSkuType.SERVICE_PRODUCT))
+//                                .map(ShoppingCartDTO::getPurTotalPrice)
+//                                .reduce(price, BigDecimal::add);
+//                    }
+                }
+                //TODO 设置运费
+                // 测试环境存在多个京东编码
+                if (ScecConstants.ECommercePlatformCode.PLATFORM_JD.equals(entry.getValue().get(0).getProductSource()) || ScecConstants.SourceType.NJD.equals(entry.getValue().get(0).getProductSource())) {
+                    //供应商为京东
+                    if (freightPrice.compareTo(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_FREE)) > -1) {
+                        //金额超过99元，免运费
+                        watsonsPreRequestOrderDTO.setFreight(BigDecimal.ZERO);
+                    } else if (freightPrice.compareTo(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_MIDDLE)) > -1) {
+                        //金额在50-99之间，低运费
+                        watsonsPreRequestOrderDTO.setFreight(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_COST_LOW));
+                    } else {
+                        //金额在0-49之间，高运费
+                        watsonsPreRequestOrderDTO.setFreight(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_COST_HIGN));
+                    }
+                } else {
+                    //非京东商品或目录化商品
+                    //preRequestOrderDTO.setFreight(BigDecimal.ZERO);
+                    postageService.calculateFreight(Collections.singletonList(watsonsPreRequestOrderDTO));
+                }
+                //小计金额  金额+运费
+                watsonsPreRequestOrderDTO.setPrice(price.add(watsonsPreRequestOrderDTO.getFreight()));
+                if (ScecConstants.AgreementType.SALE.equals(watsonsShoppingCartDTO.getAgreementType())) {
+                    //  如果是销售协议 运费需要用采购协议价来计算
+                    watsonsPreRequestOrderDTO.setPurPrice(freightPrice.add(watsonsPreRequestOrderDTO.getFreight()));
+                }
+
+                //校验账户余额
+//                checkBalance(entry.getValue().get(0).getCompanyId(),preRequestOrderDTO);
+                // 获取缓存中电商支付信息
+                PaymentInfo paymentInfo = shoppingCartRepository.queryPaymentInfo(watsonsShoppingCartDTO);
+                if (null != paymentInfo) {
+                    BeanConvertor.convert(paymentInfo, watsonsPreRequestOrderDTO);
+                }
+                watsonsPreRequestOrderDTO.setPreRequestOrderNumber(UUID.randomUUID().toString());
+
+                // TODO: 2020/12/24  我自己查的物料品类直接覆盖shoppingcartDTO中的物料id传给志哥
+
+
+                // TODO: 2020/12/24   ce号设置
+                watsonsPreRequestOrderDTO.setMobile(watsonsShoppingCartDTO.getMobile());
+
+                snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
+                preRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
+            }
+            // handleCheck()
+            return preRequestOrderDTOList;
+        }
+        return null;
+    }
+
+    private void splitShoppingCartByCostConfig(List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
+
+        //预算拆单：同一个商品会有多个预算，此时需要将这个商品根据预算维度拆分，拆成多个不同的采购申请单,但是不同的商品不能按照预算不同进行拆分
+        List<WatsonsShoppingCartDTO> splitCosttInfoList = new ArrayList<>();
+        //开启了预算
+        //将有预算信息的购物车拆开
+        Iterator<WatsonsShoppingCartDTO> it = watsonsShoppingCartDTOList.iterator();
+        while (it.hasNext()) {
+            WatsonsShoppingCartDTO watsonsShoppingCartDTO = it.next();
+            List<AllocationInfo> costAllocationInfoList = watsonsShoppingCartDTO.getCostAllocationInfoList();
+            if (!CollectionUtils.isEmpty(costAllocationInfoList) && costAllocationInfoList.size() > 1) {
+                for (AllocationInfo allocationInfo : costAllocationInfoList) {
+                    WatsonsShoppingCartDTO newWatsonsShoppingCartDTO = new WatsonsShoppingCartDTO();
+                    BeanUtils.copyProperties(watsonsShoppingCartDTO, newWatsonsShoppingCartDTO);
+                    newWatsonsShoppingCartDTO.setQuantity(allocationInfo.getQuantity().intValue());
+                    newWatsonsShoppingCartDTO.setCostAllocationInfoList(Collections.singletonList(allocationInfo));
+                    newWatsonsShoppingCartDTO.setTotalPrice(ObjectUtils.isEmpty(allocationInfo.getPrice()) ? BigDecimal.ZERO : allocationInfo.getPrice());
+                    splitCosttInfoList.add(newWatsonsShoppingCartDTO);
+                }
+                it.remove();
+            }
+        }
+        watsonsShoppingCartDTOList.addAll(splitCosttInfoList);
+    }
+
+    private Map<String, Map<Long, PriceResultDTO>> queryPriceResult(List<ShoppingCartDTO> shoppingCartDTOList) {
+        Map<String, List<ShoppingCartDTO>> skuShoppingCartDTO = shoppingCartDTOList.stream().collect(Collectors.groupingBy(ShoppingCartDTO::skuRegionGroupKey));
+        Map<String, Map<Long, PriceResultDTO>> priceResultDTOMap = new HashMap<>();
+        // 异步循环获取价格
+        List<Future<Map<String, Map<Long, PriceResultDTO>>>> asyncCallback = new ArrayList<>();
+        SecurityContext context = SecurityContextHolder.getContext();
+        for (Map.Entry<String, List<ShoppingCartDTO>> entry : skuShoppingCartDTO.entrySet()) {
+            Future<Map<String, Map<Long, PriceResultDTO>>> checkSaleResultResult = shoppingCartService.asyncQueryPrice(entry, context);
+            asyncCallback.add(checkSaleResultResult);
+        }
+        for (Future<Map<String, Map<Long, PriceResultDTO>>> checkSaleResult : asyncCallback) {
+            try {
+                priceResultDTOMap.putAll(checkSaleResult.get(10, TimeUnit.SECONDS));
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                e.printStackTrace();
+                logger.error("异步查询价格异常{}", ExceptionUtil.getDetailMessage(e));
+            }
+        }
+        return priceResultDTOMap;
+    }
+
+
+    private void checkPrice(ShoppingCartDTO shoppingCartDTO, PriceResultDTO priceResultDTO) {
+        // 便利购物车数据 比较价格 价格不一致报错
+        if (!ObjectUtils.isEmpty(priceResultDTO.getLadderPriceList())) {
+//            获取对应阶梯的价格
+            ProductPool productPool = new ProductPool();
+            productPool.setLadderPriceList(priceResultDTO.getLadderPriceList());
+            ShoppingCart shoppingCart = new ShoppingCart();
+            BeanUtils.copyProperties(shoppingCartDTO, shoppingCart);
+            handLadderPrice(shoppingCart, productPool);
+            priceResultDTO.setSellPrice(shoppingCart.getLatestPrice());
+        }
+        // 价格只保留两位
+        if (shoppingCartDTO.getLatestPrice().compareTo(priceResultDTO.getSellPrice()) != 0) {
+            throw new CommonException(ScecConstants.ErrorCode.ERROR_INCONSISTENT_PRODUCT_PRICE);
+        }
+        BigDecimal totalPrice = ObjectUtils.isEmpty(priceResultDTO.getSellPrice()) ? BigDecimal.ZERO : (priceResultDTO.getSellPrice().multiply(BigDecimal.valueOf(shoppingCartDTO.getQuantity())));
+        //punchout 不计算价格
+        if (punchoutService.isPuhchout(shoppingCartDTO.getProductSource())) {
+            return;
+        }
+        if (shoppingCartDTO.getTotalPrice().compareTo(totalPrice) != 0) {
+            throw new CommonException(ScecConstants.ErrorCode.ERROR_INCONSISTENT_PRODUCT_PRICE);
+        }
+    }
+
+
+    /**
+     * 设置购物车数据
+     *
+     * @param shoppingCartDTO 购物车
+     * @param priceResultDTO  价格服务返回结果
+     */
+    private void convertParam(ShoppingCartDTO shoppingCartDTO, PriceResultDTO priceResultDTO) {
+        shoppingCartDTO.setPurLastPrice(priceResultDTO.getPurchasePrice());
+        BigDecimal proxyTotalPrice = ObjectUtils.isEmpty(shoppingCartDTO.getPurLastPrice()) ? BigDecimal.ZERO : (shoppingCartDTO.getPurLastPrice().multiply(BigDecimal.valueOf(shoppingCartDTO.getQuantity())));
+        shoppingCartDTO.setPurTotalPrice(proxyTotalPrice);
+        shoppingCartDTO.setShowSupplierCompanyId(priceResultDTO.getShowSupplierCompanyId());
+        shoppingCartDTO.setShowSupplierName(priceResultDTO.getShowSupplierName());
+        shoppingCartDTO.setSupplierCompanyId(priceResultDTO.getSupplierCompanyId());
+        shoppingCartDTO.setSupplierCompanyName(priceResultDTO.getSupplierCompanyName());
+        shoppingCartDTO.setProxySupplierCompanyId(priceResultDTO.getProxySupplierCompanyId());
+        shoppingCartDTO.setProxySupplierCompanyName(priceResultDTO.getProxySupplierCompanyName());
+        shoppingCartDTO.setAgreementType(priceResultDTO.getAgreementType());
+        shoppingCartDTO.setAgreementBusinessType(priceResultDTO.getAgreementBusinessType());
+    }
+
+
+    private void validateShppingAddress(List<ShoppingCartDTO> shoppingCartDTOList) {
+        List<Long> addressIds = shoppingCartDTOList.stream().map(ShoppingCartDTO::getAddressId).collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(addressIds) || addressIds.size() != shoppingCartDTOList.size()) {
+            throw new CommonException(ScecConstants.ErrorCode.ADDRESS_NOT_EXISTS);
+        }
+        Set<Long> addressIdSet = new HashSet(addressIds);
+        List<Address> addressList = addressRepository.selectByIds(org.apache.commons.lang3.StringUtils.join(addressIdSet, ","));
+        if (CollectionUtils.isEmpty(addressList) || addressList.size() != addressIdSet.size()) {
+            throw new CommonException(ScecConstants.ErrorCode.ADDRESS_NOT_EXISTS);
+        }
+        String customerSetting = customizeSettingHelper.queryBySettingCode(shoppingCartDTOList.get(0).getTenantId(), CustomizeSettingCode.Purchase.CataloguePurchase.PERSONAL_ADDRESS);
+        if (org.apache.commons.lang3.StringUtils.isNotEmpty(customerSetting) && customerSetting.equals(ScecConstants.ConstantNumber.STRING_0)) {
+            //个人收货地址被禁用
+            addressList.forEach(a -> {
+                if (Objects.isNull(a.getBelongType()) || a.getBelongType() == 2) {
+                    //不允许使用个人收货地址下单
+                    throw new CommonException(ScecConstants.ErrorCode.PERSION_ADDRESS_DISABLED);
+                }
+            });
+        }
+    }
+
+
+    private void validateShoppingExistCar(List<ShoppingCartDTO> shoppingCartDTOList) {
+        //验证商品存在购物车才能生成与采购申请单
+        String ids = "";
+        for (ShoppingCartDTO shoppingCartDTO : shoppingCartDTOList) {
+            ids += shoppingCartDTO.getCartId() + ",";
+        }
+        if (org.apache.commons.lang3.StringUtils.isNotEmpty(ids)) {
+            ids = ids.substring(0, ids.length() - 1);
+        }
+        List<ShoppingCart> shoppingCarts = shoppingCartRepository.selectByIds(ids);
+        if (shoppingCarts == null || shoppingCarts.size() == 0 || shoppingCarts.size() < shoppingCartDTOList.size()) {
+            throw new CommonException(ScecConstants.ErrorCode.ERROR_REFRESH_SHOPPINGCAR);
+        }
+    }
+
+    private void splitShoppingCartByBudgetConfig(String configResult, PurReqMergeRule purReqMergeRule, List<ShoppingCartDTO> shoppingCartDTOList) {
+        //预算拆单：同一个商品会有多个预算，此时需要将这个商品根据预算维度拆分，拆成多个不同的采购申请单,但是不同的商品不能按照预算不同进行拆分
+        List<ShoppingCartDTO> splitBudgetInfoList = new ArrayList<>();
+        if (ScecConstants.ConstantNumber.STRING_1.equals(configResult)) {
+            //开启了预算
+            //将有预算信息的购物车拆开
+            Iterator<ShoppingCartDTO> it = shoppingCartDTOList.iterator();
+            while (it.hasNext()) {
+                ShoppingCartDTO shoppingCartDTO = it.next();
+                List<BudgetInfo> budgetInfoList = shoppingCartDTO.getBudgetInfoList();
+
+                if (!CollectionUtils.isEmpty(budgetInfoList) && budgetInfoList.size() > 1) {
+                    for (BudgetInfo budgetInfo : budgetInfoList) {
+                        ShoppingCartDTO newShoppingCart = new ShoppingCartDTO();
+                        BeanUtils.copyProperties(shoppingCartDTO, newShoppingCart);
+                        newShoppingCart.setQuantity(budgetInfo.getQuantity().intValue());
+                        newShoppingCart.setBudgetInfoList(Collections.singletonList(budgetInfo));
+                        newShoppingCart.setTotalPrice(ObjectUtils.isEmpty(newShoppingCart.getLatestPrice()) ? BigDecimal.ZERO : (newShoppingCart.getLatestPrice().multiply(BigDecimal.valueOf(newShoppingCart.getQuantity()))));
+                        splitBudgetInfoList.add(newShoppingCart);
+                    }
+                    it.remove();
+                }
+            }
+        }
+        shoppingCartDTOList.addAll(splitBudgetInfoList);
+    }
+
+
+    private void validateMinPurchaseAmount(Long tenantId, WatsonsShoppingCartDTO watsonsShoppingCartDTO, BigDecimal price, PreRequestOrderDTO preRequestOrderDTO) {
+        //满足最小成单金额 1 满足 0 不满足
+        preRequestOrderDTO.setMinPurchaseFlag(ScecConstants.ConstantNumber.INT_1);
+        //从配置中心读取是否开启了最小采买金额限制
+        if (ScecConstants.ConstantNumber.STRING_1.equals(customizeSettingHelper.queryBySettingCode(tenantId, ScecConstants.SettingCenterCode.MIN_PURCHASE_AMOUNT_CODE))) {
+            MinPurchaseConfig minPurchaseConfig = new MinPurchaseConfig();
+            minPurchaseConfig.setTenantId(tenantId);
+            minPurchaseConfig.setCurrencyName(watsonsShoppingCartDTO.getCurrencyCode());
+            minPurchaseConfig.setSupplierCompanyId(watsonsShoppingCartDTO.getSupplierCompanyId());
+            MinPurchaseConfig minPurchaseAmount = minPurchaseConfigRepository.selectOne(minPurchaseConfig);
+            if (!ObjectUtils.isEmpty(minPurchaseAmount)) {
+                //判断是否达到了最小采买金额限制
+                if ((new BigDecimal(minPurchaseAmount.getMinPurchaseAmount())).compareTo(price) > ScecConstants.ConstantNumber.INT_0) {
+                    preRequestOrderDTO.setMinPurchaseResult("未达到最小采买金额 {" + minPurchaseAmount.getMinPurchaseAmount() + "}");
+                    preRequestOrderDTO.setMinPurchaseAmount(minPurchaseAmount.getMinPurchaseAmount());
+                    preRequestOrderDTO.setMinPurchaseFlag(ScecConstants.ConstantNumber.INT_0);
+                }
+            }
+        }
+    }
+
+    private void recursionSplitShoppingCart(Map<String, List<WatsonsShoppingCartDTO>> result) {
+        //拆单完成后将还未进行拆单的list再进行拆单,并将根据预算进行拆单设置为yes，与之前拆单的key区分，以防止拆单完成后key重复
+
+        //用费用维度只是最大化拆分出一个个商品行，一个个商品行可能是相同的商品，只是费用不同，再用另外三个维度去合单时与价格不是一个维度，不能确保一定没有同样的商品被分到了由这三个维度组成的同一个key
+        Map<String, List<WatsonsShoppingCartDTO>> splitResultMap = new HashMap<>();
+        List<String> removeKeyList = new ArrayList<>();
+        for (Map.Entry<String, List<WatsonsShoppingCartDTO>> entry : result.entrySet()) {
+            Set<WatsonsShoppingCartDTO> set = new TreeSet<>(Comparator.comparing(WatsonsShoppingCartDTO::getProductId));
+            set.addAll(entry.getValue());
+            //没有重复的商品，拆单成功
+            if (set.size() == entry.getValue().size()) {
+                splitResultMap.put(entry.getKey(), entry.getValue());
+            } else {
+                //有重复的商品，将重复的数据取出，继续拆单，由于该list已经是拆单好之后的list，因此只需要将重复的数据取出，生成一个新的list即可
+                Map<Long, List<WatsonsShoppingCartDTO>> map = entry.getValue().stream().collect(Collectors.groupingBy(WatsonsShoppingCartDTO::getProductId));
+                Set<Long> productIdList = entry.getValue().stream().map(WatsonsShoppingCartDTO::getProductId).filter(Objects::nonNull).collect(Collectors.toSet());
+                for (Long productId : productIdList) {
+                    List<WatsonsShoppingCartDTO> list = map.get(productId);
+                    //遍历
+                    for (int i = 0; i < list.size(); i++) {
+                        //创建新的key，与之前的key区分
+                        String key = entry.getKey() + i;
+
+                        if (splitResultMap.containsKey(key)) {
+                            splitResultMap.get(key).add(list.get(i));
+                        } else {
+                            List<WatsonsShoppingCartDTO> l = new ArrayList<>();
+                            l.add(list.get(i));
+                            splitResultMap.put(key, l);
+                        }
+                    }
+                }
+                //需要将原来的拆单数据移除，因此记录
+                removeKeyList.add(entry.getKey());
+            }
+        }
+        result.putAll(splitResultMap);
+        for (String key : removeKeyList) {
+            result.remove(key);
+        }
+    }
+
+
+    public Map<String, List<WatsonsShoppingCartDTO>> watsonsGroupPurchaseRequest(Long tenantId, PurReqMergeRule purReqMergeRule, Map<String, List<WatsonsShoppingCartDTO>> groupMap) {
+
+        Map<String, List<WatsonsShoppingCartDTO>> resultMap = new HashMap<>();
+
+        //eric 遍历以默认的并单规则分类       每个购物车和第一个预算信息创建成的购物车的list             组成map   groupMap
+        for (String key : groupMap.keySet()) {
+
+            //eric  拿到该并单规则下的每一个购物车
+            List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList = groupMap.get(key);
+
+            //eric 按照供应商+品类+费用分配的门店  更新并单规则
+            this.setPurMergeRuleForWatsons(purReqMergeRule);
+
+            //如果开启了物料，先查询库存信息
+            if (BaseConstants.Flag.YES.equals(purReqMergeRule.getWarehousing())) {
+
+                //eric  遍历该并单规则下的购物车list
+                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
+
+                    //eric  拿到每个购物车
+                    //eric  如果有物料编码  设置warehousing 为yes
+                    if (BaseConstants.Flag.YES.equals(watsonsShoppingCartDTO.getHasItemFlag())) {
+                        //eric 查询物料为库存还是非库存
+                        ResponseEntity<String> response = smdmRemoteService.detailByItemCOde(tenantId, watsonsShoppingCartDTO.getItemCode(), watsonsShoppingCartDTO.getInvOrganizationId());
+                        if (ResponseUtils.isFailed(response)) {
+                            logger.error("detailByItemCOde:{}", response);
+                            continue;
+                        }
+                        logger.info("detailByItemCOde:{}", response);
+                        ItemOrgRel itemOrgRelResponseEntity = ResponseUtils.getResponse(response, ItemOrgRel.class);
+                        if (BaseConstants.Flag.YES.toString().equals(itemOrgRelResponseEntity.getAttributeVarchar1())) {
+                            watsonsShoppingCartDTO.setWarehousing(BaseConstants.Flag.YES);
+                        }
+                    }
+
+                    //eric  遍历该购并单下的购物车list结束  如果开启了物料，查询库存信息结束
+                }
+            }
+
+
+            if (!ObjectUtils.isEmpty(purReqMergeRule)) {
+                //eric 如果并单规则不为空
+                //eric 把当前并单规则下的该购物车list进行新并单规则的分类为map  result  并更新结果集
+                //即把第一个预算信息和购物车拆单的结果进行新的合并规则的合单
+                Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(s -> s.watsonsGroupKey(tenantId, s, purReqMergeRule)));
+                resultMap.putAll(result);
+            } else {
+                //eric 如果并单规则为空
+                //eric  还是放老并单规则
+                resultMap.put(key, groupMap.get(key));
+            }
+
+
+            //eric 遍历以默认的并单规则分类购物车list组成map结束
+        }
+        return resultMap;
+    }
+
+    private void setPurMergeRuleForWatsons(PurReqMergeRule purReqMergeRule) {
+        purReqMergeRule.setSupplierFlag(BaseConstants.Flag.YES);
+        purReqMergeRule.setAddressFlag(BaseConstants.Flag.YES);
+        purReqMergeRule.setCategory(BaseConstants.Flag.YES);
     }
 }
