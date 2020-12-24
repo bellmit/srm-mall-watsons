@@ -1,6 +1,7 @@
 package org.srm.mall.other.app.service.impl;
 
 import com.ctrip.framework.apollo.util.ExceptionUtil;
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.choerodon.core.exception.CommonException;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hzero.core.base.BaseConstants;
@@ -31,13 +32,11 @@ import org.srm.mall.agreement.domain.entity.ProductPoolLadder;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.SmdmRemoteService;
 import org.srm.mall.common.utils.snapshot.SnapshotUtil;
+import org.srm.mall.context.entity.ItemCategory;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.order.api.dto.PreRequestOrderDTO;
 import org.srm.mall.order.app.service.MallOrderCenterService;
-import org.srm.mall.other.api.dto.ItemOrgRel;
-import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
-import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
-import org.srm.mall.other.api.dto.ShoppingCartDTO;
+import org.srm.mall.other.api.dto.*;
 import org.srm.mall.other.app.service.*;
 import org.srm.mall.other.domain.entity.*;
 import org.srm.mall.other.domain.repository.AllocationInfoRepository;
@@ -48,6 +47,8 @@ import org.srm.mall.platform.domain.entity.*;
 import org.srm.mall.platform.domain.repository.EcClientRepository;
 import org.srm.mall.platform.domain.repository.EcCompanyAssignRepository;
 import org.srm.mall.platform.domain.repository.EcPlatformRepository;
+import org.srm.mall.product.api.dto.ItemCategoryDTO;
+import org.srm.mall.product.api.dto.ItemCategorySearchDTO;
 import org.srm.mall.product.api.dto.PriceResultDTO;
 import org.srm.mall.product.domain.entity.ScecProductCategory;
 import org.srm.mall.product.domain.repository.ComCategoryCatalogMapRepository;
@@ -357,7 +358,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     // TODO: 2020/12/23
     @Override
-    public List<PreRequestOrderDTO> watsonsPreRequestOrderView(Long tenantId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
+    public List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderView(Long tenantId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
 
         //如果有服务商品，从底层list取出放到上层list
         List<ShoppingCartDTO> re = new ArrayList<>();
@@ -455,7 +456,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
 
         if (CollectionUtils.isNotEmpty(shoppingCartDTOList)) {
-            List<PreRequestOrderDTO> preRequestOrderDTOList = new ArrayList<>();
+            List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList = new ArrayList<>();
 
             //将每一个商品根据自己的多个费用拆成多个订单行
             splitShoppingCartByCostConfig(watsonsShoppingCartDTOList);
@@ -471,7 +472,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
             // TODO: 2020/12/23  需要先用默认的排一次  然后再拆单
 
-            Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(s -> s.watsonsGroupKey(tenantId, s, purReqMergeRule)));
+
+            Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(s -> s.groupKey(purReqMergeRule)));
             result = watsonsGroupPurchaseRequest(tenantId, purReqMergeRule, result);
 
 
@@ -575,10 +577,10 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 watsonsPreRequestOrderDTO.setMobile(watsonsShoppingCartDTO.getMobile());
 
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
-                preRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
+                watsonsPreRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
             }
             // handleCheck()
-            return preRequestOrderDTOList;
+            return watsonsPreRequestOrderDTOList;
         }
         return null;
     }
@@ -810,7 +812,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     public Map<String, List<WatsonsShoppingCartDTO>> watsonsGroupPurchaseRequest(Long tenantId, PurReqMergeRule purReqMergeRule, Map<String, List<WatsonsShoppingCartDTO>> groupMap) {
 
         Map<String, List<WatsonsShoppingCartDTO>> resultMap = new HashMap<>();
-
+        
         //eric 遍历以默认的并单规则分类       每个购物车和第一个预算信息创建成的购物车的list             组成map   groupMap
         for (String key : groupMap.keySet()) {
 
@@ -851,8 +853,55 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 //eric 如果并单规则不为空
                 //eric 把当前并单规则下的该购物车list进行新并单规则的分类为map  result  并更新结果集
                 //即把第一个预算信息和购物车拆单的结果进行新的合并规则的合单
-                Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(s -> s.watsonsGroupKey(tenantId, s, purReqMergeRule)));
+
+
+                // TODO: 2020/12/24   把key先查出来然后赋值到watsonsGroupBy中用this
+
+                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
+
+                    StringBuffer keyRes = new StringBuffer();
+                    
+                    ResponseEntity<String> responseOne = smdmRemoteService.selectCategoryByItemId(tenantId, watsonsShoppingCartDTO.getItemId(), BaseConstants.Flag.YES);
+                    if (ResponseUtils.isFailed(responseOne)) {
+                        logger.error("selectCategoryByItemId:{}", responseOne);
+                        throw new CommonException("查询商品二级品类失败！");
+                    }
+                    logger.info("selectCategoryByItemId:{}", responseOne);
+                    List<WatsonsItemCategoryDTO> itemCategoryResultOne  = ResponseUtils.getResponse(responseOne, new TypeReference<List<WatsonsItemCategoryDTO>>() {});
+
+
+                    if (BaseConstants.Flag.YES.equals(purReqMergeRule.getSupplierFlag())) {
+                        keyRes.append(watsonsShoppingCartDTO.getSupplierCompanyId()).append("-");
+                    }
+                    if (BaseConstants.Flag.YES.equals(purReqMergeRule.getAddressFlag())) {
+//                        keyRes.append(watsonsShoppingCartDTO.getCostAllocationInfoList().get(0).getAddressId()).append("-");
+                    }
+                    if (BaseConstants.Flag.YES.equals(purReqMergeRule.getCategory())){
+                        keyRes.append(itemCategoryResultOne.get(0).getParentCategoryId()).append("-");
+                    }
+
+                    String keyFinal = keyRes.toString();
+                    watsonsShoppingCartDTO.setItemCategoryId(itemCategoryResultOne.get(0).getParentCategoryId());
+
+
+
+//                    Long parentCategoryId = itemCategoryResultOne.get(0).getParentCategoryId();
+//                    ItemCategorySearchDTO itemCategorySearchDTO = new ItemCategorySearchDTO();
+//                    itemCategorySearchDTO.setCategoryId(parentCategoryId);
+//                    itemCategorySearchDTO.setTenantId(tenantId);
+//                    itemCategorySearchDTO.setEnabledFlag(BaseConstants.Flag.YES);
+//
+//                    List<ItemCategoryDTO> itemCategoryResultTwo = smdmRemoteService.treeItemCategory(tenantId, itemCategorySearchDTO);
+
+
+                    watsonsShoppingCartDTO.setItemCategoryName(itemCategoryResultOne.get(0).getParentCategoryName());
+                    watsonsShoppingCartDTO.setKey(keyFinal);
+
+                }
+
+                Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(s->s.getKey()));
                 resultMap.putAll(result);
+                
             } else {
                 //eric 如果并单规则为空
                 //eric  还是放老并单规则

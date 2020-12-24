@@ -2,6 +2,7 @@ package org.srm.mall.other.app.service;
 
 import org.srm.mall.order.api.dto.PreRequestOrderDTO;
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
+import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 
 import java.util.List;
@@ -19,6 +20,6 @@ public interface WatsonsShoppingCartService {
      * @param watsonsShoppingCartDTOList
      * @return PreRequestOrderDTO
      */
-    List<PreRequestOrderDTO> watsonsPreRequestOrderView(Long tenantId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList);
+    List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderView(Long tenantId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList);
 
 }

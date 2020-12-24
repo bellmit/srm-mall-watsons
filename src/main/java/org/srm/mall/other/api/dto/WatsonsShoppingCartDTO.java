@@ -15,8 +15,11 @@ import org.srm.mall.other.app.service.impl.ShoppingCartServiceImpl;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 import org.srm.mall.platform.domain.entity.PurReqMergeRule;
+import org.srm.mall.product.api.dto.ItemCategoryDTO;
+
 
 import java.util.List;
+import javax.persistence.Transient;
 
 public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
 
@@ -27,6 +30,19 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
 
     private List<AllocationInfo> allocationInfoList;
 
+    @ApiModelProperty(value = "CE号")
+    private String ceNum;
+
+    @ApiModelProperty(value = "联系电话")
+    private String mobile;
+
+    @ApiModelProperty(value = "采购品类名称")
+    private String itemCategoryName;
+
+    @ApiModelProperty(value = "用于合单操作的key")
+    @Transient
+    private String key;
+
     public List<AllocationInfo> getCostAllocationInfoList() {
         return allocationInfoList;
     }
@@ -35,49 +51,40 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
         this.allocationInfoList = allocationInfoList;
     }
 
-    @ApiModelProperty(value = "CE号")
-    private String ceNum;
-
-    @ApiModelProperty(value = "联系电话")
-    private String mobile;
-
-    /**
-     * 返回分组规则  供应商 品类  费用分配的门店
-     *
-     * @return 分组规则
-     */
-    public String watsonsGroupKey(Long tenantId, WatsonsShoppingCartDTO watsonsShoppingCartDTO, PurReqMergeRule purReqMergeRule) {
-        StringBuffer key = new StringBuffer();
-
-        ResponseEntity<String> responseOne = smdmRemoteService.selectCategoryByItemId(tenantId, watsonsShoppingCartDTO.getItemId(), BaseConstants.Flag.YES);
-        if (ResponseUtils.isFailed(responseOne)) {
-            logger.error("selectCategoryByItemId:{}", responseOne);
-            throw new CommonException("查询商品二级品类失败！");
-        }
-        logger.info("selectCategoryByItemId:{}", responseOne);
-        ItemCategory itemCategoryResultOne  = ResponseUtils.getResponse(responseOne, ItemCategory.class);
-        Long parentCategoryId = itemCategoryResultOne.getParentCategoryId();
-
-        ResponseEntity<String> responseTwo = smdmRemoteService.selectCategoryByItemId(tenantId, parentCategoryId, BaseConstants.Flag.YES);
-        if (ResponseUtils.isFailed(responseTwo)) {
-            logger.error("selectCategoryByItemId:{}", responseTwo);
-            throw new CommonException("根据二级品类查询商品一级品类失败！");
-        }
-        logger.info("selectCategoryByItemId:{}", responseTwo);
-        ItemCategory itemCategoryResultTwo  = ResponseUtils.getResponse(responseTwo, ItemCategory.class);
-
-        if (BaseConstants.Flag.YES.equals(purReqMergeRule.getSupplierFlag())) {
-            key.append(watsonsShoppingCartDTO.getSupplierCompanyId()).append("-");
-        }
-        if (BaseConstants.Flag.YES.equals(purReqMergeRule.getAddressFlag())) {
-            key.append(allocationInfoList.get(0).getAddressId()).append("-");
-        }
-        if (BaseConstants.Flag.YES.equals(purReqMergeRule.getCategory())){
-            key.append(itemCategoryResultTwo.getCategoryId()).append("-");
-        }
-
-        watsonsShoppingCartDTO.setItemCategoryId(itemCategoryResultTwo.getCategoryId());
-        return key.toString();
+    public String getCeNum() {
+        return ceNum;
     }
+
+    public void setCeNum(String ceNum) {
+        this.ceNum = ceNum;
+    }
+
+    @Override
+    public String getMobile() {
+        return mobile;
+    }
+
+    @Override
+    public void setMobile(String mobile) {
+        this.mobile = mobile;
+    }
+
+    public String getItemCategoryName() {
+        return itemCategoryName;
+    }
+
+    public void setItemCategoryName(String itemCategoryName) {
+        this.itemCategoryName = itemCategoryName;
+    }
+
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
 
 }
