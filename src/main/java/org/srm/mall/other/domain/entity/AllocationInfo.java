@@ -108,7 +108,7 @@ public class AllocationInfo extends AuditDomain {
     @ApiModelProperty(value = "数量", required = true)
     @NotNull
     private Long quantity;
-    @ApiModelProperty(value = "金额", required = true)
+    @ApiModelProperty(value = "单价", required = true)
     @NotNull
     private BigDecimal price;
 
@@ -117,7 +117,7 @@ public class AllocationInfo extends AuditDomain {
 // ------------------------------------------------------------------------------
 
     @Transient
-    private BigDecimal amount;
+    private BigDecimal totalAmount;
 
     @Transient
     private BigDecimal percent;
@@ -135,12 +135,12 @@ public class AllocationInfo extends AuditDomain {
         this.percent = percent;
     }
 
-    public BigDecimal getAmount() {
-        return amount;
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
     }
 
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
     }
 
     public Long getAddressId() {

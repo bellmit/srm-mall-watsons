@@ -27,7 +27,12 @@
 
     <select id="selectAllocationShopOrganization" resultType="org.srm.mall.other.api.dto.OrganizationInfoDTO">
         SELECT
-        h.organization_id, h.organization_code, h.organization_name, h.ou_id, h.tenant_id
+        h.organization_id,
+        h.organization_code,
+        h.organization_name,
+        h.ou_id,
+        h.tenant_id,
+        h.attribute2 type
         FROM hpfm_inv_organization h
         WHERE
         h.enabled_flag = 1

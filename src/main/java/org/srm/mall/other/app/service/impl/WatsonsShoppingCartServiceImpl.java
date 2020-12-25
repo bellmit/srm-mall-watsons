@@ -82,7 +82,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl {
                     .andIn(AllocationInfo.FIELD_CART_ID, shoppingCartDTOList.stream().map(ShoppingCartDTO::getCartId).collect(Collectors.toList()))).build());
             if (!CollectionUtils.isEmpty(allocationInfoList)){
                 for (AllocationInfo allocationInfo : allocationInfoList){
-                    allocationInfo.setAmount(allocationInfo.getPrice().multiply(new BigDecimal(allocationInfo.getQuantity())));
+                    allocationInfo.setTotalAmount(allocationInfo.getPrice().multiply(new BigDecimal(allocationInfo.getQuantity())));
                 }
                 Map<Long, List<AllocationInfo>> map = allocationInfoList.stream().collect(Collectors.groupingBy(AllocationInfo::getCartId));
                 return shoppingCartDTOList.stream().map(s -> {

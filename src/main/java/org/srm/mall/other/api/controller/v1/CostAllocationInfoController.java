@@ -47,7 +47,7 @@ public class CostAllocationInfoController extends BaseController {
     @ApiOperation(value = "屈臣氏费用分配表列表")
     @Permission(level = ResourceLevel.ORGANIZATION)
     @GetMapping
-    public ResponseEntity<List<AllocationInfo>> list(@PathVariable("organizationId") Long organizationId, @Encrypt @PathVariable("cartId") Long cartId) {
+    public ResponseEntity<List<AllocationInfo>> list(@PathVariable("organizationId") Long organizationId, @Encrypt @RequestParam("cartId") Long cartId) {
         List<AllocationInfo> list = allocationInfoService.list(organizationId, cartId);
         return Results.success(list);
     }
@@ -71,7 +71,7 @@ public class CostAllocationInfoController extends BaseController {
     @Permission(level = ResourceLevel.ORGANIZATION)
     @PostMapping("/update-quantity")
     public ResponseEntity<WatsonsShoppingCart> updateShoppingCart(@PathVariable("organizationId") Long organizationId, @RequestBody @Encrypt WatsonsShoppingCart watsonsShoppingCart) {
-        allocationInfoService.create(organizationId, watsonsShoppingCart);
+        allocationInfoService.updateShoppingCart(watsonsShoppingCart);
         return Results.success(watsonsShoppingCart);
     }
 
