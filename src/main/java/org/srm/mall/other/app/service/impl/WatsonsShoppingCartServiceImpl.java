@@ -846,10 +846,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 //eric 如果并单规则不为空
                 //eric 把当前并单规则下的该购物车list进行新并单规则的分类为map  result  并更新结果集
                 //即把第一个预算信息和购物车拆单的结果进行新的合并规则的合单
-
-
-                // TODO: 2020/12/24   把key先查出来然后赋值到watsonsGroupBy中用this
-
                 for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
 
                     StringBuffer keyRes = new StringBuffer();
@@ -896,8 +892,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 resultMap.putAll(result);
 
             } else {
-                //eric 如果并单规则为空
-                //eric  还是放老并单规则
                 resultMap.put(key, groupMap.get(key));
             }
 
