@@ -489,6 +489,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             int distinguishId = 0;
             for (Map.Entry<String, List<WatsonsShoppingCartDTO>> entry : result.entrySet()) {
                 WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO = new WatsonsPreRequestOrderDTO();
+                watsonsPreRequestOrderDTO.setKeyForView(entry.getKey());
                 List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList4Trans = entry.getValue();
                 List<ShoppingCartDTO> shoppingCartDTO4FrontEnd = new ArrayList<>();
                 for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList4Trans) {
@@ -875,7 +876,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                         keyRes.append(watsonsShoppingCartDTO.getSupplierCompanyId()).append("-");
                     }
                     if (BaseConstants.Flag.YES.equals(purReqMergeRule.getAddressFlag())) {
-//                        keyRes.append(watsonsShoppingCartDTO.getCostAllocationInfoList().get(0).getAddressId()).append("-");
+                        keyRes.append(watsonsShoppingCartDTO.getCostAllocationInfoList().get(0).getAddressId()).append("-");
                     }
                     if (BaseConstants.Flag.YES.equals(purReqMergeRule.getCategory())){
                         keyRes.append(itemCategoryResultOne.get(0).getParentCategoryId()).append("-");
