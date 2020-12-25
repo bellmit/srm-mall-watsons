@@ -2,11 +2,10 @@ package org.srm.mall.other.api.dto;
 
 import io.choerodon.core.exception.CommonException;
 import io.swagger.annotations.ApiModelProperty;
-import org.hzero.core.base.BaseConstants;
-import org.hzero.core.util.ResponseUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.springframework.beans.factory.annotation.Autowired;
+import org.srm.mall.common.feign.SmdmRemoteService;
 import org.srm.mall.other.app.service.impl.ShoppingCartServiceImpl;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 
@@ -19,6 +18,7 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
     private static final Logger logger = LoggerFactory.getLogger(ShoppingCartServiceImpl.class);
 
     private List<AllocationInfo> allocationInfoList;
+
 
     @ApiModelProperty(value = "CE号")
     private String ceNum;
@@ -33,11 +33,11 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
     @Transient
     private String key;
 
-    public List<AllocationInfo> getCostAllocationInfoList() {
+    public List<AllocationInfo> getAllocationInfoList() {
         return allocationInfoList;
     }
 
-    public void setCostAllocationInfoList(List<AllocationInfo> allocationInfoList) {
+    public void setAllocationInfoList(List<AllocationInfo> allocationInfoList) {
         this.allocationInfoList = allocationInfoList;
     }
 

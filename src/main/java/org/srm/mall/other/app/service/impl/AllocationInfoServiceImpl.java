@@ -1,15 +1,12 @@
 package org.srm.mall.other.app.service.impl;
 
-import io.choerodon.core.domain.Page;
 import io.choerodon.core.exception.CommonException;
-import io.choerodon.mybatis.pagehelper.domain.PageRequest;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hzero.core.base.BaseAppService;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.srm.mall.other.api.dto.AllocationInfoDTO;
-import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.app.service.AllocationInfoService;
 import org.srm.mall.other.app.service.ShoppingCartService;
 import org.srm.mall.other.domain.entity.AllocationInfo;
@@ -46,7 +43,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         List<AllocationInfo> allocationInfoList = allocationInfoRepository.select(AllocationInfo.FIELD_CART_ID, cartId);
         if (!CollectionUtils.isEmpty(allocationInfoList)){
             for (AllocationInfo allocationInfo : allocationInfoList){
-                allocationInfo.setAmount(allocationInfo.getPrice().multiply(new BigDecimal(allocationInfo.getQuantity())));
+                allocationInfo.setTotalAmount(allocationInfo.getPrice().multiply(new BigDecimal(allocationInfo.getQuantity())));
             }
         }
         return allocationInfoList;
@@ -55,11 +52,11 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     @Override
     @Transactional(rollbackFor = Exception.class)
     public List<AllocationInfo> create(Long tenantId, WatsonsShoppingCart watsonsShoppingCart) {
-        List<AllocationInfo> allocationInfoList = watsonsShoppingCart.getCostAllocationInfoList();
+        List<AllocationInfo> allocationInfoList = watsonsShoppingCart.getAllocationInfoList();
         for (AllocationInfo allocationInfo : allocationInfoList){
             //查询对应的地址，待确认查询逻辑,此处先写成-1
             allocationInfo.setAddressId(-1L);
-            
+
             if (allocationInfo.getAllocationId() == null){
                 allocationInfoRepository.insertSelective(allocationInfo);
             } else {
@@ -69,7 +66,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         //校验对应的地址商品是否可售,等待价格服务提供接口
 
         //合并相同数据
-        watsonsShoppingCart.setCostAllocationInfoList(mergeSameAllocationInfo(watsonsShoppingCart));
+        watsonsShoppingCart.setAllocationInfoList(mergeSameAllocationInfo(watsonsShoppingCart));
         return allocationInfoList;
     }
 
@@ -106,15 +103,15 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             watsonsShoppingCart.setQuantity(quantity.longValue());
             shoppingCartService.create(watsonsShoppingCart);
         }
-        watsonsShoppingCart.setCostAllocationInfoList(allocationInfoList);
+        watsonsShoppingCart.setAllocationInfoList(allocationInfoList);
         return watsonsShoppingCart;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public WatsonsShoppingCart remove(WatsonsShoppingCart watsonsShoppingCart) {
-        if (!CollectionUtils.isEmpty(watsonsShoppingCart.getCostAllocationInfoList())){
-            allocationInfoRepository.batchDeleteByPrimaryKey(watsonsShoppingCart.getCostAllocationInfoList());
+        if (!CollectionUtils.isEmpty(watsonsShoppingCart.getAllocationInfoList())){
+            allocationInfoRepository.batchDeleteByPrimaryKey(watsonsShoppingCart.getAllocationInfoList());
             updateShoppingCart(watsonsShoppingCart);
         }
         return watsonsShoppingCart;
@@ -142,7 +139,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             allocationInfoRepository.delete(condition);
             List<AllocationInfo> resultList = new ArrayList<>();
             for (AllocationInfo allocationInfo : allocationInfoDTO.getAllocationInfoList()){
-                BigDecimal quantity = new BigDecimal(watsonsShoppingCart.getQuantity()).multiply(allocationInfo.getPercent());
+                BigDecimal quantity = new BigDecimal(watsonsShoppingCart.getQuantity()).multiply(allocationInfo.getPercent()).divide(new BigDecimal(100), 5, BigDecimal.ROUND_HALF_UP);
                 //判断数量是否有小数，若有小数则抛异常
                 if (new BigDecimal(quantity.intValue()).compareTo(quantity) != 0){
                     throw new CommonException("商品：" + watsonsShoppingCart.getProductName() + "的百分比:" + allocationInfo.getPercent() + "数量计算为小数");
@@ -150,10 +147,12 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                 AllocationInfo result = new AllocationInfo();
                 BeanUtils.copyProperties(allocationInfo, result);
                 result.setQuantity(quantity.longValue());
+                result.setPrice(watsonsShoppingCart.getLatestPrice());
+                result.setCartId(watsonsShoppingCart.getCartId());
                 resultList.add(result);
             }
             //2. 插入费用分配行
-            watsonsShoppingCart.setCostAllocationInfoList(resultList);
+            watsonsShoppingCart.setAllocationInfoList(resultList);
             create(organizationId, watsonsShoppingCart);
         }
         return allocationInfoDTO;
