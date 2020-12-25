@@ -149,7 +149,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 return shoppingCartDTOList.stream().map(s -> {
                     WatsonsShoppingCartDTO watsonsShoppingCart = new WatsonsShoppingCartDTO();
                     BeanUtils.copyProperties(s, watsonsShoppingCart);
-                    watsonsShoppingCart.setCostAllocationInfoList(map.get(s.getCartId()));
+                    watsonsShoppingCart.setAllocationInfoList(map.get(s.getCartId()));
                     return watsonsShoppingCart;
                 }).collect(Collectors.toList());
             }
@@ -596,13 +596,13 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         Iterator<WatsonsShoppingCartDTO> it = watsonsShoppingCartDTOList.iterator();
         while (it.hasNext()) {
             WatsonsShoppingCartDTO watsonsShoppingCartDTO = it.next();
-            List<AllocationInfo> costAllocationInfoList = watsonsShoppingCartDTO.getCostAllocationInfoList();
+            List<AllocationInfo> costAllocationInfoList = watsonsShoppingCartDTO.getAllocationInfoList();
             if (!CollectionUtils.isEmpty(costAllocationInfoList) && costAllocationInfoList.size() > 1) {
                 for (AllocationInfo allocationInfo : costAllocationInfoList) {
                     WatsonsShoppingCartDTO newWatsonsShoppingCartDTO = new WatsonsShoppingCartDTO();
                     BeanUtils.copyProperties(watsonsShoppingCartDTO, newWatsonsShoppingCartDTO);
                     newWatsonsShoppingCartDTO.setQuantity(allocationInfo.getQuantity().intValue());
-                    newWatsonsShoppingCartDTO.setCostAllocationInfoList(Collections.singletonList(allocationInfo));
+                    newWatsonsShoppingCartDTO.setAllocationInfoList(Collections.singletonList(allocationInfo));
                     newWatsonsShoppingCartDTO.setTotalPrice(ObjectUtils.isEmpty(allocationInfo.getPrice()) ? BigDecimal.ZERO : allocationInfo.getPrice());
                     splitCosttInfoList.add(newWatsonsShoppingCartDTO);
                 }
@@ -876,7 +876,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                         keyRes.append(watsonsShoppingCartDTO.getSupplierCompanyId()).append("-");
                     }
                     if (BaseConstants.Flag.YES.equals(purReqMergeRule.getAddressFlag())) {
-                        keyRes.append(watsonsShoppingCartDTO.getCostAllocationInfoList().get(0).getAddressId()).append("-");
+                        keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getAddressId()).append("-");
                     }
                     if (BaseConstants.Flag.YES.equals(purReqMergeRule.getCategory())){
                         keyRes.append(itemCategoryResultOne.get(0).getParentCategoryId()).append("-");

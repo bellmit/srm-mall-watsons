@@ -45,9 +45,6 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
     private String key;
 
     public List<AllocationInfo> getAllocationInfoList() {
-
-
-    public List<AllocationInfo> getCostAllocationInfoList() {
         return allocationInfoList;
     }
 
