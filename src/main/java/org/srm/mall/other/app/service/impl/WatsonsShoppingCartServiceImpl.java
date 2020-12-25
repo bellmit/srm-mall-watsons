@@ -464,14 +464,13 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
             PurReqMergeRule purReqMergeRule = PurReqMergeRule.getDefaultMergeRule();
 
-            // TODO: 2020/12/23   拼上key  只能用watsonsShoppingCartDTO 进行数据获取  所以必须使用watsonsshoppingcart
+            //  拼上key  只能用watsonsShoppingCartDTO 进行数据获取  所以必须使用watsonsshoppingcart
 
-            // TODO: 2020/12/23  shoppingCart中的addressid 和 authention中的addressid是不同的  所以必须用watsons进行合单
+            //  shoppingCart中的addressid 和 authention中的addressid是不同的  所以必须用watsons进行合单
 
-            // TODO: 2020/12/23   因为子订单做同样的合单操作   watsonsShoppingCartDTO中的子订单这个类型   也要改成watsonsShoppingCartDTO类型
+            //  因为子订单做同样的合单操作   watsonsShoppingCartDTO中的子订单这个类型   也要改成watsonsShoppingCartDTO类型
 
-            // TODO: 2020/12/23  需要先用默认的排一次  然后再拆单
-
+            //  需要先用默认的排一次  然后再拆单
 
             Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(s -> s.groupKey(purReqMergeRule)));
             result = watsonsGroupPurchaseRequest(tenantId, purReqMergeRule, result);
@@ -572,9 +571,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 }
                 watsonsPreRequestOrderDTO.setPreRequestOrderNumber(UUID.randomUUID().toString());
 
-                // TODO: 2020/12/24  我自己查的物料品类直接覆盖shoppingcartDTO中的物料id传给志哥
-
-
                 // TODO: 2020/12/24   ce号设置
                 watsonsPreRequestOrderDTO.setMobile(watsonsShoppingCartDTO.getMobile());
 
@@ -588,11 +584,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     }
 
     private void splitShoppingCartByCostConfig(List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
-
-        //预算拆单：同一个商品会有多个预算，此时需要将这个商品根据预算维度拆分，拆成多个不同的采购申请单,但是不同的商品不能按照预算不同进行拆分
         List<WatsonsShoppingCartDTO> splitCosttInfoList = new ArrayList<>();
-        //开启了预算
-        //将有预算信息的购物车拆开
         Iterator<WatsonsShoppingCartDTO> it = watsonsShoppingCartDTOList.iterator();
         while (it.hasNext()) {
             WatsonsShoppingCartDTO watsonsShoppingCartDTO = it.next();
@@ -850,7 +842,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 }
             }
 
-
             if (!ObjectUtils.isEmpty(purReqMergeRule)) {
                 //eric 如果并单规则不为空
                 //eric 把当前并单规则下的该购物车list进行新并单规则的分类为map  result  并更新结果集
@@ -866,16 +857,30 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     ResponseEntity<String> responseOne = smdmRemoteService.selectCategoryByItemId(tenantId, watsonsShoppingCartDTO.getItemId(), BaseConstants.Flag.YES);
                     if (ResponseUtils.isFailed(responseOne)) {
                         logger.error("selectCategoryByItemId:{}", responseOne);
-                        throw new CommonException("查询商品二级品类失败！");
+                        throw new CommonException("根据物料查询二级品类失败!");
                     }
                     logger.info("selectCategoryByItemId:{}", responseOne);
                     List<WatsonsItemCategoryDTO> itemCategoryResultOne  = ResponseUtils.getResponse(responseOne, new TypeReference<List<WatsonsItemCategoryDTO>>() {});
+
+                    if(CollectionUtils.isEmpty(itemCategoryResultOne)){
+                        logger.error("selectCategoryByItemId:{}", "null");
+                        throw new CommonException("根据物料查询二级品类失败!");
+                    }
+
+                    if(CollectionUtils.isNotEmpty(itemCategoryResultOne) && (itemCategoryResultOne.size()>1)){
+                        logger.error("selectCategoryByItemId:{}", itemCategoryResultOne);
+                        throw new CommonException("单个物料非法查询到多个品类！");
+                    }
 
 
                     if (BaseConstants.Flag.YES.equals(purReqMergeRule.getSupplierFlag())) {
                         keyRes.append(watsonsShoppingCartDTO.getSupplierCompanyId()).append("-");
                     }
                     if (BaseConstants.Flag.YES.equals(purReqMergeRule.getAddressFlag())) {
+                        if(watsonsShoppingCartDTO.getAllocationInfoList() == null){
+                            logger.error("未进行费用分配！:{}", watsonsShoppingCartDTO.getAllocationInfoList());
+                            throw new CommonException("未进行费用分配!");
+                        }
                         keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getAddressId()).append("-");
                     }
                     if (BaseConstants.Flag.YES.equals(purReqMergeRule.getCategory())){
@@ -884,23 +889,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
                     String keyFinal = keyRes.toString();
                     watsonsShoppingCartDTO.setItemCategoryId(itemCategoryResultOne.get(0).getParentCategoryId());
-
-
-
-//                    Long parentCategoryId = itemCategoryResultOne.get(0).getParentCategoryId();
-//                    ItemCategorySearchDTO itemCategorySearchDTO = new ItemCategorySearchDTO();
-//                    itemCategorySearchDTO.setCategoryId(parentCategoryId);
-//                    itemCategorySearchDTO.setTenantId(tenantId);
-//                    itemCategorySearchDTO.setEnabledFlag(BaseConstants.Flag.YES);
-//
-//                    List<ItemCategoryDTO> itemCategoryResultTwo = smdmRemoteService.treeItemCategory(tenantId, itemCategorySearchDTO);
-
-
                     watsonsShoppingCartDTO.setItemCategoryName(itemCategoryResultOne.get(0).getParentCategoryName());
                     watsonsShoppingCartDTO.setKey(keyFinal);
-
                 }
-
                 Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(s->s.getKey()));
                 resultMap.putAll(result);
 
@@ -909,7 +900,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 //eric  还是放老并单规则
                 resultMap.put(key, groupMap.get(key));
             }
-
 
             //eric 遍历以默认的并单规则分类购物车list组成map结束
         }
