@@ -596,9 +596,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         Iterator<WatsonsShoppingCartDTO> it = watsonsShoppingCartDTOList.iterator();
         while (it.hasNext()) {
             WatsonsShoppingCartDTO watsonsShoppingCartDTO = it.next();
-            List<AllocationInfo> costAllocationInfoList = watsonsShoppingCartDTO.getAllocationInfoList();
-            if (!CollectionUtils.isEmpty(costAllocationInfoList) && costAllocationInfoList.size() > 1) {
-                for (AllocationInfo allocationInfo : costAllocationInfoList) {
+            List<AllocationInfo> allocationInfoList = watsonsShoppingCartDTO.getAllocationInfoList();
+            if (!CollectionUtils.isEmpty(allocationInfoList) && allocationInfoList.size() > 1) {
+                for (AllocationInfo allocationInfo : allocationInfoList) {
                     WatsonsShoppingCartDTO newWatsonsShoppingCartDTO = new WatsonsShoppingCartDTO();
                     BeanUtils.copyProperties(watsonsShoppingCartDTO, newWatsonsShoppingCartDTO);
                     newWatsonsShoppingCartDTO.setQuantity(allocationInfo.getQuantity().intValue());
