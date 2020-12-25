@@ -16,10 +16,4 @@ public class WatsonsShoppingCart extends ShoppingCart {
         this.allocationInfoList = allocationInfoList;
     }
 
-    @ApiModelProperty(value = "CE号")
-    private String ceNum;
-
-    @ApiModelProperty(value = "联系电话")
-    private String mobile;
-
 }

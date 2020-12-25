@@ -6,25 +6,15 @@ import org.hzero.core.base.BaseConstants;
 import org.hzero.core.util.ResponseUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.srm.mall.common.feign.SmdmRemoteService;
-import org.srm.mall.context.entity.ItemCategory;
-import org.srm.mall.other.api.dto.ShoppingCartDTO;
+
 import org.srm.mall.other.app.service.impl.ShoppingCartServiceImpl;
 import org.srm.mall.other.domain.entity.AllocationInfo;
-import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
-import org.srm.mall.platform.domain.entity.PurReqMergeRule;
-import org.srm.mall.product.api.dto.ItemCategoryDTO;
 
 
 import java.util.List;
 import javax.persistence.Transient;
 
 public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
-
-    @Autowired
-    private SmdmRemoteService smdmRemoteService;
 
     private static final Logger logger = LoggerFactory.getLogger(ShoppingCartServiceImpl.class);
 
@@ -85,6 +75,4 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
     public void setKey(String key) {
         this.key = key;
     }
-
-
 }
