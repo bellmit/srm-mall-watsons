@@ -476,10 +476,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             result = watsonsGroupPurchaseRequest(tenantId, purReqMergeRule, result);
 
 
-            // TODO: 2020/12/23  即使是watsons中的seskulist 同样是shoppingcart类型的 天生没有合单归项的key的3个数据  所以还按原来的addressid排？差距就在addressid
+            // eric即使是watsons中的seskulist 同样是shoppingcart类型的 天生没有合单归项的key的3个数据  所以还按原来的addressid排？差距就在addressid
 //            Map<String, List<ShoppingCartDTO>> reResult = re.stream().collect(Collectors.groupingBy(s -> s.groupKey(purReqMergeRule)));
 //            reResult = groupPurchaseRequest(tenantId, purReqMergeRule, reResult);
-
 
             //拆单完成后判断是否还需要继续根据重复订单再行拆分
             recursionSplitShoppingCart(result);
