@@ -24,6 +24,17 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
     @ApiModelProperty(value = "送货方式")
     private String deliveryType;
 
+    @ApiModelProperty(value = "品类名称")
+    private String itemCategoryName;
+
+    public String getItemCategoryName() {
+        return itemCategoryName;
+    }
+
+    public void setItemCategoryName(String itemCategoryName) {
+        this.itemCategoryName = itemCategoryName;
+    }
+
     public Long getItemCategoryId() {
         return itemCategoryId;
     }

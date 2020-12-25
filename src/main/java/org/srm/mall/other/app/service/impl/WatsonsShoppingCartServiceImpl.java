@@ -495,6 +495,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                    ShoppingCartDTO shoppingCartDTO = new ShoppingCartDTO();
                    BeanUtils.copyProperties(watsonsShoppingCartDTO,shoppingCartDTO);
                    shoppingCartDTO4FrontEnd.add(shoppingCartDTO);
+                   watsonsPreRequestOrderDTO.setItemCategoryName(watsonsShoppingCartDTO.getItemCategoryName());
                 }
                 watsonsPreRequestOrderDTO.setShoppingCartDTOList(shoppingCartDTO4FrontEnd);
                 watsonsPreRequestOrderDTO.setDistinguishId(++distinguishId);
