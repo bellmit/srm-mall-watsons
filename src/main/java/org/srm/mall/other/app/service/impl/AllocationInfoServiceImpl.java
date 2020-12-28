@@ -1,12 +1,19 @@
 package org.srm.mall.other.app.service.impl;
 
 import io.choerodon.core.exception.CommonException;
+import io.choerodon.core.oauth.DetailsHelper;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.math3.analysis.function.Add;
 import org.hzero.core.base.BaseAppService;
+import org.hzero.mybatis.domian.Condition;
+import org.hzero.mybatis.util.Sqls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.util.ObjectUtils;
+import org.srm.mall.common.constant.ScecConstants;
+import org.srm.mall.common.feign.SagmRemoteService;
 import org.srm.mall.other.api.dto.AllocationInfoDTO;
 import org.srm.mall.other.app.service.AllocationInfoService;
 import org.srm.mall.other.app.service.ShoppingCartService;
@@ -17,6 +24,8 @@ import org.srm.mall.other.domain.repository.AllocationInfoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.srm.mall.region.domain.entity.Address;
+import org.srm.mall.region.domain.repository.AddressRepository;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -38,6 +47,12 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
 
     @Autowired
     private AllocationInfoRepository allocationInfoRepository;
+
+    @Autowired
+    private AddressRepository addressRepository;
+
+    @Autowired
+    private SagmRemoteService sagmRemoteService;
 
     @Autowired
     @Qualifier("watsonsShoppingCartService")
@@ -65,8 +80,8 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             throw new CommonException("未进行费用分配!");
         }
         for (AllocationInfo allocationInfo : allocationInfoList){
-            //查询对应的地址，待确认查询逻辑,此处先写成-1
-            allocationInfo.setAddressId(876578765352876L);
+            //查询对应的地址
+            handleReceiverAddress(allocationInfo,tenantId);
 
             if (allocationInfo.getAllocationId() == null){
                 allocationInfoRepository.insertSelective(allocationInfo);
@@ -79,6 +94,15 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         //合并相同数据
         watsonsShoppingCart.setAllocationInfoList(mergeSameAllocationInfo(watsonsShoppingCart));
         return allocationInfoList;
+    }
+
+    private void handleReceiverAddress(AllocationInfo allocationInfo, Long tenantId) {
+        // 通过库存组织信息反查地址id
+        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,tenantId).andEqualTo(Address.FIELD_OWNED_BY, -1L).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,allocationInfo.getCartId())).build());
+        if (ObjectUtils.isEmpty(addressList)){
+            throw new CommonException("门店{}相关地址信息不存在",allocationInfo.getCostDepartmentName());
+        }
+        allocationInfo.setAddressId(addressList.get(0).getAddressId());
     }
 
     private List<AllocationInfo> mergeSameAllocationInfo(WatsonsShoppingCart watsonsShoppingCart) {
