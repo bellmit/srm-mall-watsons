@@ -72,10 +72,12 @@ public class AllocationInfo extends AuditDomain {
     @NotNull
     @Encrypt
     private Long cartId;
+
     @ApiModelProperty(value = "送货方式", required = true)
     @NotBlank
-    @LovValue(lovCode = "SCUX.WATSONS.DELIVERY_METHOD",meaningField = "deliveryTypeMeaning")
+    @LovValue(lovCode = "SCUX.WATSONS.DELIVERY_METHOD", meaningField = "deliveryTypeMeaning")
     private String deliveryType;
+
     @ApiModelProperty(value = "地址id", required = true)
     @NotNull
     @Encrypt

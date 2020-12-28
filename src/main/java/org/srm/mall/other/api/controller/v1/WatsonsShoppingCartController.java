@@ -40,9 +40,9 @@ public class WatsonsShoppingCartController {
 
     @ApiOperation(value = "预采购申请预览")
     @Permission(level = ResourceLevel.ORGANIZATION)
-    @ProcessLovValue(targetField = BaseConstants.FIELD_BODY)
     @PostMapping("/pre-req")
     public ResponseEntity<List<WatsonsPreRequestOrderDTO>> preRequestOrderView(@PathVariable("organizationId") Long organizationId, @RequestBody @Encrypt List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
-        return Results.success(watsonsShoppingCartService.watsonsPreRequestOrderView(organizationId, watsonsShoppingCartDTOList));
+        List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList = watsonsShoppingCartService.watsonsPreRequestOrderView(organizationId, watsonsShoppingCartDTOList);
+        return Results.success(watsonsPreRequestOrderDTOList);
     }
 }
