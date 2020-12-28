@@ -1,16 +1,20 @@
 package org.srm.mall.other.app.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.choerodon.core.exception.CommonException;
 import io.choerodon.core.oauth.DetailsHelper;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.math3.analysis.function.Add;
 import org.hzero.core.base.BaseAppService;
+import org.hzero.core.base.BaseConstants;
+import org.hzero.core.util.ResponseUtils;
 import org.hzero.mybatis.domian.Condition;
 import org.hzero.mybatis.util.Sqls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.ObjectUtils;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.SagmRemoteService;
@@ -24,6 +28,8 @@ import org.srm.mall.other.domain.repository.AllocationInfoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.srm.mall.product.api.dto.PriceParamDTO;
+import org.srm.mall.product.api.dto.PriceResultDTO;
 import org.srm.mall.region.domain.entity.Address;
 import org.srm.mall.region.domain.repository.AddressRepository;
 
@@ -83,24 +89,38 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             //查询对应的地址
             handleReceiverAddress(allocationInfo,tenantId);
 
+            //校验对应的地址商品是否可售,等待价格服务提供接口
+            saleAndStockCheck(tenantId, allocationInfo,watsonsShoppingCart.getProductId());
+
             if (allocationInfo.getAllocationId() == null){
                 allocationInfoRepository.insertSelective(allocationInfo);
             } else {
                 allocationInfoRepository.updateByPrimaryKeySelective(allocationInfo);
             }
         }
-        //校验对应的地址商品是否可售,等待价格服务提供接口
 
         //合并相同数据
         watsonsShoppingCart.setAllocationInfoList(mergeSameAllocationInfo(watsonsShoppingCart));
         return allocationInfoList;
     }
 
+    private void saleAndStockCheck(Long tenantId, AllocationInfo allocationInfo, Long productId) {
+        // 校验可售
+        PriceParamDTO priceParamDTO = new PriceParamDTO(tenantId,addressRepository.querySecondRegionId(allocationInfo.getAddressId()),null,productId);
+        priceParamDTO.setAddressId(allocationInfo.getAddressId());
+        ResponseEntity<String> result = sagmRemoteService.selectPrice(tenantId,ScecConstants.SagmSourceCode.SHOPPING_CART,priceParamDTO);
+        List<PriceResultDTO> priceResultDTOS = ResponseUtils.getResponse(result, new TypeReference<List<PriceResultDTO>>() {
+        });
+        if (BaseConstants.Flag.NO.equals(priceResultDTOS.get(0).getSaleEnable())){
+            throw new CommonException("门店【{}】所属地区商品无货",allocationInfo.getCostDepartmentName());
+        }
+    }
+
     private void handleReceiverAddress(AllocationInfo allocationInfo, Long tenantId) {
         // 通过库存组织信息反查地址id
         List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,tenantId).andEqualTo(Address.FIELD_OWNED_BY, -1L).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,allocationInfo.getCartId())).build());
         if (ObjectUtils.isEmpty(addressList)){
-            throw new CommonException("门店{}相关地址信息不存在",allocationInfo.getCostDepartmentName());
+            throw new CommonException("门店【{}】相关地址信息不存在",allocationInfo.getCostDepartmentName());
         }
         allocationInfo.setAddressId(addressList.get(0).getAddressId());
     }
