@@ -75,7 +75,6 @@ public class AllocationInfo extends AuditDomain {
 
     @ApiModelProperty(value = "送货方式", required = true)
     @NotBlank
-    @LovValue(lovCode = "SCUX.WATSONS.DELIVERY_METHOD", meaningField = "deliveryTypeMeaning")
     private String deliveryType;
 
     @ApiModelProperty(value = "地址id", required = true)

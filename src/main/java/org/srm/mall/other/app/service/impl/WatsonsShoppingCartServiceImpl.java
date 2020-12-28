@@ -136,8 +136,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     @Override
     public List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart) {
+        //加入了取费用分配的过程
         List<ShoppingCartDTO> shoppingCartDTOList = super.shppingCartEnter(organizationId, shoppingCart);
-
         if (!CollectionUtils.isEmpty(shoppingCartDTOList)) {
             List<AllocationInfo> allocationInfoList = allocationInfoRepository.selectByCondition(Condition.builder(AllocationInfo.class).andWhere(Sqls.custom()
                     .andIn(AllocationInfo.FIELD_CART_ID, shoppingCartDTOList.stream().map(ShoppingCartDTO::getCartId).collect(Collectors.toList()))).build());
@@ -502,8 +502,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                    shoppingCartDTO4Freight.add(shoppingCartDTO);
                 }
 
-
-                // TODO: 2020/12/25  设置了shoppincartdto的值需要注意是否这里改了值 要更新到watsonsshoppingcarDTO
                 watsonsPreRequestOrderDTO.setShoppingCartDTOList(shoppingCartDTO4Freight);
 
 
@@ -566,7 +564,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     //preRequestOrderDTO.setFreight(BigDecimal.ZERO);
 
 
-                    // TODO: 2020/12/25     这边用到了shoppingcartDTOlist做了一些事
+                    // 这边用到了shoppingcartDTOlist做了一些事  但是仅仅是读取了watsonsPreRequestOrderDTO中的shoppingcartDTO   而并没有在shoppingcartDTO中更新数据而导致watsinsShoppingcartDTO中与shoppingcartDTO数据不一致
                     postageService.calculateFreight(Collections.singletonList(watsonsPreRequestOrderDTO));
                 }
                 
