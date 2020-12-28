@@ -16,6 +16,7 @@ import io.choerodon.mybatis.annotation.VersionAudit;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import org.hzero.boot.platform.lov.annotation.LovValue;
 import org.hzero.starter.keyencrypt.core.Encrypt;
 
 import java.math.BigDecimal;
@@ -71,9 +72,12 @@ public class AllocationInfo extends AuditDomain {
     @NotNull
     @Encrypt
     private Long cartId;
+
     @ApiModelProperty(value = "送货方式", required = true)
     @NotBlank
+    @LovValue(lovCode = "SCUX.WATSONS.DELIVERY_METHOD", meaningField = "deliveryTypeMeaning")
     private String deliveryType;
+
     @ApiModelProperty(value = "地址id", required = true)
     @NotNull
     @Encrypt
@@ -122,6 +126,9 @@ public class AllocationInfo extends AuditDomain {
     @Transient
     private BigDecimal percent;
 
+    @Transient
+    private String deliveryTypeMeaning;
+
 //
 // getter/setter
 // ------------------------------------------------------------------------------
@@ -133,6 +140,14 @@ public class AllocationInfo extends AuditDomain {
 
     public void setPercent(BigDecimal percent) {
         this.percent = percent;
+    }
+
+    public String getDeliveryTypeMeaning() {
+        return deliveryTypeMeaning;
+    }
+
+    public void setDeliveryTypeMeaning(String deliveryTypeMeaning) {
+        this.deliveryTypeMeaning = deliveryTypeMeaning;
     }
 
     public BigDecimal getTotalAmount() {

@@ -13,9 +13,6 @@ import org.srm.mall.context.entity.ItemCategory;
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
 import org.srm.mall.other.app.service.impl.ShoppingCartServiceImpl;
 import org.srm.mall.other.domain.entity.AllocationInfo;
-import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
-import org.srm.mall.platform.domain.entity.PurReqMergeRule;
-import org.srm.mall.product.api.dto.ItemCategoryDTO;
 
 
 import java.util.List;
@@ -26,7 +23,6 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
     private static final Logger logger = LoggerFactory.getLogger(ShoppingCartServiceImpl.class);
 
     private List<AllocationInfo> allocationInfoList;
-
 
     @ApiModelProperty(value = "CE号")
     private String ceNum;
@@ -41,12 +37,25 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
     @Transient
     private String key;
 
+    @ApiModelProperty(value = "用于传给采购申请预览页面值集Meaning的返回")
+    @Transient
+    private String deliveryTypeMeaning;
+
+
     public List<AllocationInfo> getAllocationInfoList() {
         return allocationInfoList;
     }
 
     public void setAllocationInfoList(List<AllocationInfo> allocationInfoList) {
         this.allocationInfoList = allocationInfoList;
+    }
+
+    public String getDeliveryTypeMeaning() {
+        return deliveryTypeMeaning;
+    }
+
+    public void setDeliveryTypeMeaning(String deliveryTypeMeaning) {
+        this.deliveryTypeMeaning = deliveryTypeMeaning;
     }
 
     public String getCeNum() {

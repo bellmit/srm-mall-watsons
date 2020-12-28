@@ -5,6 +5,8 @@ import io.choerodon.core.iam.ResourceLevel;
 import io.choerodon.swagger.annotation.Permission;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.hzero.boot.platform.lov.annotation.ProcessLovValue;
+import org.hzero.core.base.BaseConstants;
 import org.hzero.core.util.Results;
 import org.hzero.starter.keyencrypt.core.Encrypt;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,7 @@ public class WatsonsShoppingCartController {
     @Permission(level = ResourceLevel.ORGANIZATION)
     @PostMapping("/pre-req")
     public ResponseEntity<List<WatsonsPreRequestOrderDTO>> preRequestOrderView(@PathVariable("organizationId") Long organizationId, @RequestBody @Encrypt List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
-        return Results.success(watsonsShoppingCartService.watsonsPreRequestOrderView(organizationId, watsonsShoppingCartDTOList));
+        List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList = watsonsShoppingCartService.watsonsPreRequestOrderView(organizationId, watsonsShoppingCartDTOList);
+        return Results.success(watsonsPreRequestOrderDTOList);
     }
 }

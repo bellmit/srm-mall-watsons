@@ -115,6 +115,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             List<AllocationInfo> tempInfoList = entry.getValue();
             if (tempInfoList.size() > 1){
                 AllocationInfo allocationInfo = tempInfoList.get(0);
+                allocationInfo.setDeliveryTypeMeaning(watsonsShoppingCart.getAllocationInfoList().get(0).getDeliveryTypeMeaning());
                 for (int i=1; i < tempInfoList.size(); i++){
                     //每个相同组的  费用分配组的第一个费用分配的数量设置为自己和该相同组的其他剩余费用分配的数量  即合并
                     allocationInfo.setQuantity(allocationInfo.getQuantity() + tempInfoList.get(i).getQuantity());
@@ -123,6 +124,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                 allocationInfoRepository.updateByPrimaryKey(allocationInfo);
                 result.add(allocationInfo);
             } else {
+                tempInfoList.get(0).setDeliveryTypeMeaning(watsonsShoppingCart.getAllocationInfoList().get(0).getDeliveryTypeMeaning());
                 result.addAll(tempInfoList);
             }
         }
@@ -137,6 +139,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         if (!CollectionUtils.isEmpty(allocationInfoList)) {
             for (AllocationInfo allocationInfo : allocationInfoList) {
                 quantity = quantity.add(new BigDecimal(allocationInfo.getQuantity()));
+                allocationInfo.setDeliveryTypeMeaning(watsonsShoppingCart.getAllocationInfoList().get(0).getDeliveryTypeMeaning());
             }
             watsonsShoppingCart.setQuantity(quantity.longValue());
             shoppingCartService.create(watsonsShoppingCart);
