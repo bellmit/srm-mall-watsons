@@ -356,7 +356,12 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     }
 
 
-    // TODO: 2020/12/23
+
+
+
+
+
+
     @Override
     public List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderView(Long tenantId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
 
@@ -489,14 +494,21 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO = new WatsonsPreRequestOrderDTO();
                 watsonsPreRequestOrderDTO.setKeyForView(entry.getKey());
                 List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList4Trans = entry.getValue();
-                List<ShoppingCartDTO> shoppingCartDTO4FrontEnd = new ArrayList<>();
+
+                List<ShoppingCartDTO> shoppingCartDTO4Freight= new ArrayList<>();
+
                 for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList4Trans) {
-                   ShoppingCartDTO shoppingCartDTO = new ShoppingCartDTO();
+                    ShoppingCartDTO shoppingCartDTO = new ShoppingCartDTO();
                    BeanUtils.copyProperties(watsonsShoppingCartDTO,shoppingCartDTO);
-                   shoppingCartDTO4FrontEnd.add(shoppingCartDTO);
+                   shoppingCartDTO4Freight.add(shoppingCartDTO);
                    watsonsPreRequestOrderDTO.setItemCategoryName(watsonsShoppingCartDTO.getItemCategoryName());
                 }
-                watsonsPreRequestOrderDTO.setShoppingCartDTOList(shoppingCartDTO4FrontEnd);
+
+
+                // TODO: 2020/12/25  设置了shoppincartdto的值需要注意是否这里改了值 要更新到watsonsshoppingcarDTO
+                watsonsPreRequestOrderDTO.setShoppingCartDTOList(shoppingCartDTO4Freight);
+
+
                 watsonsPreRequestOrderDTO.setDistinguishId(++distinguishId);
                 watsonsPreRequestOrderDTO.setCount(entry.getValue().stream().mapToLong(WatsonsShoppingCartDTO::getQuantity).sum());
                 WatsonsShoppingCartDTO watsonsShoppingCartDTO = entry.getValue().get(0);
@@ -516,12 +528,14 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 watsonsPreRequestOrderDTO.setShowSupplierName(checkHideSupplier ? ScecConstants.HideField.HIDE_SUPPLIER_NAME_CODE : watsonsShoppingCartDTO.getShowSupplierName());
                 // 订单总价(不含运费)
                 BigDecimal price = entry.getValue().stream().map(WatsonsShoppingCartDTO::getTotalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+
 //                if (reResult.containsKey(entry.getKey())) {
 //                    price = reResult.get(entry.getKey()).stream()
 //                            .filter(s -> s.getSkuType().equals(ScecConstants.ProductSkuType.SERVICE_PRODUCT))
 //                            .map(ShoppingCartDTO::getTotalPrice)
 //                            .reduce(price, BigDecimal::add);
 //                }
+
                 validateMinPurchaseAmount(tenantId, watsonsShoppingCartDTO, price, watsonsPreRequestOrderDTO);
                 // 代理运费和代理总价问题处理 运费以采购价来计算
                 BigDecimal freightPrice = price;
@@ -552,8 +566,13 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 } else {
                     //非京东商品或目录化商品
                     //preRequestOrderDTO.setFreight(BigDecimal.ZERO);
+
+
+                    // TODO: 2020/12/25     这边用到了shoppingcartDTOlist做了一些事
                     postageService.calculateFreight(Collections.singletonList(watsonsPreRequestOrderDTO));
                 }
+                
+                
                 //小计金额  金额+运费
                 watsonsPreRequestOrderDTO.setPrice(price.add(watsonsPreRequestOrderDTO.getFreight()));
                 if (ScecConstants.AgreementType.SALE.equals(watsonsShoppingCartDTO.getAgreementType())) {
@@ -572,6 +591,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
                 // TODO: 2020/12/24   ce号设置
                 watsonsPreRequestOrderDTO.setMobile(watsonsShoppingCartDTO.getMobile());
+
+                watsonsPreRequestOrderDTO.setWatsonsShoppingCartDTOList(watsonsShoppingCartDTOList);
+
 
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
                 watsonsPreRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
@@ -738,9 +760,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     }
 
 
-    private void validateMinPurchaseAmount(Long tenantId, WatsonsShoppingCartDTO watsonsShoppingCartDTO, BigDecimal price, PreRequestOrderDTO preRequestOrderDTO) {
+    private void validateMinPurchaseAmount(Long tenantId, WatsonsShoppingCartDTO watsonsShoppingCartDTO, BigDecimal price, WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO) {
         //满足最小成单金额 1 满足 0 不满足
-        preRequestOrderDTO.setMinPurchaseFlag(ScecConstants.ConstantNumber.INT_1);
+        watsonsPreRequestOrderDTO.setMinPurchaseFlag(ScecConstants.ConstantNumber.INT_1);
         //从配置中心读取是否开启了最小采买金额限制
         if (ScecConstants.ConstantNumber.STRING_1.equals(customizeSettingHelper.queryBySettingCode(tenantId, ScecConstants.SettingCenterCode.MIN_PURCHASE_AMOUNT_CODE))) {
             MinPurchaseConfig minPurchaseConfig = new MinPurchaseConfig();
@@ -751,9 +773,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             if (!ObjectUtils.isEmpty(minPurchaseAmount)) {
                 //判断是否达到了最小采买金额限制
                 if ((new BigDecimal(minPurchaseAmount.getMinPurchaseAmount())).compareTo(price) > ScecConstants.ConstantNumber.INT_0) {
-                    preRequestOrderDTO.setMinPurchaseResult("未达到最小采买金额 {" + minPurchaseAmount.getMinPurchaseAmount() + "}");
-                    preRequestOrderDTO.setMinPurchaseAmount(minPurchaseAmount.getMinPurchaseAmount());
-                    preRequestOrderDTO.setMinPurchaseFlag(ScecConstants.ConstantNumber.INT_0);
+                    watsonsPreRequestOrderDTO.setMinPurchaseResult("未达到最小采买金额 {" + minPurchaseAmount.getMinPurchaseAmount() + "}");
+                    watsonsPreRequestOrderDTO.setMinPurchaseAmount(minPurchaseAmount.getMinPurchaseAmount());
+                    watsonsPreRequestOrderDTO.setMinPurchaseFlag(ScecConstants.ConstantNumber.INT_0);
                 }
             }
         }

@@ -15,6 +15,7 @@ import java.util.List;
  */
 public interface AllocationInfoRepository extends BaseRepository<AllocationInfo> {
 
+    //查询分配门店的库存组织
     Page<OrganizationInfoDTO> selectAllocationShopOrganization(OrganizationInfoDTO organizationInfoDTO, PageRequest pageRequest);
 
 }

@@ -42,7 +42,4 @@ public class WatsonsShoppingCartController {
     public ResponseEntity<List<WatsonsPreRequestOrderDTO>> preRequestOrderView(@PathVariable("organizationId") Long organizationId, @RequestBody @Encrypt List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
         return Results.success(watsonsShoppingCartService.watsonsPreRequestOrderView(organizationId, watsonsShoppingCartDTOList));
     }
-
-
-
 }

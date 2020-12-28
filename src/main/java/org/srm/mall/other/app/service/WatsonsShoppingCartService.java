@@ -17,8 +17,8 @@ public interface WatsonsShoppingCartService {
     /**
      * 预采购申请预览
      *
-     * @param watsonsShoppingCartDTOList
-     * @return PreRequestOrderDTO
+     * @param watsonsShoppingCartDTOList  购物车商品
+     * @return PreRequestOrderDTO   预采购申请返回DTO
      */
     List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderView(Long tenantId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList);
 

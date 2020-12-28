@@ -2,7 +2,11 @@ package org.srm.mall.other.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
 import org.hzero.starter.keyencrypt.core.Encrypt;
+import org.srm.mall.common.utils.snapshot.annotation.Compare;
+import org.srm.mall.common.utils.snapshot.annotation.IsList;
 import org.srm.mall.order.api.dto.PreRequestOrderDTO;
+
+import java.util.List;
 
 /**
  * 屈臣氏二开预采购申请view返回值
@@ -29,6 +33,11 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
 
     @ApiModelProperty(value = "分组名称key检查")
     private String keyForView;
+
+    @ApiModelProperty(value = "用于预算分配返回的shoppingCartDTO")
+    @Compare
+    @IsList
+    private List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList;
 
     public String getItemCategoryName() {
         return itemCategoryName;
@@ -77,4 +86,13 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
     public void setDeliveryType(String deliveryType) {
         this.deliveryType = deliveryType;
     }
+
+    public List<WatsonsShoppingCartDTO> getWatsonsShoppingCartDTOList() {
+        return watsonsShoppingCartDTOList;
+    }
+
+    public void setWatsonsShoppingCartDTOList(List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
+        this.watsonsShoppingCartDTOList = watsonsShoppingCartDTOList;
+    }
+
 }

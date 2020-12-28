@@ -46,7 +46,7 @@ public interface AllocationInfoService {
     WatsonsShoppingCart remove(WatsonsShoppingCart watsonsShoppingCart);
 
     /**
-     * 批量插入
+     * 批量插入费用分配
      * @param organizationId
      * @param allocationInfoDTO
      * @return
