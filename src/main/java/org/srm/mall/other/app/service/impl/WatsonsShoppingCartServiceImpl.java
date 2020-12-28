@@ -501,7 +501,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     ShoppingCartDTO shoppingCartDTO = new ShoppingCartDTO();
                    BeanUtils.copyProperties(watsonsShoppingCartDTO,shoppingCartDTO);
                    shoppingCartDTO4Freight.add(shoppingCartDTO);
-                   watsonsPreRequestOrderDTO.setItemCategoryName(watsonsShoppingCartDTO.getItemCategoryName());
                 }
 
 
@@ -590,7 +589,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 watsonsPreRequestOrderDTO.setPreRequestOrderNumber(UUID.randomUUID().toString());
 
                 // TODO: 2020/12/24   ce号设置
-                watsonsPreRequestOrderDTO.setMobile(watsonsShoppingCartDTO.getMobile());
 
                 watsonsPreRequestOrderDTO.setWatsonsShoppingCartDTOList(watsonsShoppingCartDTOList);
 
