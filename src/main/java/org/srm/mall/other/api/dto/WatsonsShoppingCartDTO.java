@@ -13,9 +13,6 @@ import org.srm.mall.context.entity.ItemCategory;
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
 import org.srm.mall.other.app.service.impl.ShoppingCartServiceImpl;
 import org.srm.mall.other.domain.entity.AllocationInfo;
-import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
-import org.srm.mall.platform.domain.entity.PurReqMergeRule;
-import org.srm.mall.product.api.dto.ItemCategoryDTO;
 
 
 import java.util.List;

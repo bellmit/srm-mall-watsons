@@ -25,10 +25,21 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
     @ApiModelProperty(value = "分组名称key检查")
     private String keyForView;
 
+    @ApiModelProperty(value = "联系电话")
+    private String mobile;
+
     @ApiModelProperty(value = "用于预算分配返回的shoppingCartDTO")
     @Compare
     @IsList
     private List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList;
+
+    public String getMobile() {
+        return mobile;
+    }
+
+    public void setMobile(String mobile) {
+        this.mobile = mobile;
+    }
 
 
     public String getKeyForView() {
