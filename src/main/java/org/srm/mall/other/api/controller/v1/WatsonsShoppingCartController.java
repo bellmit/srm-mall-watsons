@@ -19,6 +19,7 @@ import org.srm.mall.other.api.dto.ShoppingCartDTO;
 import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.app.service.WatsonsShoppingCartService;
+import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.srm.web.annotation.Tenant;
 
 import java.util.List;
@@ -40,6 +41,7 @@ public class WatsonsShoppingCartController {
 
     @ApiOperation(value = "预采购申请预览")
     @Permission(level = ResourceLevel.ORGANIZATION)
+    @ProcessLovValue(targetField = {BaseConstants.FIELD_BODY, AllocationInfo.FIELD_DELIVERY_TYPE})
     @PostMapping("/pre-req")
     public ResponseEntity<List<WatsonsPreRequestOrderDTO>> preRequestOrderView(@PathVariable("organizationId") Long organizationId, @RequestBody @Encrypt List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
         List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList = watsonsShoppingCartService.watsonsPreRequestOrderView(organizationId, watsonsShoppingCartDTOList);

@@ -49,6 +49,7 @@ public class AllocationInfo extends AuditDomain {
     public static final String FIELD_PRICE = "price";
     public static final String FIELD_AMOUNT = "amount";
 
+
 //
 // 业务方法(按public protected private顺序排列)
 // ------------------------------------------------------------------------------
@@ -74,6 +75,7 @@ public class AllocationInfo extends AuditDomain {
     private Long cartId;
 
     @ApiModelProperty(value = "送货方式", required = true)
+    @LovValue(lovCode = "SCUX.WATSONS.DELIVERY_METHOD", meaningField = "deliveryTypeMeaning")
     @NotBlank
     private String deliveryType;
 
