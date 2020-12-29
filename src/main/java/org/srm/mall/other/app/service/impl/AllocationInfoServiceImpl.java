@@ -91,7 +91,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             handleReceiverAddress(allocationInfo,tenantId);
 
             //校验对应的地址商品是否可售,等待价格服务提供接口
-//            saleAndStockCheck(tenantId, allocationInfo,watsonsShoppingCart.getProductId());
+            saleAndStockCheck(tenantId, allocationInfo,watsonsShoppingCart.getProductId());
 
             if (allocationInfo.getAllocationId() == null){
                 allocationInfoRepository.insertSelective(allocationInfo);
