@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.ObjectUtils;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.SagmRemoteService;
+import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.other.api.dto.AllocationInfoDTO;
 import org.srm.mall.other.app.service.AllocationInfoService;
 import org.srm.mall.other.app.service.ShoppingCartService;
@@ -90,7 +91,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             handleReceiverAddress(allocationInfo,tenantId);
 
             //校验对应的地址商品是否可售,等待价格服务提供接口
-            saleAndStockCheck(tenantId, allocationInfo,watsonsShoppingCart.getProductId());
+//            saleAndStockCheck(tenantId, allocationInfo,watsonsShoppingCart.getProductId());
 
             if (allocationInfo.getAllocationId() == null){
                 allocationInfoRepository.insertSelective(allocationInfo);
@@ -104,23 +105,35 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         return allocationInfoList;
     }
 
+    /**
+     * 商品可售行与库存检查
+     * @param tenantId
+     * @param allocationInfo
+     * @param productId
+     */
     private void saleAndStockCheck(Long tenantId, AllocationInfo allocationInfo, Long productId) {
         // 校验可售
         PriceParamDTO priceParamDTO = new PriceParamDTO(tenantId,addressRepository.querySecondRegionId(allocationInfo.getAddressId()),null,productId);
         priceParamDTO.setAddressId(allocationInfo.getAddressId());
+        priceParamDTO.getSkuParamDTOS().get(0).setQuantity(BigDecimal.ONE);
         ResponseEntity<String> result = sagmRemoteService.selectPrice(tenantId,ScecConstants.SagmSourceCode.SHOPPING_CART,priceParamDTO);
         List<PriceResultDTO> priceResultDTOS = ResponseUtils.getResponse(result, new TypeReference<List<PriceResultDTO>>() {
         });
         if (BaseConstants.Flag.NO.equals(priceResultDTOS.get(0).getSaleEnable())){
-            throw new CommonException("门店【{}】所属地区商品无货",allocationInfo.getCostDepartmentName());
+            throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_REGION_OOS,allocationInfo.getCostShopName());
         }
+        //TODO 校验库存
+
     }
 
     private void handleReceiverAddress(AllocationInfo allocationInfo, Long tenantId) {
         // 通过库存组织信息反查地址id
-        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,tenantId).andEqualTo(Address.FIELD_OWNED_BY, -1L).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,allocationInfo.getCartId())).build());
+
+        //TODO 在自动生成地址功能完成前，不限制ownedBy
+//        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,tenantId).andEqualTo(Address.FIELD_OWNED_BY, -1L).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,allocationInfo.getCostShopId())).build());
+        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,tenantId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,allocationInfo.getCostShopId())).build());
         if (ObjectUtils.isEmpty(addressList)){
-            throw new CommonException("门店【{}】相关地址信息不存在",allocationInfo.getCostDepartmentName());
+            throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR,allocationInfo.getCostShopName());
         }
         allocationInfo.setAddressId(addressList.get(0).getAddressId());
     }

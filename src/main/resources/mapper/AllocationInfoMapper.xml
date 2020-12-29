@@ -35,7 +35,8 @@
         h.attribute2 type
         FROM hpfm_inv_organization h
         WHERE
-        h.enabled_flag = 1
+        h.tenant_id = #{organizationId}
+        AND h.enabled_flag = 1
         AND h.attribute2 = #{type}
         <if test="organizationCode != null and organizationCode != ''">
             <bind name="organizationCodeLike" value="'%' + organizationCode + '%'" />

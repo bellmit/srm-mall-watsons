@@ -9,4 +9,18 @@ public interface WatsonsConstants {
      */
     String TENANT_NUMBER = "SRM-WATSONS";
 
+    public final class ErrorCode{
+        private ErrorCode(){
+        }
+
+        /**
+         * 门店地址与商城地址无关联关系
+         */
+        public static final String INV_ORGANIZATION_ADDRESS_ERROR = "inv.organization.address.error";
+
+        /**
+         * 门店地址所在区域商品不可售或无货
+         */
+        public static final String INV_ORGANIZATION_REGION_OOS = "inv.organization.region.oos";
+    }
 }
