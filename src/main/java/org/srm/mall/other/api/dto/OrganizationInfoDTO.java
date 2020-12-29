@@ -1,5 +1,7 @@
 package org.srm.mall.other.api.dto;
 
+import org.hzero.starter.keyencrypt.core.Encrypt;
+
 /**
  * 库存组织
  */
@@ -7,14 +9,17 @@ public class OrganizationInfoDTO {
 
     public static final String FIELD_ORGANIZATION_ID = "organizationId";
 
+    @Encrypt
     private Long organizationId;
 
     private String organizationCode;
 
     private String organizationName;
 
+    @Encrypt
     private Long ouId;
 
+    @Encrypt
     private Long tenantId;
 
     private Long addressId;
