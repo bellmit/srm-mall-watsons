@@ -15,6 +15,8 @@ import java.util.List;
  */
 public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
 
+    public static final String WATSONS_SHOPPINGCART_DTO_LIST  = "body.watsonsShoppingCartDTOList.allocationInfoList";
+
     @ApiModelProperty(value = "物料品类id/采购品类id")
     @Encrypt
     private Long itemCategoryId;
