@@ -587,6 +587,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
 
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
+                watsonsPreRequestOrderDTO.setReceiverContactName(watsonsShoppingCartDTO.getContactName());
                 watsonsPreRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
             }
             // handleCheck()
