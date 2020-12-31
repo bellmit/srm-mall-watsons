@@ -109,7 +109,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
      * 商品可售行与库存检查
      * @param tenantId
      * @param allocationInfo
-     * @param productId
+     * @param watsonsShoppingCart
      */
     private void saleAndStockCheck(Long tenantId, AllocationInfo allocationInfo, WatsonsShoppingCart watsonsShoppingCart) {
         // 校验可售
