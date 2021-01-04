@@ -499,7 +499,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
                 watsonsPreRequestOrderDTO.setShoppingCartDTOList(shoppingCartDTO4Freight);
 
-
                 watsonsPreRequestOrderDTO.setDistinguishId(++distinguishId);
                 watsonsPreRequestOrderDTO.setCount(entry.getValue().stream().mapToLong(WatsonsShoppingCartDTO::getQuantity).sum());
                 WatsonsShoppingCartDTO watsonsShoppingCartDTO = entry.getValue().get(0);
@@ -582,7 +581,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
                 // TODO: 2020/12/24   ce号设置
 
-                watsonsPreRequestOrderDTO.setWatsonsShoppingCartDTOList(watsonsShoppingCartDTOList);
+                watsonsPreRequestOrderDTO.setWatsonsShoppingCartDTOList(watsonsShoppingCartDTOList4Trans);
                 watsonsPreRequestOrderDTO.setMobile(watsonsShoppingCartDTO.getMobile());
                 watsonsPreRequestOrderDTO.setReceiverContactName(watsonsShoppingCartDTO.getContactName());
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
