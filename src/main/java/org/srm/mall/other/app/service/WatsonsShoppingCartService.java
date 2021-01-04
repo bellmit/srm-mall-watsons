@@ -4,6 +4,7 @@ import org.srm.mall.order.api.dto.PreRequestOrderDTO;
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
 import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
+import org.srm.mall.other.domain.entity.ShoppingCart;
 
 import java.util.List;
 
@@ -22,4 +23,11 @@ public interface WatsonsShoppingCartService {
      */
     List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderView(Long tenantId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList);
 
+    /**
+     * 进入购物车
+     *
+     * @param shoppingCart
+     * @return list
+     */
+    List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart);
 }

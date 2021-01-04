@@ -22,7 +22,7 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
 
     private static final Logger logger = LoggerFactory.getLogger(ShoppingCartServiceImpl.class);
 
-    public static final String ALLOCATION_INFO_LIST  = "allocationInfoList";
+    public static final String ALLOCATION_INFO_LIST  = "body.allocationInfoList";
 
     private List<AllocationInfo> allocationInfoList;
 
