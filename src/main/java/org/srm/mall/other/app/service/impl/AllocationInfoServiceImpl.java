@@ -91,7 +91,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             handleReceiverAddress(allocationInfo,tenantId);
 
             //校验对应的地址商品是否可售,等待价格服务提供接口
-            saleAndStockCheck(tenantId, allocationInfo,watsonsShoppingCart.getProductId());
+            saleAndStockCheck(tenantId, allocationInfo,watsonsShoppingCart);
 
             if (allocationInfo.getAllocationId() == null){
                 allocationInfoRepository.insertSelective(allocationInfo);
@@ -109,13 +109,14 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
      * 商品可售行与库存检查
      * @param tenantId
      * @param allocationInfo
-     * @param productId
+     * @param watsonsShoppingCart
      */
-    private void saleAndStockCheck(Long tenantId, AllocationInfo allocationInfo, Long productId) {
+    private void saleAndStockCheck(Long tenantId, AllocationInfo allocationInfo, WatsonsShoppingCart watsonsShoppingCart) {
         // 校验可售
-        PriceParamDTO priceParamDTO = new PriceParamDTO(tenantId,addressRepository.querySecondRegionId(allocationInfo.getAddressId()),null,productId);
+        PriceParamDTO priceParamDTO = new PriceParamDTO(tenantId,addressRepository.querySecondRegionId(allocationInfo.getAddressId()),null,watsonsShoppingCart.getProductId());
         priceParamDTO.setAddressId(allocationInfo.getAddressId());
         priceParamDTO.getSkuParamDTOS().get(0).setQuantity(BigDecimal.ONE);
+        priceParamDTO.setUnitLevelPath(watsonsShoppingCart.getLevelPath());
         ResponseEntity<String> result = sagmRemoteService.selectPrice(tenantId,ScecConstants.SagmSourceCode.SHOPPING_CART,priceParamDTO);
         List<PriceResultDTO> priceResultDTOS = ResponseUtils.getResponse(result, new TypeReference<List<PriceResultDTO>>() {
         });
