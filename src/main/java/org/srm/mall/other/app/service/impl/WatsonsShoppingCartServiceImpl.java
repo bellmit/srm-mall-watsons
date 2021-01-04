@@ -499,7 +499,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
                 watsonsPreRequestOrderDTO.setShoppingCartDTOList(shoppingCartDTO4Freight);
 
-
                 watsonsPreRequestOrderDTO.setDistinguishId(++distinguishId);
                 watsonsPreRequestOrderDTO.setCount(entry.getValue().stream().mapToLong(WatsonsShoppingCartDTO::getQuantity).sum());
                 WatsonsShoppingCartDTO watsonsShoppingCartDTO = entry.getValue().get(0);
@@ -582,7 +581,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
                 // TODO: 2020/12/24   ce号设置
 
-                watsonsPreRequestOrderDTO.setWatsonsShoppingCartDTOList(watsonsShoppingCartDTOList);
+                watsonsPreRequestOrderDTO.setWatsonsShoppingCartDTOList(watsonsShoppingCartDTOList4Trans);
                 watsonsPreRequestOrderDTO.setMobile(watsonsShoppingCartDTO.getMobile());
                 watsonsPreRequestOrderDTO.setReceiverContactName(watsonsShoppingCartDTO.getContactName());
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
@@ -595,6 +594,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     }
 
     private void splitShoppingCartByCostConfig(List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
+        //所有商品按所有的费用分配拆行
         List<WatsonsShoppingCartDTO> splitCosttInfoList = new ArrayList<>();
         Iterator<WatsonsShoppingCartDTO> it = watsonsShoppingCartDTOList.iterator();
         while (it.hasNext()) {
@@ -606,7 +606,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     BeanUtils.copyProperties(watsonsShoppingCartDTO, newWatsonsShoppingCartDTO);
                     newWatsonsShoppingCartDTO.setQuantity(allocationInfo.getQuantity().intValue());
                     newWatsonsShoppingCartDTO.setAllocationInfoList(Collections.singletonList(allocationInfo));
-                    newWatsonsShoppingCartDTO.setTotalPrice(ObjectUtils.isEmpty(allocationInfo.getPrice()) ? BigDecimal.ZERO : allocationInfo.getPrice());
+                    newWatsonsShoppingCartDTO.setTotalPrice(ObjectUtils.isEmpty(allocationInfo.getPrice()) ? BigDecimal.ZERO : allocationInfo.getPrice().multiply(BigDecimal.valueOf(newWatsonsShoppingCartDTO.getQuantity())));
                     splitCosttInfoList.add(newWatsonsShoppingCartDTO);
                 }
                 it.remove();
@@ -864,14 +864,14 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     ResponseEntity<String> responseOne = smdmRemoteService.selectCategoryByItemId(tenantId, watsonsShoppingCartDTO.getItemId(), BaseConstants.Flag.YES);
                     if (ResponseUtils.isFailed(responseOne)) {
                         logger.error("selectCategoryByItemId:{}", responseOne);
-                        throw new CommonException("根据物料查询二级品类失败!");
+                        throw new CommonException("根据物料查询一级品类失败!");
                     }
                     logger.info("selectCategoryByItemId:{}", responseOne);
                     List<WatsonsItemCategoryDTO> itemCategoryResultOne  = ResponseUtils.getResponse(responseOne, new TypeReference<List<WatsonsItemCategoryDTO>>() {});
 
                     if(CollectionUtils.isEmpty(itemCategoryResultOne)){
                         logger.error("selectCategoryByItemId:{}", "null");
-                        throw new CommonException("根据物料查询二级品类失败!");
+                        throw new CommonException("根据物料查询一级品类失败!");
                     }
 
                     if(CollectionUtils.isNotEmpty(itemCategoryResultOne) && (itemCategoryResultOne.size()>1)){
