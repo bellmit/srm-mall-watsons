@@ -896,7 +896,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                         keyRes.append(itemCategoryResultOne.get(0).getParentCategoryId()).append("-");
                     }
 
-                    String keyFinal = keyRes.toString();
+                    String keyFinal = String.valueOf(keyRes);
                     watsonsShoppingCartDTO.setItemCategoryId(itemCategoryResultOne.get(0).getParentCategoryId());
                     watsonsShoppingCartDTO.setItemCategoryName(itemCategoryResultOne.get(0).getParentCategoryName());
                     watsonsShoppingCartDTO.setKey(keyFinal);
