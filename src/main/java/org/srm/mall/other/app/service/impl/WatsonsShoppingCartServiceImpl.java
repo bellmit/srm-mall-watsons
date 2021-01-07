@@ -3,6 +3,8 @@ package org.srm.mall.other.app.service.impl;
 import com.ctrip.framework.apollo.util.ExceptionUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.choerodon.core.exception.CommonException;
+import io.choerodon.core.oauth.CustomUserDetails;
+import io.choerodon.core.oauth.DetailsHelper;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hzero.core.base.BaseConstants;
 import org.hzero.core.message.MessageAccessor;
@@ -17,6 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
@@ -509,7 +512,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 watsonsPreRequestOrderDTO.setPurOrganizationName(watsonsShoppingCartDTO.getPurOrganizationName());
                 watsonsPreRequestOrderDTO.setPurOrganizationId(watsonsShoppingCartDTO.getPurOrganizationId());
                 watsonsPreRequestOrderDTO.setOrganizationName(watsonsShoppingCartDTO.getOrganizationName());
-                watsonsPreRequestOrderDTO.setReceiverContactName(watsonsShoppingCartDTO.getContactName());
                 watsonsPreRequestOrderDTO.setReceiverEmailAddress(watsonsShoppingCartDTO.getContactEmail());
                 watsonsPreRequestOrderDTO.setReceiverTelNum(watsonsShoppingCartDTO.getContactMobile());
                 watsonsPreRequestOrderDTO.setProxySupplierCompanyId(watsonsShoppingCartDTO.getProxySupplierCompanyId());
@@ -583,7 +585,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
                 watsonsPreRequestOrderDTO.setWatsonsShoppingCartDTOList(watsonsShoppingCartDTOList4Trans);
                 watsonsPreRequestOrderDTO.setMobile(watsonsShoppingCartDTO.getMobile());
-                watsonsPreRequestOrderDTO.setReceiverContactName(watsonsShoppingCartDTO.getContactName());
+                CustomUserDetails userDetails = DetailsHelper.getUserDetails();
+                watsonsPreRequestOrderDTO.setReceiverContactName(userDetails.getUsername(););
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
                 watsonsPreRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
             }
