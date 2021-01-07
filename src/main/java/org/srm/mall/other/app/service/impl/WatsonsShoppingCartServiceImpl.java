@@ -383,15 +383,14 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             shoppingCartDTOList.add(shoppingCartDTO4Transfer);
         }
 
+
         // eric 首先根据购物车的地址id和组织层级进行分组调用   异步获取商品价格
         Map<String, Map<Long, PriceResultDTO>> priceResultDTOMap = queryPriceResult(shoppingCartDTOList);
 
         Iterator iterator = shoppingCartDTOList.iterator();
         while (iterator.hasNext()) {
 
-
             ShoppingCartDTO shoppingCartDTO = (ShoppingCartDTO) iterator.next();
-
 
             Map<Long, PriceResultDTO> resultDTOMap = priceResultDTOMap.get(shoppingCartDTO.skuRegionGroupKey());
             if (ObjectUtils.isEmpty(resultDTOMap)) {
@@ -443,9 +442,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             convertParam(shoppingCartDTO, priceResultDTO);
         }
 
-
         //检测条件完毕
-
 
         //校验收货地址
         validateShppingAddress(shoppingCartDTOList);
@@ -457,14 +454,24 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         boolean hideSupplier = mallOrderCenterService.checkHideField(tenantId, shoppingCartDTOList.get(0).getCompanyId(), ScecConstants.HideField.SUPPLIER);
 
 
-        if (CollectionUtils.isNotEmpty(shoppingCartDTOList)) {
-            List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList = new ArrayList<>();
+        // TODO: 2021/1/7 属性转换给watsonsShoppingCartDTO
+        
+        
 
+
+
+        if (CollectionUtils.isNotEmpty(shoppingCartDTOList)) {
+
+            List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList = new ArrayList<>();
             //将每一个商品根据自己的多个费用拆成多个订单行
             splitShoppingCartByCostConfig(watsonsShoppingCartDTOList);
             //此时shoppingCartDTOList已经有   每一个商品根据自己的多个费用条拆成的多个订单行
 
-            PurReqMergeRule purReqMergeRule = PurReqMergeRule.getDefaultMergeRule();
+            // TODO: 2021/1/8 放
+//            PurReqMergeRule purReqMergeRule = PurReqMergeRule.getDefaultMergeRule();
+
+             PurReqMergeRule purReqMergeRule = new PurReqMergeRule();
+             purReqMergeRule.setSupplierFlag(BaseConstants.Flag.YES);
 
             //  拼上key  只能用watsonsShoppingCartDTO 进行数据获取  所以必须使用watsonsshoppingcart
 
@@ -477,21 +484,23 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(s -> s.groupKey(purReqMergeRule)));
             result = watsonsGroupPurchaseRequest(tenantId, purReqMergeRule, result);
 
-
             // eric即使是watsons中的seskulist 同样是shoppingcart类型的 天生没有合单归项的key的3个数据  所以还按原来的addressid排？差距就在addressid
 //            Map<String, List<ShoppingCartDTO>> reResult = re.stream().collect(Collectors.groupingBy(s -> s.groupKey(purReqMergeRule)));
 //            reResult = groupPurchaseRequest(tenantId, purReqMergeRule, reResult);
 
-            //拆单完成后判断是否还需要继续根据重复订单再行拆分
+            //拆单完成后判断同一分组是否还有同一种的相同商品（有很多种不同种的商品）拆成不同的单子
             recursionSplitShoppingCart(result);
 
             //用于前端区分采购申请s
             int distinguishId = 0;
+
+
             for (Map.Entry<String, List<WatsonsShoppingCartDTO>> entry : result.entrySet()) {
                 WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO = new WatsonsPreRequestOrderDTO();
                 watsonsPreRequestOrderDTO.setKeyForView(entry.getKey());
-                List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList4Trans = entry.getValue();
 
+
+                List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList4Trans = entry.getValue();
                 List<ShoppingCartDTO> shoppingCartDTO4Freight= new ArrayList<>();
 
                 for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList4Trans) {
@@ -501,6 +510,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 }
 
                 watsonsPreRequestOrderDTO.setShoppingCartDTOList(shoppingCartDTO4Freight);
+
 
                 watsonsPreRequestOrderDTO.setDistinguishId(++distinguishId);
                 watsonsPreRequestOrderDTO.setCount(entry.getValue().stream().mapToLong(WatsonsShoppingCartDTO::getQuantity).sum());
@@ -623,6 +633,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         Map<String, Map<Long, PriceResultDTO>> priceResultDTOMap = new HashMap<>();
         // 异步循环获取价格
         List<Future<Map<String, Map<Long, PriceResultDTO>>>> asyncCallback = new ArrayList<>();
+
         SecurityContext context = SecurityContextHolder.getContext();
         for (Map.Entry<String, List<ShoppingCartDTO>> entry : skuShoppingCartDTO.entrySet()) {
             Future<Map<String, Map<Long, PriceResultDTO>>> checkSaleResultResult = shoppingCartService.asyncQueryPrice(entry, context);
@@ -777,7 +788,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     private void recursionSplitShoppingCart(Map<String, List<WatsonsShoppingCartDTO>> result) {
         //拆单完成后将还未进行拆单的list再进行拆单,并将根据预算进行拆单设置为yes，与之前拆单的key区分，以防止拆单完成后key重复
 
-        //用费用维度只是最大化拆分出一个个商品行，一个个商品行可能是相同的商品，只是费用不同，再用另外三个维度去合单时与价格不是一个维度，不能确保一定没有同样的商品被分到了由这三个维度组成的同一个key
+        //用一级品类  地址  和供应商  可能有相同的商品被分在一组  不允许 要拆成不同的商品分在一组
         Map<String, List<WatsonsShoppingCartDTO>> splitResultMap = new HashMap<>();
         List<String> removeKeyList = new ArrayList<>();
         for (Map.Entry<String, List<WatsonsShoppingCartDTO>> entry : result.entrySet()) {
@@ -788,6 +799,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 splitResultMap.put(entry.getKey(), entry.getValue());
             } else {
                 //有重复的商品，将重复的数据取出，继续拆单，由于该list已经是拆单好之后的list，因此只需要将重复的数据取出，生成一个新的list即可
+                //取出所有重复的商品  不止一种商品重复    拿出所有重复商品的id   把两个不同的商品组合在一起  重复的同样的商品不能组合
                 Map<Long, List<WatsonsShoppingCartDTO>> map = entry.getValue().stream().collect(Collectors.groupingBy(WatsonsShoppingCartDTO::getProductId));
                 Set<Long> productIdList = entry.getValue().stream().map(WatsonsShoppingCartDTO::getProductId).filter(Objects::nonNull).collect(Collectors.toSet());
                 for (Long productId : productIdList) {
@@ -883,15 +895,16 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     }
 
 
-                    if (BaseConstants.Flag.YES.equals(purReqMergeRule.getSupplierFlag())) {
+//                    if (BaseConstants.Flag.YES.equals(purReqMergeRule.getSupplierFlag())) {
                         keyRes.append(watsonsShoppingCartDTO.getSupplierCompanyId()).append("-");
-                    }
+//                    }
                     if (BaseConstants.Flag.YES.equals(purReqMergeRule.getAddressFlag())) {
                         if(watsonsShoppingCartDTO.getAllocationInfoList() == null){
                             logger.error("未进行费用分配！:{}", watsonsShoppingCartDTO.getAllocationInfoList());
                             throw new CommonException("未进行费用分配!");
                         }
-                        keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getAddressId()).append("-");
+//                        keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getAddressId()).append("-");
+                        keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getDeliveryType()).append("-");
                     }
                     if (BaseConstants.Flag.YES.equals(purReqMergeRule.getCategory())){
                         keyRes.append(itemCategoryResultOne.get(0).getParentCategoryId()).append("-");
@@ -903,6 +916,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     watsonsShoppingCartDTO.setKey(keyFinal);
                 }
                 Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(s->s.getKey()));
+
                 resultMap.putAll(result);
 
             } else {
@@ -915,8 +929,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     }
 
     private void setPurMergeRuleForWatsons(PurReqMergeRule purReqMergeRule) {
-        purReqMergeRule.setSupplierFlag(BaseConstants.Flag.YES);
-        purReqMergeRule.setAddressFlag(BaseConstants.Flag.YES);
         purReqMergeRule.setCategory(BaseConstants.Flag.YES);
+        purReqMergeRule.setAddressFlag(BaseConstants.Flag.YES);
     }
 }
