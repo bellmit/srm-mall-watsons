@@ -7,9 +7,12 @@ import org.hzero.mybatis.base.impl.BaseRepositoryImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
+import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 import org.srm.mall.other.domain.repository.AllocationInfoRepository;
 import org.springframework.stereotype.Component;
 import org.srm.mall.other.infra.mapper.AllocationInfoMapper;
+
+import java.util.List;
 
 /**
  * 屈臣氏费用分配表 资源库实现
@@ -26,4 +29,6 @@ public class AllocationInfoRepositoryImpl extends BaseRepositoryImpl<AllocationI
     public Page<OrganizationInfoDTO> selectAllocationShopOrganization(OrganizationInfoDTO organizationInfoDTO, PageRequest pageRequest) {
         return PageHelper.doPageAndSort(pageRequest, () -> allocationInfoMapper.selectAllocationShopOrganization(organizationInfoDTO));
     }
+
+
 }

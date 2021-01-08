@@ -4,7 +4,9 @@ import io.choerodon.core.domain.Page;
 import io.choerodon.mybatis.pagehelper.domain.PageRequest;
 import org.srm.mall.other.api.dto.AllocationInfoDTO;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
+import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
+import org.srm.mall.other.domain.entity.ProjectCost;
 import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 
 import java.util.List;
@@ -53,4 +55,11 @@ public interface AllocationInfoService {
      */
     AllocationInfoDTO batchCreate(Long organizationId, AllocationInfoDTO allocationInfoDTO);
 
+    /**
+     * 查询商品行对应的费用项目和费用项目子分类
+     * @param organizationId
+     * @param watsonsShoppingCartDTO
+     * @return
+     */
+    List<ProjectCost> selectAllocationProjectLov(Long organizationId, WatsonsShoppingCartDTO watsonsShoppingCartDTO);
 }

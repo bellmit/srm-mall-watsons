@@ -11,6 +11,7 @@ import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.order.domain.entity.PoHeader;
 import org.srm.mall.other.api.dto.AllocationInfoDTO;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
+import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.app.service.AllocationInfoService;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,7 @@ import io.choerodon.core.iam.ResourceLevel;
 import io.choerodon.swagger.annotation.Permission;
 
 import io.swagger.annotations.ApiOperation;
+import org.srm.mall.other.domain.entity.ProjectCost;
 import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 import org.srm.mall.other.domain.repository.AllocationInfoRepository;
 import org.srm.web.annotation.Tenant;
@@ -90,4 +92,10 @@ public class CostAllocationInfoController extends BaseController {
         return Results.success(allocationInfoRepository.selectAllocationShopOrganization(organizationInfoDTO, pageRequest));
     }
 
+    @ApiOperation(value = "屈臣氏费用项目值集接口")
+    @Permission(level = ResourceLevel.ORGANIZATION)
+    @GetMapping("/cost-allocation-project-lov")
+    public ResponseEntity<List<ProjectCost>> selectAllocationProjectLov(@PathVariable("organizationId") Long organizationId, @RequestBody @Encrypt WatsonsShoppingCartDTO watsonsShoppingCartDTO) {
+        return Results.success(allocationInfoService.selectAllocationProjectLov(organizationId, watsonsShoppingCartDTO));
+    }
 }

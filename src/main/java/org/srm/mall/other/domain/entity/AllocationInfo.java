@@ -48,6 +48,8 @@ public class AllocationInfo extends AuditDomain {
     public static final String FIELD_QUANTITY = "quantity";
     public static final String FIELD_PRICE = "price";
     public static final String FIELD_AMOUNT = "amount";
+    public static final String FIELD_ALLOCATION_PROJECT = "allocationProject";
+    public static final String FIELD_ALLOCATION_PROJECT_SUB_CATEGORY = "allocationProjectSubCategory";
 
 
 //
@@ -117,6 +119,11 @@ public class AllocationInfo extends AuditDomain {
     @NotNull
     private BigDecimal price;
 
+    @ApiModelProperty(value = "费用项目", required = true)
+    private String allocationProject;
+    @ApiModelProperty(value = "费用项目子分类", required = true)
+    private String allocationProjectSubCategory;
+
 //
 // 非数据库字段
 // ------------------------------------------------------------------------------
@@ -134,6 +141,22 @@ public class AllocationInfo extends AuditDomain {
 // getter/setter
 // ------------------------------------------------------------------------------
 
+
+    public String getAllocationProject() {
+        return allocationProject;
+    }
+
+    public void setAllocationProject(String allocationProject) {
+        this.allocationProject = allocationProject;
+    }
+
+    public String getAllocationProjectSubCategory() {
+        return allocationProjectSubCategory;
+    }
+
+    public void setAllocationProjectSubCategory(String allocationProjectSubCategory) {
+        this.allocationProjectSubCategory = allocationProjectSubCategory;
+    }
 
     public BigDecimal getPercent() {
         return percent;

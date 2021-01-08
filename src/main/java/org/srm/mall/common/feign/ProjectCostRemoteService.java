@@ -1,5 +1,6 @@
 package org.srm.mall.common.feign;
 
+
 import io.choerodon.mybatis.pagehelper.annotation.SortDefault;
 import io.choerodon.mybatis.pagehelper.domain.PageRequest;
 import io.choerodon.mybatis.pagehelper.domain.Sort;
@@ -9,6 +10,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.srm.mall.common.feign.fallback.ProjectCostRemoteServiceFallbackImpl;
+
+import org.srm.mall.other.domain.entity.ProjectCost;
 import springfox.documentation.annotations.ApiIgnore;
 
 /**
