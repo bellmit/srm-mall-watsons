@@ -61,5 +61,5 @@ public interface AllocationInfoService {
      * @param watsonsShoppingCartDTO
      * @return
      */
-    List<ProjectCost> selectAllocationProjectLov(Long organizationId, WatsonsShoppingCartDTO watsonsShoppingCartDTO);
+    List<ProjectCost> selectAllocationProjectLov(Long organizationId, WatsonsShoppingCartDTO watsonsShoppingCartDTO, Integer size, Integer page);
 }

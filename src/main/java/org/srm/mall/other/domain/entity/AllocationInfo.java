@@ -118,7 +118,6 @@ public class AllocationInfo extends AuditDomain {
     @ApiModelProperty(value = "单价", required = true)
     @NotNull
     private BigDecimal price;
-
     @ApiModelProperty(value = "费用项目", required = true)
     private String allocationProject;
     @ApiModelProperty(value = "费用项目子分类", required = true)

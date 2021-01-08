@@ -250,10 +250,11 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     }
 
     @Override
-    public List<ProjectCost> selectAllocationProjectLov(Long organizationId, WatsonsShoppingCartDTO watsonsShoppingCartDTO) {
-        PageRequest pageRequest = new PageRequest(0,100);
+    public List<ProjectCost> selectAllocationProjectLov(Long organizationId, WatsonsShoppingCartDTO watsonsShoppingCartDTO, Integer size, Integer page) {
+        PageRequest pageRequest = new PageRequest();
+        pageRequest.setSize(size);
+        pageRequest.setPage(page);
         ProjectCost projectCost = new ProjectCost();
-
         ResponseEntity<String> itemCategoryDTORes = smdmRemoteNewService.selectSecondaryByThirdItemCategory(organizationId, String.valueOf(watsonsShoppingCartDTO.getItemCategoryId()));
         if (ResponseUtils.isFailed(itemCategoryDTORes)) {
             logger.error("select secondaryItemCategoryId By thirdItemCategoryId failed:{}", itemCategoryDTORes);
@@ -263,7 +264,6 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         List<ItemCategoryDTO> itemCategoryResultOne  = ResponseUtils.getResponse(itemCategoryDTORes, new TypeReference<List<ItemCategoryDTO>>() {});
         Long secondaryCategoryId = itemCategoryResultOne.get(0).getParentCategoryId();
         projectCost.setSecondaryCategoryId(secondaryCategoryId);
-
 
         ResponseEntity<String> projectCostRes = watsonsProjectCostRemoteService.list(organizationId, projectCost, pageRequest);
         if (ResponseUtils.isFailed(projectCostRes)) {

@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.srm.mall.common.feign.fallback.WatsonsProjectCostRemoteServiceFallbackImpl;
 
 import org.srm.mall.other.domain.entity.ProjectCost;
@@ -23,8 +24,7 @@ import springfox.documentation.annotations.ApiIgnore;
 @FeignClient(value = "srm-saas-cux", fallbackFactory = WatsonsProjectCostRemoteServiceFallbackImpl.class, path = "/v1")
 public interface WatsonsProjectCostRemoteService{
 
-
     @PostMapping("/{organizationId}/watson/project-costs/list")
-    ResponseEntity<String> list(@PathVariable("organizationId") Long tenantId, @RequestBody ProjectCost projectCost, @ApiIgnore @SortDefault(value = ProjectCost.FIELD_PROJECT_COST_ID,
-            direction = Sort.Direction.DESC) PageRequest pageRequest);
+    ResponseEntity<String> list(@PathVariable("organizationId") Long tenantId, @RequestBody ProjectCost projectCost, @RequestParam("pageRequest") PageRequest pageRequest);
+
 }
