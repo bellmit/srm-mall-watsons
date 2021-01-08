@@ -1,8 +1,10 @@
 package org.srm.mall.other.app.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import io.choerodon.core.domain.Page;
 import io.choerodon.core.exception.CommonException;
 import io.choerodon.core.oauth.DetailsHelper;
+import io.choerodon.mybatis.pagehelper.domain.PageRequest;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.math3.analysis.function.Add;
 import org.hzero.core.base.BaseAppService;
@@ -15,20 +17,28 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.util.ObjectUtils;
 import org.srm.mall.common.constant.ScecConstants;
+import org.srm.mall.common.feign.ProjectCostRemoteService;
 import org.srm.mall.common.feign.SagmRemoteService;
+import org.srm.mall.common.feign.SmdmRemoteNewService;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.other.api.dto.AllocationInfoDTO;
+import org.srm.mall.other.api.dto.WatsonsItemCategoryDTO;
+import org.srm.mall.other.api.dto.WatsonsItemCategorySearchDTO;
+import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.app.service.AllocationInfoService;
 import org.srm.mall.other.app.service.ShoppingCartService;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.srm.mall.other.domain.entity.BudgetInfo;
+import org.srm.mall.other.domain.entity.ProjectCost;
 import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 import org.srm.mall.other.domain.repository.AllocationInfoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.srm.mall.product.api.dto.ItemCategoryDTO;
 import org.srm.mall.product.api.dto.PriceParamDTO;
 import org.srm.mall.product.api.dto.PriceResultDTO;
 import org.srm.mall.region.domain.entity.Address;
@@ -65,6 +75,12 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     @Qualifier("watsonsShoppingCartService")
     private ShoppingCartService shoppingCartService;
 
+    @Autowired
+    private ProjectCostRemoteService projectCostRemoteService;
+
+    @Autowired
+    private SmdmRemoteNewService smdmRemoteNewService;
+
 
 
     @Override
@@ -92,7 +108,6 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
 
             //校验对应的地址商品是否可售,等待价格服务提供接口
             saleAndStockCheck(tenantId, allocationInfo,watsonsShoppingCart);
-
             if (allocationInfo.getAllocationId() == null){
                 allocationInfoRepository.insertSelective(allocationInfo);
             } else {
@@ -196,7 +211,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     @Transactional(rollbackFor = Exception.class)
     public AllocationInfoDTO batchCreate(Long organizationId, AllocationInfoDTO allocationInfoDTO) {
         //传来的是多个商品，每个商品会带自己的所要购买的全部数量    传来的多个费用分配， 多个商品用同一套费用分配   每个商品都要和所有的费用分配进行计算与分配
-
+        //多个商品看成一个 进行多次费用分配  每个商品都按百分比进行拆分   数量按百分比分配
         //1. 计算每个商品数量
         if (CollectionUtils.isEmpty(allocationInfoDTO.getAllocationInfoList()) || CollectionUtils.isEmpty(allocationInfoDTO.getWatsonsShoppingCartList())){
             throw new CommonException("参数不能为空");
@@ -210,19 +225,20 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             throw new CommonException("百分比不满足100%");
         }
         for (WatsonsShoppingCart watsonsShoppingCart : allocationInfoDTO.getWatsonsShoppingCartList()){
-            //清空原来的分配
+            //清空该商品原来的分配
             AllocationInfo condition = new AllocationInfo();
             condition.setCartId(watsonsShoppingCart.getCartId());
             allocationInfoRepository.delete(condition);
             List<AllocationInfo> resultList = new ArrayList<>();
             //在该商品下    遍历所有费用分配信息
             for (AllocationInfo allocationInfo : allocationInfoDTO.getAllocationInfoList()){
-                //每个商品，在所有的费用分配下        承担的数量      watsonsShoppingCart.getQuantity()是这个商品需要的总数量
+                //每个商品，在该费用分配下的数量
                 BigDecimal quantity = new BigDecimal(watsonsShoppingCart.getQuantity()).multiply(allocationInfo.getPercent()).divide(new BigDecimal(100), 5, BigDecimal.ROUND_HALF_UP);
                 //判断数量是否有小数，若有小数则抛异常
                 if (new BigDecimal(quantity.intValue()).compareTo(quantity) != 0){
                     throw new CommonException("商品：" + watsonsShoppingCart.getProductName() + "的百分比:" + allocationInfo.getPercent() + "数量计算为小数");
                 }
+                //数量校验的没问题 该费用分配可行
                 AllocationInfo result = new AllocationInfo();
                 BeanUtils.copyProperties(allocationInfo, result);
                 result.setQuantity(quantity.longValue());
@@ -238,4 +254,29 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         return allocationInfoDTO;
     }
 
+    @Override
+    public List<ProjectCost> selectAllocationProjectLov(Long organizationId, WatsonsShoppingCartDTO watsonsShoppingCartDTO) {
+        PageRequest pageRequest = new PageRequest(0,100);
+        ProjectCost projectCost = new ProjectCost();
+
+        ResponseEntity<String> itemCategoryDTORes = smdmRemoteNewService.selectSecondaryByThirdItemCategory(organizationId, String.valueOf(watsonsShoppingCartDTO.getItemCategoryId()));
+        if (ResponseUtils.isFailed(itemCategoryDTORes)) {
+            logger.error("select secondaryItemCategoryId By thirdItemCategoryId failed:{}", itemCategoryDTORes);
+            throw new CommonException("根据三级物料品类查询二级物料品类失败!");
+        }
+        logger.info("selectSecondaryByThirdItemCategory:{}", itemCategoryDTORes);
+        List<ItemCategoryDTO> itemCategoryResultOne  = ResponseUtils.getResponse(itemCategoryDTORes, new TypeReference<List<ItemCategoryDTO>>() {});
+        Long secondaryCategoryId = itemCategoryResultOne.get(0).getParentCategoryId();
+        projectCost.setSecondaryCategoryId(secondaryCategoryId);
+
+
+        ResponseEntity<String> projectCostRes = projectCostRemoteService.list(organizationId, projectCost, pageRequest);
+        if (ResponseUtils.isFailed(projectCostRes)) {
+            logger.error("select cost allocation project failed :{}", projectCost);
+            throw new CommonException("根据二级物料品类查询费用项目失败! 请查看参数的二级品类id值!");
+        }
+        logger.info("select cost allocation project :{}", projectCost);
+        Page<ProjectCost> costProjectRes = ResponseUtils.getResponse(projectCostRes, new TypeReference<Page<ProjectCost>>() {});
+        return  costProjectRes.getContent();
+    }
 }

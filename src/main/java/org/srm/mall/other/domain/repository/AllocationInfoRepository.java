@@ -5,6 +5,7 @@ import io.choerodon.mybatis.pagehelper.domain.PageRequest;
 import org.hzero.mybatis.base.BaseRepository;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
+import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 
 import java.util.List;
 
