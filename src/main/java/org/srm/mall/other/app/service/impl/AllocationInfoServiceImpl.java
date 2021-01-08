@@ -3,10 +3,8 @@ package org.srm.mall.other.app.service.impl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.choerodon.core.domain.Page;
 import io.choerodon.core.exception.CommonException;
-import io.choerodon.core.oauth.DetailsHelper;
 import io.choerodon.mybatis.pagehelper.domain.PageRequest;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.math3.analysis.function.Add;
 import org.hzero.core.base.BaseAppService;
 import org.hzero.core.base.BaseConstants;
 import org.hzero.core.util.ResponseUtils;
@@ -17,16 +15,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.parameters.P;
 import org.springframework.util.ObjectUtils;
 import org.srm.mall.common.constant.ScecConstants;
-import org.srm.mall.common.feign.ProjectCostRemoteService;
+import org.srm.mall.common.feign.WatsonsProjectCostRemoteService;
 import org.srm.mall.common.feign.SagmRemoteService;
 import org.srm.mall.common.feign.SmdmRemoteNewService;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.other.api.dto.AllocationInfoDTO;
-import org.srm.mall.other.api.dto.WatsonsItemCategoryDTO;
-import org.srm.mall.other.api.dto.WatsonsItemCategorySearchDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.app.service.AllocationInfoService;
 import org.srm.mall.other.app.service.ShoppingCartService;
@@ -76,7 +71,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     private ShoppingCartService shoppingCartService;
 
     @Autowired
-    private ProjectCostRemoteService projectCostRemoteService;
+    private WatsonsProjectCostRemoteService watsonsProjectCostRemoteService;
 
     @Autowired
     private SmdmRemoteNewService smdmRemoteNewService;
@@ -270,7 +265,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         projectCost.setSecondaryCategoryId(secondaryCategoryId);
 
 
-        ResponseEntity<String> projectCostRes = projectCostRemoteService.list(organizationId, projectCost, pageRequest);
+        ResponseEntity<String> projectCostRes = watsonsProjectCostRemoteService.list(organizationId, projectCost, pageRequest);
         if (ResponseUtils.isFailed(projectCostRes)) {
             logger.error("select cost allocation project failed :{}", projectCost);
             throw new CommonException("根据二级物料品类查询费用项目失败! 请查看参数的二级品类id值!");

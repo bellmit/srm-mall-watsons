@@ -25,7 +25,7 @@ import java.util.List;
  *
  * @author minzhen.you@hand-china.com 2019年3月21日下午2:06:24
  */
-@FeignClient(value = "srm-new-mdm", fallbackFactory = SmdmRemoteNewServiceFallbackImpl.class, path = "/v1")
+@FeignClient(value = "srm-mdm", fallbackFactory = SmdmRemoteNewServiceFallbackImpl.class, path = "/v1")
 public interface SmdmRemoteNewService {
 
 
