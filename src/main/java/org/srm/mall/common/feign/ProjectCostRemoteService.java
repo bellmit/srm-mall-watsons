@@ -20,7 +20,7 @@ import springfox.documentation.annotations.ApiIgnore;
  * @author jianhao.zhang01@hand-china.com 2021/01/07 17:38
  */
 
-@FeignClient(value = "srm-cux", fallbackFactory = ProjectCostRemoteServiceFallbackImpl.class, path = "/v1")
+@FeignClient(value = "srm-saas-cux", fallbackFactory = ProjectCostRemoteServiceFallbackImpl.class, path = "/v1")
 public interface ProjectCostRemoteService {
 
 
