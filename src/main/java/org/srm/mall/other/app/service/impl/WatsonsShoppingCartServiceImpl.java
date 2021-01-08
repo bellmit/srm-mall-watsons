@@ -362,6 +362,14 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Override
     public List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderView(Long tenantId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
 
+        Long addressId4Check = watsonsShoppingCartDTOList.get(0).getAddressId();
+        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
+            Long addressId = watsonsShoppingCartDTO.getAddressId();
+            if(!addressId4Check.equals(addressId)){
+                throw new CommonException("必须选择同地址的商品!");
+            }
+        }
+
         //如果有服务商品，从底层list取出放到上层list
         List<ShoppingCartDTO> re = new ArrayList<>();
 
