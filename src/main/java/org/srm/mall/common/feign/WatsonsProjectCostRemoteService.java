@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.srm.mall.common.feign.fallback.ProjectCostRemoteServiceFallbackImpl;
+import org.srm.mall.common.feign.fallback.WatsonsProjectCostRemoteServiceFallbackImpl;
 
 import org.srm.mall.other.domain.entity.ProjectCost;
 import springfox.documentation.annotations.ApiIgnore;
@@ -20,8 +20,8 @@ import springfox.documentation.annotations.ApiIgnore;
  * @author jianhao.zhang01@hand-china.com 2021/01/07 17:38
  */
 
-@FeignClient(value = "srm-saas-cux", fallbackFactory = ProjectCostRemoteServiceFallbackImpl.class, path = "/v1")
-public interface ProjectCostRemoteService {
+@FeignClient(value = "srm-saas-cux", fallbackFactory = WatsonsProjectCostRemoteServiceFallbackImpl.class, path = "/v1")
+public interface WatsonsProjectCostRemoteService{
 
 
     @PostMapping("/{organizationId}/watson/project-costs/list")
