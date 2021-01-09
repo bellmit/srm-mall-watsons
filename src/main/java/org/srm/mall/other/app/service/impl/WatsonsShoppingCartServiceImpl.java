@@ -508,8 +508,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 }
 
                 watsonsPreRequestOrderDTO.setShoppingCartDTOList(shoppingCartDTO4Freight);
-
-
                 watsonsPreRequestOrderDTO.setDistinguishId(++distinguishId);
                 watsonsPreRequestOrderDTO.setCount(entry.getValue().stream().mapToLong(WatsonsShoppingCartDTO::getQuantity).sum());
                 WatsonsShoppingCartDTO watsonsShoppingCartDTO = entry.getValue().get(0);

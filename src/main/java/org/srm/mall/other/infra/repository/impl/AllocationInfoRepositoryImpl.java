@@ -30,5 +30,10 @@ public class AllocationInfoRepositoryImpl extends BaseRepositoryImpl<AllocationI
         return PageHelper.doPageAndSort(pageRequest, () -> allocationInfoMapper.selectAllocationShopOrganization(organizationInfoDTO));
     }
 
+    @Override
+    public Integer selectHasProjectSubcategoryId(Long projectCostId, Long tenantId) {
+        return allocationInfoMapper.selectHasProjectSubcategoryId(projectCostId,tenantId);
+    }
+
 
 }

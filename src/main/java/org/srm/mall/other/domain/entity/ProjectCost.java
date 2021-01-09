@@ -52,10 +52,7 @@ public class ProjectCost extends AuditDomain {
     // ------------------------------------------------------------------------------
 
 
-    @ApiModelProperty("")
-    @Id
-    @GeneratedValue
-    private Long projectCostId;
+
     @ApiModelProperty(value = "租户ID,hpfm_tenant.tenant_id",required = true)
     @NotNull
     private Long tenantId;
@@ -73,8 +70,12 @@ public class ProjectCost extends AuditDomain {
    @ApiModelProperty(value = "二级品类编码")    
     private String secondaryCategoryCode;
 	@ExcelColumn(zh = "二级品类名称")
-   @ApiModelProperty(value = "二级品类名称")    
+   @ApiModelProperty(value = "二级品类名称")
     private String secondaryCategoryName;
+	@ApiModelProperty("费用项目id")
+	@Id
+	@GeneratedValue
+	private Long projectCostId;
 	@ExcelColumn(zh = "费用项目编码")
 	@ApiModelProperty(value = "费用项目编码",required = true)
 	@NotBlank
@@ -87,7 +88,8 @@ public class ProjectCost extends AuditDomain {
     @ApiModelProperty(value = "费用项目子分类",required = true)
     @NotBlank
     private String projectCostSubcategory;
-
+	@ApiModelProperty(value = "费用项目子分类",required = true)
+	private Boolean hasProjectCostSubcategory;
 
 	//
     // 非数据库字段
@@ -114,7 +116,15 @@ public class ProjectCost extends AuditDomain {
     // getter/setter
     // ------------------------------------------------------------------------------
 
-    /**
+	public Boolean getHasProjectCostSubcategory() {
+		return hasProjectCostSubcategory;
+	}
+
+	public void setHasProjectCostSubcategory(Boolean hasProjectCostSubcategory) {
+		this.hasProjectCostSubcategory = hasProjectCostSubcategory;
+	}
+
+	/**
      * @return 
      */
 	public Long getProjectCostId() {

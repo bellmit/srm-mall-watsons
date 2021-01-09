@@ -1,5 +1,7 @@
 package org.srm.mall.other.infra.mapper;
 
+import org.apache.ibatis.annotations.Param;
+import org.springframework.security.core.parameters.P;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import io.choerodon.mybatis.common.BaseMapper;
@@ -15,4 +17,5 @@ public interface AllocationInfoMapper extends BaseMapper<AllocationInfo> {
 
     List<OrganizationInfoDTO> selectAllocationShopOrganization(OrganizationInfoDTO organizationInfoDTO);
 
+    Integer selectHasProjectSubcategoryId(@Param("projectCostId") Long projectCostId, @Param("tenantId")Long tenantId);
 }

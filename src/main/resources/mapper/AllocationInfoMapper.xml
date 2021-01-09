@@ -39,13 +39,23 @@
         AND h.enabled_flag = 1
         AND h.attribute2 = #{type}
         <if test="organizationCode != null and organizationCode != ''">
-            <bind name="organizationCodeLike" value="'%' + organizationCode + '%'" />
+            <bind name="organizationCodeLike" value="'%' + organizationCode + '%'"/>
             AND h.organization_code like #{organizationCodeLike}
         </if>
         <if test="organizationName != null and organizationName != ''">
-            <bind name="organizationNameLike" value="'%' + organizationName + '%'" />
+            <bind name="organizationNameLike" value="'%' + organizationName + '%'"/>
             AND h.organization_name like #{organizationNameLike}
         </if>
+    </select>
+    <select id="selectHasProjectSubcategoryId" resultType="java.lang.Integer">
+        SELECT
+        COUNT(0)
+        FROM
+        scux_watsons_project_cost_subcategory swpcs
+        WHERE
+            swpcs.project_cost_id = #{projectCostId}
+        AND
+            swpcs.tenant_id = #{tenantId}
     </select>
 
 </mapper>
