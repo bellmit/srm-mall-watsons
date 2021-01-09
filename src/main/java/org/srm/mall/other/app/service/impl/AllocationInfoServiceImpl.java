@@ -261,10 +261,10 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             throw new CommonException("根据三级物料品类查询二级物料品类失败!");
         }
         logger.info("selectSecondaryByThirdItemCategory:{}", itemCategoryDTORes);
-        List<ItemCategoryDTO> itemCategoryResultOne  = ResponseUtils.getResponse(itemCategoryDTORes, new TypeReference<List<ItemCategoryDTO>>() {});
-        Long secondaryCategoryId = itemCategoryResultOne.get(0).getParentCategoryId();
+        ItemCategoryDTO itemCategoryResultOne  = ResponseUtils.getResponse(itemCategoryDTORes, new TypeReference<ItemCategoryDTO>() {});
+        Long secondaryCategoryId = itemCategoryResultOne.getParentCategoryId();
         projectCost.setSecondaryCategoryId(secondaryCategoryId);
-
+        projectCost.setTenantId(organizationId);
         ResponseEntity<String> projectCostRes = watsonsProjectCostRemoteService.list(organizationId, projectCost, pageRequest);
         if (ResponseUtils.isFailed(projectCostRes)) {
             logger.error("select cost allocation project failed :{}", projectCost);
@@ -272,6 +272,16 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         }
         logger.info("select cost allocation project :{}", projectCost);
         Page<ProjectCost> costProjectRes = ResponseUtils.getResponse(projectCostRes, new TypeReference<Page<ProjectCost>>() {});
-        return  costProjectRes.getContent();
+        List<ProjectCost> content = costProjectRes.getContent();
+        for (ProjectCost cost : content) {
+            Long projectCostId = cost.getProjectCostId();
+            Integer subcategoryNum = allocationInfoRepository.selectHasProjectSubcategoryId(projectCostId, cost.getTenantId());
+            if(subcategoryNum>0){
+                cost.setHasProjectCostSubcategory(true);
+            }else {
+                cost.setHasProjectCostSubcategory(false);
+            }
+        }
+        return content;
     }
 }
