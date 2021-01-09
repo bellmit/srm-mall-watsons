@@ -17,6 +17,7 @@ import io.choerodon.mybatis.annotation.VersionAudit;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import org.hzero.boot.platform.lov.annotation.LovValue;
+import org.hzero.export.annotation.ExcelColumn;
 import org.hzero.starter.keyencrypt.core.Encrypt;
 
 import java.math.BigDecimal;
@@ -48,8 +49,11 @@ public class AllocationInfo extends AuditDomain {
     public static final String FIELD_QUANTITY = "quantity";
     public static final String FIELD_PRICE = "price";
     public static final String FIELD_AMOUNT = "amount";
-    public static final String FIELD_ALLOCATION_PROJECT = "allocationProject";
-    public static final String FIELD_ALLOCATION_PROJECT_SUB_CATEGORY = "allocationProjectSubCategory";
+    public static final String FIELD_PROJECT_COST_CODE = "projectCostCode";
+    public static final String FIELD_PROJECT_COST_NAME = "projectCostName";
+    public static final String FIELD_PROJECT_COST_SUBCATEGORY_CODE = "projectCostSubcategoryCode";
+    public static final String FIELD_PROJECT_COST_SUBCATEGORY_NAME = "projectCostSubcategoryName";
+
 
 
 //
@@ -118,10 +122,16 @@ public class AllocationInfo extends AuditDomain {
     @ApiModelProperty(value = "单价", required = true)
     @NotNull
     private BigDecimal price;
-    @ApiModelProperty(value = "费用项目", required = true)
-    private String allocationProject;
-    @ApiModelProperty(value = "费用项目子分类", required = true)
-    private String allocationProjectSubCategory;
+
+    @ApiModelProperty(value = "费用项目编码",required = true)
+    private String projectCostCode;
+    @ApiModelProperty(value = "费用项目名称",required = true)
+    private String projectCostName;
+    @ApiModelProperty(value = "费用项目子分类编码", required = true)
+    private String projectCostSubcategoryCode;
+    @ApiModelProperty(value = "费用项目子分类名称", required = true)
+    private String projectCostSubcategoryName;
+
 
 //
 // 非数据库字段
@@ -140,22 +150,38 @@ public class AllocationInfo extends AuditDomain {
 // getter/setter
 // ------------------------------------------------------------------------------
 
-
-    public String getAllocationProject() {
-        return allocationProject;
+    public String getProjectCostCode() {
+        return projectCostCode;
     }
 
-    public void setAllocationProject(String allocationProject) {
-        this.allocationProject = allocationProject;
+    public void setProjectCostCode(String projectCostCode) {
+        this.projectCostCode = projectCostCode;
     }
 
-    public String getAllocationProjectSubCategory() {
-        return allocationProjectSubCategory;
+    public String getProjectCostName() {
+        return projectCostName;
     }
 
-    public void setAllocationProjectSubCategory(String allocationProjectSubCategory) {
-        this.allocationProjectSubCategory = allocationProjectSubCategory;
+    public void setProjectCostName(String projectCostName) {
+        this.projectCostName = projectCostName;
     }
+
+    public String getProjectCostSubcategoryCode() {
+        return projectCostSubcategoryCode;
+    }
+
+    public void setProjectCostSubcategoryCode(String projectCostSubcategoryCode) {
+        this.projectCostSubcategoryCode = projectCostSubcategoryCode;
+    }
+
+    public String getProjectCostSubcategoryName() {
+        return projectCostSubcategoryName;
+    }
+
+    public void setProjectCostSubcategoryName(String projectCostSubcategoryName) {
+        this.projectCostSubcategoryName = projectCostSubcategoryName;
+    }
+
 
     public BigDecimal getPercent() {
         return percent;

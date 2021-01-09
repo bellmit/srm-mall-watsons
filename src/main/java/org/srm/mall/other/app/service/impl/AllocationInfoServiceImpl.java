@@ -250,12 +250,12 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     }
 
     @Override
-    public List<ProjectCost> selectAllocationProjectLov(Long organizationId, WatsonsShoppingCartDTO watsonsShoppingCartDTO, Integer size, Integer page) {
+    public List<ProjectCost> selectAllocationProjectLov(Long organizationId, Long itemCategoryId, Integer size, Integer page) {
         PageRequest pageRequest = new PageRequest();
         pageRequest.setSize(size);
         pageRequest.setPage(page);
         ProjectCost projectCost = new ProjectCost();
-        ResponseEntity<String> itemCategoryDTORes = smdmRemoteNewService.selectSecondaryByThirdItemCategory(organizationId, String.valueOf(watsonsShoppingCartDTO.getItemCategoryId()));
+        ResponseEntity<String> itemCategoryDTORes = smdmRemoteNewService.selectSecondaryByThirdItemCategory(organizationId, String.valueOf(itemCategoryId));
         if (ResponseUtils.isFailed(itemCategoryDTORes)) {
             logger.error("select secondaryItemCategoryId By thirdItemCategoryId failed:{}", itemCategoryDTORes);
             throw new CommonException("根据三级物料品类查询二级物料品类失败!");

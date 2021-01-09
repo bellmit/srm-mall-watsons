@@ -58,8 +58,8 @@ public interface AllocationInfoService {
     /**
      * 查询商品行对应的费用项目和费用项目子分类
      * @param organizationId
-     * @param watsonsShoppingCartDTO
+     * @param itemCategoryId
      * @return
      */
-    List<ProjectCost> selectAllocationProjectLov(Long organizationId, WatsonsShoppingCartDTO watsonsShoppingCartDTO, Integer size, Integer page);
+    List<ProjectCost> selectAllocationProjectLov(Long organizationId, Long itemCategoryId, Integer size, Integer page);
 }
