@@ -51,8 +51,10 @@ public class AllocationInfo extends AuditDomain {
     public static final String FIELD_AMOUNT = "amount";
     public static final String FIELD_PROJECT_COST_CODE = "projectCostCode";
     public static final String FIELD_PROJECT_COST_NAME = "projectCostName";
+    public static final String FIELD_PROJECT_COST_ID = "projectCostId";
     public static final String FIELD_PROJECT_COST_SUBCATEGORY_CODE = "projectCostSubcategoryCode";
     public static final String FIELD_PROJECT_COST_SUBCATEGORY_NAME = "projectCostSubcategoryName";
+    public static final String FIELD_PROJECT_COST_SUBCATEGORY_ID = "projectCostSubcategoryId";
 
 
 
@@ -122,15 +124,18 @@ public class AllocationInfo extends AuditDomain {
     @ApiModelProperty(value = "单价", required = true)
     @NotNull
     private BigDecimal price;
-
     @ApiModelProperty(value = "费用项目编码",required = true)
     private String projectCostCode;
     @ApiModelProperty(value = "费用项目名称",required = true)
     private String projectCostName;
+    @ApiModelProperty(value = "费用项目id",required = true)
+    private Long projectCostId;
     @ApiModelProperty(value = "费用项目子分类编码", required = true)
     private String projectCostSubcategoryCode;
     @ApiModelProperty(value = "费用项目子分类名称", required = true)
     private String projectCostSubcategoryName;
+    @ApiModelProperty(value = "费用项目子分类id", required = true)
+    private Long projectCostSubcategoryId;
 
 
 //
@@ -149,6 +154,23 @@ public class AllocationInfo extends AuditDomain {
 //
 // getter/setter
 // ------------------------------------------------------------------------------
+
+    public Long getProjectCostId() {
+        return projectCostId;
+    }
+
+    public void setProjectCostId(Long projectCostId) {
+        this.projectCostId = projectCostId;
+    }
+
+    public Long getProjectCostSubcategoryId() {
+        return projectCostSubcategoryId;
+    }
+
+    public void setProjectCostSubcategoryId(Long projectCostSubcategoryId) {
+        this.projectCostSubcategoryId = projectCostSubcategoryId;
+    }
+
 
     public String getProjectCostCode() {
         return projectCostCode;
