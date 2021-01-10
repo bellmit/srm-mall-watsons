@@ -1,40 +1,49 @@
 package org.srm.mall.order.app.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
 import io.choerodon.core.exception.CommonException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.hzero.boot.platform.code.builder.CodeRuleBuilder;
 import org.hzero.core.util.ResponseUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.SmodrRemoteService;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.order.api.dto.*;
 import org.srm.mall.order.app.service.OmsOrderService;
+import org.srm.mall.order.app.service.WatsonsOmsOrderService;
 import org.srm.mall.order.domain.vo.PurchaseRequestVO;
+import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
+import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
+import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.srm.mall.platform.api.dto.PrHeaderCreateDTO;
 import org.srm.mall.platform.api.dto.PrLineCreateDTO;
 import org.srm.web.annotation.Tenant;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
+@Service("watsonsOmsOrderService")
 @Tenant(WatsonsConstants.TENANT_NUMBER)
-@Component
 @Slf4j
-public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements OmsOrderService {
+public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements WatsonsOmsOrderService {
     @Autowired
     private CodeRuleBuilder codeRuleBuilder;
     @Autowired
     private SmodrRemoteService smodrRemoteService;
 
     @Override
-    public PurchaseRequestVO createOrder(Long tenantId, List<PreRequestOrderDTO> preRequestOrderDTOs) {
+    public PurchaseRequestVO watsonsCreateOrder(Long tenantId, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOs) {
         //批次号
         Map<Optional<Long>,String> batchNumMap = new HashMap<>();
         List<OmsOrderDto> omsOrderDtos = new ArrayList<>();
-        for (PreRequestOrderDTO preRequestOrderDTO : preRequestOrderDTOs) {
+        for (WatsonsPreRequestOrderDTO preRequestOrderDTO : preRequestOrderDTOs) {
             String batchNum;
             //根据品类分组批次号
             if(batchNumMap.containsKey(Optional.ofNullable(preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId()))){
@@ -44,6 +53,20 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements O
                 batchNumMap.put(Optional.ofNullable(preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId()),batchNum);
             }
             OmsOrderDto omsOrderDto = super.omsOrderDtoBuilder(tenantId, preRequestOrderDTO, batchNum);
+            List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList = preRequestOrderDTO.getWatsonsShoppingCartDTOList();
+            if(Objects.nonNull(watsonsShoppingCartDTOList)){
+                Map<Long, List<WatsonsShoppingCartDTO>> groupBy = watsonsShoppingCartDTOList.stream()
+                        .collect(Collectors.groupingBy(WatsonsShoppingCartDTO::getProductId));
+                omsOrderDto.getOrderEntryList().forEach(omsOrderEntry -> {
+                    if(Objects.nonNull(omsOrderEntry.getSkuId())){
+                        List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS = groupBy.get(omsOrderEntry.getSkuId());
+                        if(CollectionUtils.isNotEmpty(watsonsShoppingCartDTOS)){
+                            omsOrderEntry.setAttributeLongtext1(JSONObject.toJSONString(watsonsShoppingCartDTOS.get(0).getAllocationInfoList()));
+                            log.debug("watsons allocationInfo:" + JSONObject.toJSONString(omsOrderEntry.getAttributeLongtext1()));
+                        }
+                    }
+                });
+            }
             omsOrderDtos.add(omsOrderDto);
         }
         log.info("屈臣氏oms创建订单入参:" + JSONObject.toJSONString(omsOrderDtos));

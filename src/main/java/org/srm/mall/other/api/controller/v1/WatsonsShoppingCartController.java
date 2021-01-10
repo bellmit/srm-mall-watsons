@@ -17,6 +17,7 @@ import org.srm.mall.common.annotation.ParamLog;
 import org.srm.mall.config.SwaggerApiConfig;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.order.api.dto.PreRequestOrderDTO;
+import org.srm.mall.order.api.dto.PreRequestOrderResponseDTO;
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
 import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
@@ -63,6 +64,14 @@ public class WatsonsShoppingCartController {
         shoppingCart.setTenantId(organizationId);
         List<ShoppingCartDTO> shoppingCartDTOS = watsonsShoppingCartService.shppingCartEnter(organizationId, shoppingCart);
         return Results.success(shoppingCartDTOS);
+    }
+
+    @ApiOperation(value = "预采购申请")
+    @Permission(level = ResourceLevel.ORGANIZATION)
+    @PostMapping("/pre-order")
+    @ParamLog
+    public ResponseEntity<PreRequestOrderResponseDTO> preRequestOrder(@PathVariable("organizationId") Long organizationId, @RequestBody @Encrypt List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
+        return Results.success(watsonsShoppingCartService.watsonsPreRequestOrder(organizationId, preRequestOrderDTOList));
     }
 
 }
