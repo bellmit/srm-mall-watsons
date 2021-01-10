@@ -1,6 +1,7 @@
 package org.srm.mall.other.app.service;
 
 import org.srm.mall.order.api.dto.PreRequestOrderDTO;
+import org.srm.mall.order.api.dto.PreRequestOrderResponseDTO;
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
 import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
@@ -30,4 +31,14 @@ public interface WatsonsShoppingCartService {
      * @return list
      */
     List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart);
+
+
+    /**
+     * 创建预采购申请订单
+     *
+     * @param tenantId
+     * @param preRequestOrderDTOList
+     * @return
+     */
+    PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList);
 }
