@@ -67,6 +67,7 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
                     }
                 });
             }
+            omsOrderDto.getOrderAddress().setMobilePhone(preRequestOrderDTO.getContactTelNum());
             omsOrderDtos.add(omsOrderDto);
         }
         log.info("屈臣氏oms创建订单入参:" + JSONObject.toJSONString(omsOrderDtos));
