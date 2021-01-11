@@ -275,9 +275,18 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     productStockService.productStockConsumption(null, shoppingCart.getProductId(), shoppingCart.getQuantity().longValue(), true);
                 }
                 updateBudgetInfoResult(shoppingCart, budgetSwitch);
-                shoppingCartRepository.deleteByPrimaryKey(shoppingCart.getCartId());
+                List<ShoppingCart> shoppingCarts = shoppingCartRepository.selectByIds(shoppingCart.getCartId().toString());
+                if(CollectionUtils.isNotEmpty(shoppingCarts)){
+                    ShoppingCart currentShoppingCart = shoppingCarts.get(0);
+                    if(currentShoppingCart.getQuantity()-shoppingCart.getQuantity()<=0L){
+                        //删除购物车对象
+                        shoppingCartRepository.deleteByPrimaryKey(shoppingCart.getCartId());
+                    }else {
+                        currentShoppingCart.setQuantity(currentShoppingCart.getQuantity()-shoppingCart.getQuantity());
+                        shoppingCartRepository.updateOptional(currentShoppingCart,ShoppingCart.FIELD_QUANTITY);
+                    }
+                }
             }
-
             //遍历每个可以提交的预采申请订单结束
         }
         PurchaseRequestVO result;
