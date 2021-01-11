@@ -22,6 +22,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
@@ -187,6 +188,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
         preRequestOrderDTOList.stream().forEach(preRequestOrderDTO -> {
                     if (ObjectUtils.nullSafeEquals(preRequestOrderDTO.getPriceHiddenFlag(), 1)) {
@@ -275,9 +277,18 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     productStockService.productStockConsumption(null, shoppingCart.getProductId(), shoppingCart.getQuantity().longValue(), true);
                 }
                 updateBudgetInfoResult(shoppingCart, budgetSwitch);
-                shoppingCartRepository.deleteByPrimaryKey(shoppingCart.getCartId());
+                List<ShoppingCart> shoppingCarts = shoppingCartRepository.selectByIds(shoppingCart.getCartId().toString());
+                if(CollectionUtils.isNotEmpty(shoppingCarts)){
+                    ShoppingCart currentShoppingCart = shoppingCarts.get(0);
+                    if(currentShoppingCart.getQuantity()-shoppingCart.getQuantity()<=0L){
+                        //删除购物车对象
+                        shoppingCartRepository.deleteByPrimaryKey(shoppingCart.getCartId());
+                    }else {
+                        currentShoppingCart.setQuantity(currentShoppingCart.getQuantity()-shoppingCart.getQuantity());
+                        shoppingCartRepository.updateOptional(currentShoppingCart,ShoppingCart.FIELD_QUANTITY);
+                    }
+                }
             }
-
             //遍历每个可以提交的预采申请订单结束
         }
         PurchaseRequestVO result;
