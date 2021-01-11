@@ -7,17 +7,17 @@
 	<parent>
 		<groupId>org.srm</groupId>
 		<artifactId>srm-parent</artifactId>
-		<version>dev-SNAPSHOT</version>
+		<version>test-SNAPSHOT</version>
 	</parent>
 	<artifactId>srm-mall-watsons</artifactId>
-    <version>dev-SNAPSHOT</version>
+    <version>test-SNAPSHOT</version>
 	<dependencies>
 		<!--添加标准服务依赖,本示例中即为srm-iam-->
 		<dependency>
 			<groupId>org.srm</groupId>
 			<artifactId>srm-mall</artifactId>
 			<!--版本号必须和父 pom 版本一致-->
-			<version>dev-SNAPSHOT</version>
+			<version>test-SNAPSHOT</version>
 			<!--必须指定为 provided，这样在打包时不会打进去，在测试时可以正常运行-->
 			<scope>provided</scope>
 		</dependency>
