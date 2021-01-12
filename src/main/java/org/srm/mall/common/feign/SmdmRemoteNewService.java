@@ -21,15 +21,25 @@ import org.srm.mall.product.api.dto.ItemCategorySearchDTO;
 import java.util.List;
 
 /**
- * SMDM远程服务调用
+ *smdm服务
  *
- * @author minzhen.you@hand-china.com 2019年3月21日下午2:06:24
+ * @author jianhao.zhang01@hand-china.com 2021-01-12 14:07
  */
+
 @FeignClient(value = "srm-mdm", fallbackFactory = SmdmRemoteNewServiceFallbackImpl.class, path = "/v1")
 public interface SmdmRemoteNewService {
 
 
     @RequestMapping(method = RequestMethod.GET, path = "/{organizationId}/item-categories/sec-categories")
     ResponseEntity<String> selectSecondaryByThirdItemCategory(@PathVariable Long organizationId, @RequestParam("queryCategoryId") String queryCategoryId);
+
+
+
+    @RequestMapping(method = RequestMethod.GET, path = "/{organizationId}/item-categories/queryById")
+    ResponseEntity<String> queryById(@PathVariable Long organizationId, @RequestParam("queryCategoryId") String queryCategoryId);
+
+
+    @RequestMapping(method = RequestMethod.GET, path = "/{organizationId}/item-categories/queryLevelPathByItemId")
+    ResponseEntity<String> queryLevelPathByItemId(@PathVariable Long organizationId, @RequestParam("itemId") Long itemId);
 
 }
