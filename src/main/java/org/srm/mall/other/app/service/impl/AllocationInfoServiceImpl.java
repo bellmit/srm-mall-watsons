@@ -410,7 +410,6 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                     throw new CommonException("根据品类id查询品类信息失败!");
                 }
 
-
                 //调用协同接口查费用项目
                 ResponseEntity<String> projectCostRes = watsonsProjectCostRemoteService.list(organizationId, projectCost, pageRequest);
                 if (ResponseUtils.isFailed(projectCostRes)) {
