@@ -587,6 +587,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 watsonsPreRequestOrderDTO.setMobile(watsonsShoppingCartDTO.getMobile());
                 CustomUserDetails userDetails = DetailsHelper.getUserDetails();
                 watsonsPreRequestOrderDTO.setReceiverContactName(userDetails.getRealName());
+                watsonsPreRequestOrderDTO.setReceiverAddress(watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopName());
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
                 watsonsPreRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
             }
