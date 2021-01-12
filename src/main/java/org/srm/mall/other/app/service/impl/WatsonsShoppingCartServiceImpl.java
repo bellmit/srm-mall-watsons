@@ -670,7 +670,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 //            Map<String, List<ShoppingCartDTO>> reResult = re.stream().collect(Collectors.groupingBy(s -> s.groupKey(purReqMergeRule)));
 //            reResult = groupPurchaseRequest(tenantId, purReqMergeRule, reResult);
 
-            //拆单完成后判断同一分组是否还有同一种的相同商品（有很多种不同种的商品）拆成不同的单子
+            //拆单完成后判断同一分组是否还有同一种的相同商品（有很多种不同种的商品）拆成不同的单子   因为后续业务需要这样做
             recursionSplitShoppingCart(result);
 
             //用于前端区分采购申请s
