@@ -35,7 +35,19 @@ public class SmdmRemoteNewServiceFallbackImpl implements FallbackFactory<SmdmRem
 
             @Override
             public ResponseEntity<String> selectSecondaryByThirdItemCategory(Long organizationId, @RequestParam("queryCategoryId") String queryCategoryId) {
-                logger.error("query Secondary ItemCategory By Third ItemCategory error! itemCategorySearchDTO:{}",queryCategoryId);
+                logger.error("query Secondary ItemCategory By Third ItemCategory error! param itemCategoryId:{}",queryCategoryId);
+                return null;
+            }
+
+            @Override
+            public ResponseEntity<String> queryById(Long organizationId, String queryCategoryId) {
+                logger.error("query itemCategory info By itemCategoryId error! param itemCategoryId :{}",queryCategoryId);
+                return null;
+            }
+
+            @Override
+            public ResponseEntity<String> queryLevelPathByItemId(Long organizationId, Long itemId) {
+                logger.error("query LevelPath By itemId error! param itemId :{}",itemId);
                 return null;
             }
         };

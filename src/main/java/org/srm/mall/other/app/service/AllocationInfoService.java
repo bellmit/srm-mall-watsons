@@ -61,5 +61,5 @@ public interface AllocationInfoService {
      * @param itemCategoryId
      * @return
      */
-    List<ProjectCost> selectAllocationProjectLov(Long organizationId, Long itemCategoryId, Integer size, Integer page);
+    List<ProjectCost> selectAllocationProjectLov(Long organizationId, Long itemCategoryId, Long itemId, Integer size, Integer page);
 }
