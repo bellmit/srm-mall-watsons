@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.choerodon.core.domain.Page;
 import io.choerodon.core.exception.CommonException;
 import io.choerodon.mybatis.pagehelper.domain.PageRequest;
+import lombok.val;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hzero.core.base.BaseAppService;
 import org.hzero.core.base.BaseConstants;
@@ -16,6 +17,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.WatsonsProjectCostRemoteService;
 import org.srm.mall.common.feign.SagmRemoteService;
@@ -77,12 +79,11 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     private SmdmRemoteNewService smdmRemoteNewService;
 
 
-
     @Override
     public List<AllocationInfo> list(Long tenantId, Long cartId) {
         List<AllocationInfo> allocationInfoList = allocationInfoRepository.select(AllocationInfo.FIELD_CART_ID, cartId);
-        if (!CollectionUtils.isEmpty(allocationInfoList)){
-            for (AllocationInfo allocationInfo : allocationInfoList){
+        if (!CollectionUtils.isEmpty(allocationInfoList)) {
+            for (AllocationInfo allocationInfo : allocationInfoList) {
                 allocationInfo.setTotalAmount(allocationInfo.getPrice().multiply(new BigDecimal(allocationInfo.getQuantity())));
             }
         }
@@ -93,17 +94,17 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     @Transactional(rollbackFor = Exception.class)
     public List<AllocationInfo> create(Long tenantId, WatsonsShoppingCart watsonsShoppingCart) {
         List<AllocationInfo> allocationInfoList = watsonsShoppingCart.getAllocationInfoList();
-        if(CollectionUtils.isEmpty(allocationInfoList)){
+        if (CollectionUtils.isEmpty(allocationInfoList)) {
             logger.error("未进行费用分配！:{}", allocationInfoList);
             throw new CommonException("未进行费用分配!");
         }
-        for (AllocationInfo allocationInfo : allocationInfoList){
+        for (AllocationInfo allocationInfo : allocationInfoList) {
             //查询对应的地址
-            handleReceiverAddress(allocationInfo,tenantId);
+            handleReceiverAddress(allocationInfo, tenantId);
 
             //校验对应的地址商品是否可售,等待价格服务提供接口
-            saleAndStockCheck(tenantId, allocationInfo,watsonsShoppingCart);
-            if (allocationInfo.getAllocationId() == null){
+            saleAndStockCheck(tenantId, allocationInfo, watsonsShoppingCart);
+            if (allocationInfo.getAllocationId() == null) {
                 allocationInfoRepository.insertSelective(allocationInfo);
             } else {
                 allocationInfoRepository.updateByPrimaryKeySelective(allocationInfo);
@@ -117,21 +118,22 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
 
     /**
      * 商品可售行与库存检查
+     *
      * @param tenantId
      * @param allocationInfo
      * @param watsonsShoppingCart
      */
     private void saleAndStockCheck(Long tenantId, AllocationInfo allocationInfo, WatsonsShoppingCart watsonsShoppingCart) {
         // 校验可售
-        PriceParamDTO priceParamDTO = new PriceParamDTO(tenantId,addressRepository.querySecondRegionId(allocationInfo.getAddressId()),null,watsonsShoppingCart.getProductId());
+        PriceParamDTO priceParamDTO = new PriceParamDTO(tenantId, addressRepository.querySecondRegionId(allocationInfo.getAddressId()), null, watsonsShoppingCart.getProductId());
         priceParamDTO.setAddressId(allocationInfo.getAddressId());
         priceParamDTO.getSkuParamDTOS().get(0).setQuantity(BigDecimal.ONE);
         priceParamDTO.setUnitLevelPath(watsonsShoppingCart.getLevelPath());
-        ResponseEntity<String> result = sagmRemoteService.selectPrice(tenantId,ScecConstants.SagmSourceCode.SHOPPING_CART,priceParamDTO);
+        ResponseEntity<String> result = sagmRemoteService.selectPrice(tenantId, ScecConstants.SagmSourceCode.SHOPPING_CART, priceParamDTO);
         List<PriceResultDTO> priceResultDTOS = ResponseUtils.getResponse(result, new TypeReference<List<PriceResultDTO>>() {
         });
-        if (BaseConstants.Flag.NO.equals(priceResultDTOS.get(0).getSaleEnable())){
-            throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_REGION_OOS,allocationInfo.getCostShopName());
+        if (BaseConstants.Flag.NO.equals(priceResultDTOS.get(0).getSaleEnable())) {
+            throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_REGION_OOS, allocationInfo.getCostShopName());
         }
         //TODO 校验库存
 
@@ -142,9 +144,9 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
 
         //TODO 在自动生成地址功能完成前，不限制ownedBy
 //        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,tenantId).andEqualTo(Address.FIELD_OWNED_BY, -1L).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,allocationInfo.getCostShopId())).build());
-        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,tenantId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,allocationInfo.getCostShopId())).build());
-        if (ObjectUtils.isEmpty(addressList)){
-            throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR,allocationInfo.getCostShopName());
+        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID, tenantId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID, allocationInfo.getCostShopId())).build());
+        if (ObjectUtils.isEmpty(addressList)) {
+            throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR, allocationInfo.getCostShopName());
         }
         allocationInfo.setAddressId(addressList.get(0).getAddressId());
     }
@@ -155,12 +157,12 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         //按费用承担店铺id  费用承担部门id 仓转店收获仓id分组  该行商品对应的费用分配
         //按费用承担店铺id  费用承担部门id 仓转店收获仓id  这三个维度作为相同数据
         Map<String, List<AllocationInfo>> allocationMap = allocationInfoList.stream().collect(Collectors.groupingBy(AllocationInfo::groupKey));
-        for (Map.Entry<String, List<AllocationInfo>> entry : allocationMap.entrySet()){
+        for (Map.Entry<String, List<AllocationInfo>> entry : allocationMap.entrySet()) {
             List<AllocationInfo> tempInfoList = entry.getValue();
-            if (tempInfoList.size() > 1){
+            if (tempInfoList.size() > 1) {
                 AllocationInfo allocationInfo = tempInfoList.get(0);
                 allocationInfo.setDeliveryTypeMeaning(watsonsShoppingCart.getAllocationInfoList().get(0).getDeliveryTypeMeaning());
-                for (int i=1; i < tempInfoList.size(); i++){
+                for (int i = 1; i < tempInfoList.size(); i++) {
                     //每个相同组的  费用分配组的第一个费用分配的数量设置为自己和该相同组的其他剩余费用分配的数量  即合并
                     allocationInfo.setQuantity(allocationInfo.getQuantity() + tempInfoList.get(i).getQuantity());
                     allocationInfoRepository.deleteByPrimaryKey(tempInfoList.get(i));
@@ -195,7 +197,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     @Override
     @Transactional(rollbackFor = Exception.class)
     public WatsonsShoppingCart remove(WatsonsShoppingCart watsonsShoppingCart) {
-        if (!CollectionUtils.isEmpty(watsonsShoppingCart.getAllocationInfoList())){
+        if (!CollectionUtils.isEmpty(watsonsShoppingCart.getAllocationInfoList())) {
             allocationInfoRepository.batchDeleteByPrimaryKey(watsonsShoppingCart.getAllocationInfoList());
             updateShoppingCart(watsonsShoppingCart);
         }
@@ -208,29 +210,29 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         //传来的是多个商品，每个商品会带自己的所要购买的全部数量    传来的多个费用分配， 多个商品用同一套费用分配   每个商品都要和所有的费用分配进行计算与分配
         //多个商品看成一个 进行多次费用分配  每个商品都按百分比进行拆分   数量按百分比分配
         //1. 计算每个商品数量
-        if (CollectionUtils.isEmpty(allocationInfoDTO.getAllocationInfoList()) || CollectionUtils.isEmpty(allocationInfoDTO.getWatsonsShoppingCartList())){
+        if (CollectionUtils.isEmpty(allocationInfoDTO.getAllocationInfoList()) || CollectionUtils.isEmpty(allocationInfoDTO.getWatsonsShoppingCartList())) {
             throw new CommonException("参数不能为空");
         }
         //百分比校验是否等于100%
         BigDecimal sumPercent = BigDecimal.ZERO;
-        for (AllocationInfo allocationInfo : allocationInfoDTO.getAllocationInfoList()){
+        for (AllocationInfo allocationInfo : allocationInfoDTO.getAllocationInfoList()) {
             sumPercent = sumPercent.add(allocationInfo.getPercent());
         }
-        if (sumPercent.compareTo(new BigDecimal(100)) != 0){
+        if (sumPercent.compareTo(new BigDecimal(100)) != 0) {
             throw new CommonException("百分比不满足100%");
         }
-        for (WatsonsShoppingCart watsonsShoppingCart : allocationInfoDTO.getWatsonsShoppingCartList()){
+        for (WatsonsShoppingCart watsonsShoppingCart : allocationInfoDTO.getWatsonsShoppingCartList()) {
             //清空该商品原来的分配
             AllocationInfo condition = new AllocationInfo();
             condition.setCartId(watsonsShoppingCart.getCartId());
             allocationInfoRepository.delete(condition);
             List<AllocationInfo> resultList = new ArrayList<>();
             //在该商品下    遍历所有费用分配信息
-            for (AllocationInfo allocationInfo : allocationInfoDTO.getAllocationInfoList()){
+            for (AllocationInfo allocationInfo : allocationInfoDTO.getAllocationInfoList()) {
                 //每个商品，在该费用分配下的数量
                 BigDecimal quantity = new BigDecimal(watsonsShoppingCart.getQuantity()).multiply(allocationInfo.getPercent()).divide(new BigDecimal(100), 5, BigDecimal.ROUND_HALF_UP);
                 //判断数量是否有小数，若有小数则抛异常
-                if (new BigDecimal(quantity.intValue()).compareTo(quantity) != 0){
+                if (new BigDecimal(quantity.intValue()).compareTo(quantity) != 0) {
                     throw new CommonException("商品：" + watsonsShoppingCart.getProductName() + "的百分比:" + allocationInfo.getPercent() + "数量计算为小数");
                 }
                 //数量校验的没问题 该费用分配可行
@@ -249,39 +251,243 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         return allocationInfoDTO;
     }
 
+
+    /**
+     * 只传itemid  不传categoryid
+     * 只传categoryid 不传itemid
+     * 传了itemid  也传了物料id
+     *
+     * @param organizationId
+     * @param itemCategoryId 物料品类id
+     * @param itemId         物料id
+     * @param size           分页size
+     * @param page           分页page
+     * @return List<ProjectCost>
+     * @author jianhao.zhang01@hand-china.com 2021-01-12 12:50
+     */
     @Override
-    public List<ProjectCost> selectAllocationProjectLov(Long organizationId, Long itemCategoryId, Integer size, Integer page) {
+    public List<ProjectCost> selectAllocationProjectLov(Long organizationId, Long itemCategoryId, Long itemId, Integer size, Integer page) {
+        //品类和物料都为空，直接报错
+        if (ObjectUtils.isEmpty(itemCategoryId) && ObjectUtils.isEmpty(itemId)) {
+            throw new CommonException("该商品物料品类和物料都为空,无法查询费用项目!");
+        }
+
+        ProjectCost projectCost = new ProjectCost();
+        projectCost.setTenantId(organizationId);
         PageRequest pageRequest = new PageRequest();
         pageRequest.setSize(size);
         pageRequest.setPage(page);
-        ProjectCost projectCost = new ProjectCost();
-        ResponseEntity<String> itemCategoryDTORes = smdmRemoteNewService.selectSecondaryByThirdItemCategory(organizationId, String.valueOf(itemCategoryId));
-        if (ResponseUtils.isFailed(itemCategoryDTORes)) {
-            logger.error("select secondaryItemCategoryId By thirdItemCategoryId failed:{}", itemCategoryDTORes);
-            throw new CommonException("根据三级物料品类查询二级物料品类失败!");
+
+//        根据三级品类id查二级品类
+//        ResponseEntity<String> itemCategoryDTORes = smdmRemoteNewService.selectSecondaryByThirdItemCategory(organizationId, String.valueOf(itemCategoryId));
+//        if (ResponseUtils.isFailed(itemCategoryDTORes)) {
+//            logger.error("select secondaryItemCategoryId By thirdItemCategoryId failed:{}", itemCategoryDTORes);
+//            throw new CommonException("根据三级物料品类查询二级物料品类失败!");
+//        }
+//        logger.info("selectSecondaryByThirdItemCategory:{}", itemCategoryDTORes);
+//        ItemCategoryDTO itemCategoryResultOne  = ResponseUtils.getResponse(itemCategoryDTORes, new TypeReference<ItemCategoryDTO>() {});
+//        Long secondaryCategoryId = itemCategoryResultOne.getParentCategoryId();
+
+
+        //只传categoryid 不传itemid
+        if (!ObjectUtils.isEmpty(itemCategoryId) && ObjectUtils.isEmpty(itemId)) {
+            ResponseEntity<String> itemCategoryInfoRes = smdmRemoteNewService.queryById(organizationId, String.valueOf(itemCategoryId));
+            if (ResponseUtils.isFailed(itemCategoryInfoRes)) {
+                logger.error("query itemCategory info By itemCategoryId error! param itemCategoryId: {}", itemCategoryId);
+                throw new CommonException("根据物料品类id查询物料品类信息失败!");
+            }
+            logger.info("query itemCategory info By itemCategoryId success! param itemCategoryId: {}", itemCategoryId);
+            ItemCategoryDTO itemCategoryResultOne = ResponseUtils.getResponse(itemCategoryInfoRes, new TypeReference<ItemCategoryDTO>() {
+            });
+            String levelPath = itemCategoryResultOne.getLevelPath();
+            return getProjectCosts(organizationId, projectCost, pageRequest, itemCategoryResultOne, levelPath, "当前物料品类已经是一级品类,无法查询费用项目!");
         }
-        logger.info("selectSecondaryByThirdItemCategory:{}", itemCategoryDTORes);
-        ItemCategoryDTO itemCategoryResultOne  = ResponseUtils.getResponse(itemCategoryDTORes, new TypeReference<ItemCategoryDTO>() {});
-        Long secondaryCategoryId = itemCategoryResultOne.getParentCategoryId();
-        projectCost.setSecondaryCategoryId(secondaryCategoryId);
-        projectCost.setTenantId(organizationId);
-        ResponseEntity<String> projectCostRes = watsonsProjectCostRemoteService.list(organizationId, projectCost, pageRequest);
-        if (ResponseUtils.isFailed(projectCostRes)) {
-            logger.error("select cost allocation project failed :{}", projectCost);
-            throw new CommonException("根据二级物料品类查询费用项目失败! 请查看参数的二级品类id值!");
+
+        //只传itemid  不传categoryid
+        if (ObjectUtils.isEmpty(itemCategoryId) && !ObjectUtils.isEmpty(itemId)) {
+            ResponseEntity<String> levelPathByItemId = smdmRemoteNewService.queryLevelPathByItemId(organizationId, itemId);
+            if (ResponseUtils.isFailed(levelPathByItemId)) {
+                logger.error("query LevelPath By ItemId error! param itemId: {}", itemId);
+                throw new CommonException("根据物料id查询物料品类信息失败!");
+            }
+            logger.info("query LevelPath By ItemId success, param itemId: {}", itemId);
+            ItemCategoryDTO itemCategoryResultOne = ResponseUtils.getResponse(levelPathByItemId, new TypeReference<ItemCategoryDTO>() {
+            });
+            String levelPath = itemCategoryResultOne.getLevelPath();
+            return getProjectCosts(organizationId, projectCost, pageRequest, itemCategoryResultOne, levelPath, "当前物料品类已经是一级品类, 无法查询费用项目!");
         }
-        logger.info("select cost allocation project :{}", projectCost);
-        Page<ProjectCost> costProjectRes = ResponseUtils.getResponse(projectCostRes, new TypeReference<Page<ProjectCost>>() {});
-        List<ProjectCost> content = costProjectRes.getContent();
-        for (ProjectCost cost : content) {
-            Long projectCostId = cost.getProjectCostId();
-            Integer subcategoryNum = allocationInfoRepository.selectHasProjectSubcategoryId(projectCostId, cost.getTenantId());
-            if(subcategoryNum>0){
-                cost.setHasProjectCostSubcategory(true);
-            }else {
-                cost.setHasProjectCostSubcategory(false);
+
+        //传了itemId也传了categoryId
+        if (!ObjectUtils.isEmpty(itemCategoryId) && !ObjectUtils.isEmpty(itemId)) {
+            ResponseEntity<String> itemCategoryInfoRes = smdmRemoteNewService.queryById(organizationId, String.valueOf(itemCategoryId));
+            if (ResponseUtils.isFailed(itemCategoryInfoRes)) {
+                logger.error("query itemCategory info By itemCategoryId error! param itemCategoryId: {}", itemCategoryId);
+                throw new CommonException("根据物料品类id查询物料品类信息失败!");
+            }
+            logger.info("query itemCategory info By itemCategoryId success! param itemCategoryId: {}", itemCategoryId);
+            ItemCategoryDTO itemCategoryResultOne = ResponseUtils.getResponse(itemCategoryInfoRes, new TypeReference<ItemCategoryDTO>() {
+            });
+
+            String levelPath = itemCategoryResultOne.getLevelPath();
+
+            if (!StringUtils.isEmpty(levelPath)) {
+                String[] splitRes = levelPath.split("\\|");
+                if (splitRes.length > 3) {
+                    throw new CommonException("该商品有三级以上的品类映射,请重新选择商品!");
+                }
+                if (splitRes.length == 3) {
+                    //该itemCategoryId就是三级品类id  直接设置二级品类id进行查询
+                    projectCost.setSecondaryCategoryId(itemCategoryResultOne.getParentCategoryId());
+                }
+                if (splitRes.length == 2) {
+                    //该itemCategoryId就是二级品类id  直接设置二级品类id进行查询
+                    projectCost.setSecondaryCategoryId(itemCategoryResultOne.getCategoryId());
+                }
+                if (splitRes.length == 1) {
+                    //该itemCategoryId就是一级品类id 调用物料查询
+                    //throw new CommonException("当前物料品类已经是一级品类, 无法查询费用项目!");
+                    //itemCategoryId不行的话用itemId去找
+                    ResponseEntity<String> levelPathByItemId = smdmRemoteNewService.queryLevelPathByItemId(organizationId, itemId);
+                    if (ResponseUtils.isFailed(levelPathByItemId)) {
+                        logger.error("query LevelPath By ItemId error! param itemId: {}", itemId);
+                        throw new CommonException("根据物料id查询物料品类信息失败!");
+                    }
+                    logger.info("query LevelPath By ItemId success, param itemId: {}", itemId);
+                    ItemCategoryDTO itemCategoryResultTwo = ResponseUtils.getResponse(levelPathByItemId, new TypeReference<ItemCategoryDTO>() {
+                    });
+                    String levelPathNew = itemCategoryResultTwo.getLevelPath();
+
+                    if (!StringUtils.isEmpty(levelPathNew)) {
+                        String[] splitResNew = levelPathNew.split("\\|");
+                        if (splitResNew.length > 3) {
+                            throw new CommonException("该商品有三级以上的品类映射,请重新选择商品!");
+                        }
+                        if (splitResNew.length == 3) {
+                            //该itemCategoryId就是三级品类id  直接设置二级品类id进行查询
+                            projectCost.setSecondaryCategoryId(itemCategoryResultTwo.getParentCategoryId());
+                        }
+                        if (splitResNew.length == 2) {
+                            //该itemCategoryId就是二级品类id  直接设置二级品类id进行查询
+                            projectCost.setSecondaryCategoryId(itemCategoryResultTwo.getCategoryId());
+                        }
+                        if (splitResNew.length == 1) {
+                            //该itemCategoryId就是一级品类id
+                            throw new CommonException("当前物料品类已经是一级品类, 无法查询费用项目!");
+                        }
+                        if (splitResNew.length == 0) {
+                            logger.error("当前商品没有映射多级映射路径levelPath");
+                            throw new CommonException("根据品类id查询品类信息失败!");
+                        }
+
+                        //调用协同接口查费用项目
+                        ResponseEntity<String> projectCostRes = watsonsProjectCostRemoteService.list(organizationId, projectCost, pageRequest);
+                        if (ResponseUtils.isFailed(projectCostRes)) {
+                            logger.error("select cost allocation project failed :{}", projectCost);
+                            throw new CommonException("根据二级物料品类查询费用项目失败! 请查看参数的二级品类id值!");
+                        }
+                        logger.info("select cost allocation project :{}", projectCost);
+                        Page<ProjectCost> costProjectRes = ResponseUtils.getResponse(projectCostRes, new TypeReference<Page<ProjectCost>>() {
+                        });
+                        List<ProjectCost> content = costProjectRes.getContent();
+                        //检查是否有子分类
+                        for (ProjectCost cost : content) {
+                            Long projectCostId = cost.getProjectCostId();
+                            Integer subcategoryNum = allocationInfoRepository.selectHasProjectSubcategoryId(projectCostId, cost.getTenantId());
+                            if (subcategoryNum > 0) {
+                                cost.setHasProjectCostSubcategory(true);
+                            } else {
+                                cost.setHasProjectCostSubcategory(false);
+                            }
+                        }
+                        return content;
+                    } else {
+                        logger.error("当前商品没有映射多级映射路径levelPath");
+                        throw new CommonException("当前商品没有映射多级映射路径!");
+                    }
+                }
+                if (splitRes.length == 0) {
+                    logger.error("当前商品没有映射多级映射路径levelPath");
+                    throw new CommonException("根据品类id查询品类信息失败!");
+                }
+
+                //调用协同接口查费用项目
+                ResponseEntity<String> projectCostRes = watsonsProjectCostRemoteService.list(organizationId, projectCost, pageRequest);
+                if (ResponseUtils.isFailed(projectCostRes)) {
+                    logger.error("select cost allocation project failed :{}", projectCost);
+                    throw new CommonException("根据二级物料品类查询费用项目失败! 请查看参数的二级品类id值!");
+                }
+                logger.info("select cost allocation project :{}", projectCost);
+                Page<ProjectCost> costProjectRes = ResponseUtils.getResponse(projectCostRes, new TypeReference<Page<ProjectCost>>() {
+                });
+                List<ProjectCost> content = costProjectRes.getContent();
+
+                //检查是否有子分类
+                for (ProjectCost cost : content) {
+                    Long projectCostId = cost.getProjectCostId();
+                    Integer subcategoryNum = allocationInfoRepository.selectHasProjectSubcategoryId(projectCostId, cost.getTenantId());
+                    if (subcategoryNum > 0) {
+                        cost.setHasProjectCostSubcategory(true);
+                    } else {
+                        cost.setHasProjectCostSubcategory(false);
+                    }
+                }
+                return content;
+            } else {
+                logger.error("当前商品没有映射多级映射路径levelPath");
+                throw new CommonException("当前商品没有映射多级映射路径!");
             }
         }
-        return content;
+        return null;
+    }
+
+    private List<ProjectCost> getProjectCosts(Long organizationId, ProjectCost projectCost, PageRequest pageRequest, ItemCategoryDTO itemCategoryResultOne, String levelPath, String s) {
+        if (!StringUtils.isEmpty(levelPath)) {
+            String[] splitRes = levelPath.split("\\|");
+            if (splitRes.length > 3) {
+                throw new CommonException("该商品有三级以上的品类映射,请重新选择商品!");
+            }
+            if (splitRes.length == 3) {
+                //该itemCategoryId就是三级品类id  直接设置二级品类id进行查询
+                projectCost.setSecondaryCategoryId(itemCategoryResultOne.getParentCategoryId());
+            }
+            if (splitRes.length == 2) {
+                //该itemCategoryId就是二级品类id  直接设置二级品类id进行查询
+                projectCost.setSecondaryCategoryId(itemCategoryResultOne.getCategoryId());
+            }
+            if (splitRes.length == 1) {
+                //该itemCategoryId就是一级品类id
+                throw new CommonException(s);
+            }
+            if (splitRes.length == 0) {
+                logger.error("当前商品没有映射多级映射路径levelPath");
+                throw new CommonException("根据品类id查询品类信息失败!");
+            }
+
+            //调用协同接口查费用项目
+            ResponseEntity<String> projectCostRes = watsonsProjectCostRemoteService.list(organizationId, projectCost, pageRequest);
+            if (ResponseUtils.isFailed(projectCostRes)) {
+                logger.error("select cost allocation project failed :{}", projectCost);
+                throw new CommonException("根据二级物料品类查询费用项目失败! 请查看参数的二级品类id值!");
+            }
+            logger.info("select cost allocation project :{}", projectCost);
+            Page<ProjectCost> costProjectRes = ResponseUtils.getResponse(projectCostRes, new TypeReference<Page<ProjectCost>>() {
+            });
+            List<ProjectCost> content = costProjectRes.getContent();
+
+            //检查是否有子分类
+            for (ProjectCost cost : content) {
+                Long projectCostId = cost.getProjectCostId();
+                Integer subcategoryNum = allocationInfoRepository.selectHasProjectSubcategoryId(projectCostId, cost.getTenantId());
+                if (subcategoryNum > 0) {
+                    cost.setHasProjectCostSubcategory(true);
+                } else {
+                    cost.setHasProjectCostSubcategory(false);
+                }
+            }
+            return content;
+        } else {
+            logger.error("当前商品没有映射多级映射路径levelPath");
+            throw new CommonException("当前商品没有映射多级映射路径!");
+        }
     }
 }
