@@ -72,15 +72,28 @@ public class WatsonsAddressImportValidator extends ValidatorHandler {
             return false;
         }
 
+        MallRegion region = null;
         // 校验商城地区信息
-        List<MallRegion> regions = regionRepository.selectByCondition(Condition.builder(MallRegion.class).andWhere(Sqls.custom().andEqualTo(Region.FIELD_REGION_CODE,addressDTO.getFourthRegionCode())).build());
-        if (ObjectUtils.isEmpty(regions)){
-            getContext().addErrorMsg("商城末级地区不存在");
+        List<MallRegion> thirdRegions = regionRepository.selectByCondition(Condition.builder(MallRegion.class).andWhere(Sqls.custom().andEqualTo(Region.FIELD_REGION_CODE,addressDTO.getThirdRegionCode())).build());
+        if (ObjectUtils.isEmpty(thirdRegions)){
+            getContext().addErrorMsg("商城三级地区不存在");
             return false;
         }
-        RegionLevelPathDTO regionLevelPathDTO = mallRegionService.selectRegionLevelPath(regions.get(0).getRegionId());
+        region = thirdRegions.get(0);
+
+        // 校验商城地区信息
+        if (!ObjectUtils.isEmpty(addressDTO.getFourthRegionCode())) {
+            List<MallRegion> fourthRegions = regionRepository.selectByCondition(Condition.builder(MallRegion.class).andWhere(Sqls.custom().andEqualTo(Region.FIELD_REGION_CODE, addressDTO.getFourthRegionCode())).build());
+            if (ObjectUtils.isEmpty(fourthRegions)) {
+                getContext().addErrorMsg("商城末级地区不存在");
+                return false;
+            }
+            region = fourthRegions.get(0);
+        }
+
+        RegionLevelPathDTO regionLevelPathDTO = mallRegionService.selectRegionLevelPath(region.getRegionId());
         MallRegion province = mallRegionService.selectByRegionCode(regionLevelPathDTO.getProvinceId());
-        String watsonsRegion = addressDTO.getFullAddress().replace(addressDTO.getAddress(), "");
+        String watsonsRegion = addressDTO.getFullAddress().replace(addressDTO.getAddress(), StringUtils.EMPTY);
         if (!watsonsRegion.contains(province.getRegionName())){
             getContext().addErrorMsg("屈臣氏地区信息["+watsonsRegion+"]与商城省份信息["+province.getRegionName()+"]不匹配");
             return false;

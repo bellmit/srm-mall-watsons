@@ -65,7 +65,7 @@ public class WatsonsAddressImportImpl extends BatchImportHandler {
             Long companyId = companyRepository.getCompanyIdByCompanyNum(tenantId, addressDTO.getCompanyNum());
 
             // 获取商城地区信息
-            List<MallRegion> regions = regionRepository.selectByCondition(Condition.builder(MallRegion.class).andWhere(Sqls.custom().andEqualTo(Region.FIELD_REGION_CODE,addressDTO.getFourthRegionCode())).build());
+            List<MallRegion> regions = regionRepository.selectByCondition(Condition.builder(MallRegion.class).andWhere(Sqls.custom().andEqualTo(Region.FIELD_REGION_CODE, ObjectUtils.isEmpty(addressDTO.getFourthRegionCode()) ? addressDTO.getThirdRegionCode() : addressDTO.getFourthRegionCode())).build());
             String parentRegionName = mallRegionService.getParentNames(regions.get(0).getRegionId(), StringUtils.EMPTY);
 
             // 校验库存组织
