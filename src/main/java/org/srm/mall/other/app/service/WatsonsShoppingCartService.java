@@ -40,5 +40,5 @@ public interface WatsonsShoppingCartService {
      * @param preRequestOrderDTOList
      * @return
      */
-    PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList);
+    PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList);
 }
