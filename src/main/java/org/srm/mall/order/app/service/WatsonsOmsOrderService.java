@@ -8,5 +8,5 @@ import java.util.List;
 
 public interface WatsonsOmsOrderService {
 
-    PurchaseRequestVO watsonsCreateOrder(Long tenantId, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOs);
+    PurchaseRequestVO watsonsCreateOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOs);
 }

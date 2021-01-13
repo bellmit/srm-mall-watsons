@@ -189,7 +189,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
+    public PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
         preRequestOrderDTOList.stream().forEach(preRequestOrderDTO -> {
                     if (ObjectUtils.nullSafeEquals(preRequestOrderDTO.getPriceHiddenFlag(), 1)) {
                         Iterator iterator = preRequestOrderDTO.getShoppingCartDTOList().iterator();
@@ -295,7 +295,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         if (ScecConstants.enableOrderCenterFlag(tenantId)) {
             List<WatsonsPreRequestOrderDTO> watsonsCanSubmitList = preRequestOrderDTOList.stream().filter(item -> ScecConstants.ConstantNumber.INT_1 == item.getMinPurchaseFlag()).collect(Collectors.toList());
             //oms订单中心启用
-            result = watsonsOmsOrderService.watsonsCreateOrder(tenantId, watsonsCanSubmitList);
+            result = watsonsOmsOrderService.watsonsCreateOrder(tenantId, customizeUnitCode watsonsCanSubmitList);
         } else {
             result = mallOrderService.createPurchaseReq(tenantId, canSubmitList);
         }

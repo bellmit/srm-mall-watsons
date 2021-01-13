@@ -70,8 +70,8 @@ public class WatsonsShoppingCartController {
     @Permission(level = ResourceLevel.ORGANIZATION)
     @PostMapping("/pre-order")
     @ParamLog
-    public ResponseEntity<PreRequestOrderResponseDTO> preRequestOrder(@PathVariable("organizationId") Long organizationId, @RequestBody @Encrypt List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
-        return Results.success(watsonsShoppingCartService.watsonsPreRequestOrder(organizationId, preRequestOrderDTOList));
+    public ResponseEntity<PreRequestOrderResponseDTO> preRequestOrder(@PathVariable("organizationId") Long organizationId,@RequestParam(required = false) String customizeUnitCode, @RequestBody @Encrypt List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
+        return Results.success(watsonsShoppingCartService.watsonsPreRequestOrder(organizationId,customizeUnitCode, preRequestOrderDTOList));
     }
 
 }

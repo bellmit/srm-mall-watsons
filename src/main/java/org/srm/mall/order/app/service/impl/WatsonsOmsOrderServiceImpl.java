@@ -39,7 +39,7 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
     private SmodrRemoteService smodrRemoteService;
 
     @Override
-    public PurchaseRequestVO watsonsCreateOrder(Long tenantId, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOs) {
+    public PurchaseRequestVO watsonsCreateOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOs) {
         //批次号
         Map<Optional<Long>,String> batchNumMap = new HashMap<>();
         List<OmsOrderDto> omsOrderDtos = new ArrayList<>();
@@ -71,7 +71,7 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
             omsOrderDtos.add(omsOrderDto);
         }
         log.info("屈臣氏oms创建订单入参:" + JSONObject.toJSONString(omsOrderDtos));
-        ResponseEntity<String> result = smodrRemoteService.create(tenantId, omsOrderDtos);
+        ResponseEntity<String> result = smodrRemoteService.create(tenantId, customizeUnitCode, omsOrderDtos);
         log.info("屈臣氏oms创建订单出参:" + JSONObject.toJSONString(result));
         if (ResponseUtils.isFailed(result)) {
             //获取异常信息，如果有异常，则会直接抛出
