@@ -36,6 +36,7 @@ import org.srm.mall.agreement.app.service.ProductPoolService;
 import org.srm.mall.agreement.domain.entity.ProductPool;
 import org.srm.mall.agreement.domain.entity.ProductPoolLadder;
 import org.srm.mall.common.constant.ScecConstants;
+import org.srm.mall.common.feign.SmdmRemoteNewService;
 import org.srm.mall.common.feign.SmdmRemoteService;
 import org.srm.mall.common.task.MallOrderAsyncTask;
 import org.srm.mall.common.utils.snapshot.SnapshotUtil;
@@ -161,6 +162,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     @Autowired
     private WatsonsOmsOrderService watsonsOmsOrderService;
+
+    @Autowired
+    private SmdmRemoteNewService smdmRemoteNewService;
 
 
 
@@ -1027,7 +1031,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             //eric  拿到该并单规则下的每一个购物车
             List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList = groupMap.get(key);
 
-            //eric 按照供应商+品类+费用分配的门店  更新并单规则
+            //eric 按照供应商+品类+费用分配的门店+送货方式 更新并单规则
             this.setPurMergeRuleForWatsons(purReqMergeRule);
 
             //如果开启了物料，先查询库存信息
@@ -1051,7 +1055,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                             watsonsShoppingCartDTO.setWarehousing(BaseConstants.Flag.YES);
                         }
                     }
-
                     //eric  遍历该购并单下的购物车list结束  如果开启了物料，查询库存信息结束
                 }
             }
@@ -1061,59 +1064,175 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 //eric 把当前并单规则下的该购物车list进行新并单规则的分类为map  result  并更新结果集
                 //即把第一个预算信息和购物车拆单的结果进行新的合并规则的合单
                 for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
-
                     StringBuffer keyRes = new StringBuffer();
-
-                    ResponseEntity<String> responseOne = smdmRemoteService.selectCategoryByItemId(tenantId, watsonsShoppingCartDTO.getItemId(), BaseConstants.Flag.YES);
-                    if (ResponseUtils.isFailed(responseOne)) {
-                        logger.error("selectCategoryByItemId:{}", responseOne);
-                        throw new CommonException("根据物料查询一级品类失败!");
-                    }
-                    logger.info("selectCategoryByItemId:{}", responseOne);
-                    List<WatsonsItemCategoryDTO> itemCategoryResultOne  = ResponseUtils.getResponse(responseOne, new TypeReference<List<WatsonsItemCategoryDTO>>() {});
-
-                    if(CollectionUtils.isEmpty(itemCategoryResultOne)){
-                        logger.error("selectCategoryByItemId:{}", "null");
-                        throw new CommonException("根据物料查询一级品类失败!");
+                    //既没有映射品类,也没有映射物料,报错
+                    if(ObjectUtils.isEmpty(watsonsShoppingCartDTO.getItemId()) && ObjectUtils.isEmpty(watsonsShoppingCartDTO.getItemCategoryId())){
+                        throw new CommonException("商品既没有映射物料也没有映射品类,请重新选择商品!");
                     }
 
-                    if(CollectionUtils.isNotEmpty(itemCategoryResultOne) && (itemCategoryResultOne.size()>1)){
-                        logger.error("selectCategoryByItemId:{}", itemCategoryResultOne);
-                        throw new CommonException("单个物料非法查询到多个品类！");
-                    }
+                    //电商商品可能没有映射itemId  所以要判断
+                        //有itemId查一级品类  正常走流程
+                        //没有itemId  用ItemCategoryId去查levelPath
+                            //如果是三级的levelPath  证明就是三级品类找一级品类即可
+                            //如果是二级的levelPath  证明是二级品类找parentCategoryId即可
+                            //如果是一级的品类直接用即可
+                            //如果是多级的，直接报错
+
+                    //如果有itemId
+                        //包括单独有itemId 或者 有两个
+                    if(!ObjectUtils.isEmpty(watsonsShoppingCartDTO.getItemId())) {
+                        ResponseEntity<String> responseOne = smdmRemoteService.selectCategoryByItemId(tenantId, watsonsShoppingCartDTO.getItemId(), BaseConstants.Flag.YES);
+                        if (ResponseUtils.isFailed(responseOne)) {
+                            logger.error("selectCategoryByItemId:{}", responseOne);
+                            throw new CommonException("根据物料查询一级品类失败!");
+                        }
+                        logger.info("selectCategoryByItemId:{}", responseOne);
+                        List<WatsonsItemCategoryDTO> itemCategoryResultOne = ResponseUtils.getResponse(responseOne, new TypeReference<List<WatsonsItemCategoryDTO>>() {
+                        });
+
+                        if (CollectionUtils.isEmpty(itemCategoryResultOne)) {
+                            logger.error("selectCategoryByItemId:{}", "null");
+                            throw new CommonException("根据物料查询一级品类失败!");
+                        }
+
+                        if (CollectionUtils.isNotEmpty(itemCategoryResultOne) && (itemCategoryResultOne.size() > 1)) {
+                            logger.error("selectCategoryByItemId:{}", itemCategoryResultOne);
+                            throw new CommonException("单个物料非法查询到多个品类！");
+                        }
 
 
 //                    if (BaseConstants.Flag.YES.equals(purReqMergeRule.getSupplierFlag())) {
-                        keyRes.append(watsonsShoppingCartDTO.getSupplierCompanyId()).append("-");
-//                    }
-                    if (BaseConstants.Flag.YES.equals(purReqMergeRule.getAddressFlag())) {
-                        if(watsonsShoppingCartDTO.getAllocationInfoList() == null){
-                            logger.error("未进行费用分配！:{}", watsonsShoppingCartDTO.getAllocationInfoList());
-                            throw new CommonException("未进行费用分配!");
+                        handleNormalSplit(purReqMergeRule, watsonsShoppingCartDTO, keyRes);
+                        if (BaseConstants.Flag.YES.equals(purReqMergeRule.getCategory())) {
+                            keyRes.append(itemCategoryResultOne.get(0).getParentCategoryId()).append("-");
                         }
-                        keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getAddressId()).append("-");
-                        keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getDeliveryType()).append("-");
-                    }
-                    if (BaseConstants.Flag.YES.equals(purReqMergeRule.getCategory())){
-                        keyRes.append(itemCategoryResultOne.get(0).getParentCategoryId()).append("-");
+                        String keyFinal = String.valueOf(keyRes);
+                        watsonsShoppingCartDTO.setItemCategoryId(itemCategoryResultOne.get(0).getParentCategoryId());
+                        watsonsShoppingCartDTO.setItemCategoryName(itemCategoryResultOne.get(0).getParentCategoryName());
+                        watsonsShoppingCartDTO.setKey(keyFinal);
                     }
 
-                    String keyFinal = String.valueOf(keyRes);
-                    watsonsShoppingCartDTO.setItemCategoryId(itemCategoryResultOne.get(0).getParentCategoryId());
-                    watsonsShoppingCartDTO.setItemCategoryName(itemCategoryResultOne.get(0).getParentCategoryName());
-                    watsonsShoppingCartDTO.setKey(keyFinal);
+                    //如果只有itemCategoryId
+                            //没有itemId  用ItemCategoryId去查levelPath
+                            //如果是三级的levelPath  证明就是三级品类找一级品类即可
+                            //如果是二级的levelPath
+                            //如果是一级的品类直接用即可
+                            //如果是多级的，直接报错
+                    if(ObjectUtils.isEmpty(watsonsShoppingCartDTO.getItemId()) && !ObjectUtils.isEmpty(watsonsShoppingCartDTO.getItemCategoryId())){
+
+                        ResponseEntity<String> itemCategoryInfoRes = smdmRemoteNewService.queryById(tenantId, String.valueOf(watsonsShoppingCartDTO.getItemCategoryId()));
+                        if (ResponseUtils.isFailed(itemCategoryInfoRes)) {
+                            logger.error("query itemCategory info By itemCategoryId error! param itemCategoryId: {}", watsonsShoppingCartDTO.getItemCategoryId());
+                            throw new CommonException("根据物料品类id查询物料品类信息失败!");
+                        }
+                        logger.info("query itemCategory info By itemCategoryId success! param itemCategoryId: {}", watsonsShoppingCartDTO.getItemCategoryId());
+                        ItemCategoryDTO itemCategoryResultOne = ResponseUtils.getResponse(itemCategoryInfoRes, new TypeReference<ItemCategoryDTO>() {
+                        });
+                        String levelPath = itemCategoryResultOne.getLevelPath();
+
+                        if (!StringUtils.isEmpty(levelPath)) {
+                            String[] splitRes = levelPath.split("\\|");
+                            if (splitRes.length > 3) {
+                                logger.info("此时只传入物料品类id, 且是大于三级的物料品类");
+                                throw new CommonException("该商品有三级以上的品类映射,请重新选择商品!");
+                            }
+                            if (splitRes.length == 3) {
+                                //该itemCategoryId就是三级品类id
+                                logger.info("此时只传入物料品类id, 且是三级物料品类");
+                                //先通过三级物料品类id找二级物料品类
+                                ResponseEntity<String> bLevel = smdmRemoteNewService.queryById(tenantId, String.valueOf(itemCategoryResultOne.getParentCategoryId()));
+                                if (ResponseUtils.isFailed(bLevel)) {
+                                    logger.error("query itemCategory info By itemCategoryId error! param itemCategoryId: {}", itemCategoryResultOne.getParentCategoryId());
+                                    throw new CommonException("根据二级物料品类id查询二级物料品类信息失败!");
+                                }
+                                logger.info("query itemCategory info By itemCategoryId success! param itemCategoryId: {}", itemCategoryResultOne.getParentCategoryId());
+                                ItemCategoryDTO bLevelRes = ResponseUtils.getResponse(bLevel, new TypeReference<ItemCategoryDTO>() {
+                                });
+
+                                //再通过二级物料品类id找一级物料品类
+                                ResponseEntity<String> alevel = smdmRemoteNewService.queryById(tenantId, String.valueOf(bLevelRes.getParentCategoryId()));
+                                if (ResponseUtils.isFailed(alevel)) {
+                                    logger.error("query itemCategory info By itemCategoryId error! param itemCategoryId: {}", bLevelRes.getParentCategoryId());
+                                    throw new CommonException("根据一级物料品类id查询一级物料品类信息失败!");
+                                }
+                                logger.info("query itemCategory info By itemCategoryId success! param itemCategoryId: {}", bLevelRes.getParentCategoryId());
+                                ItemCategoryDTO aLevelRes = ResponseUtils.getResponse(alevel, new TypeReference<ItemCategoryDTO>() {
+                                });
+
+                                //根据一级品类拆单
+                                handleNormalSplit(purReqMergeRule, watsonsShoppingCartDTO, keyRes);
+                                if (BaseConstants.Flag.YES.equals(purReqMergeRule.getCategory())) {
+                                    keyRes.append(aLevelRes.getCategoryId()).append("-");
+                                }
+                                String keyFinal = String.valueOf(keyRes);
+                                watsonsShoppingCartDTO.setItemCategoryId(aLevelRes.getCategoryId());
+                                watsonsShoppingCartDTO.setItemCategoryName(aLevelRes.getCategoryName());
+                                watsonsShoppingCartDTO.setKey(keyFinal);
+                            }
+                            if (splitRes.length == 2) {
+                                logger.info("此时只传入物料品类id, 且是二级物料品类");
+                                //该itemCategoryId就是二级品类id   找parentCategoryId即一级品类进行拆单
+                                handleNormalSplit(purReqMergeRule, watsonsShoppingCartDTO, keyRes);
+                                if (BaseConstants.Flag.YES.equals(purReqMergeRule.getCategory())) {
+                                    keyRes.append(itemCategoryResultOne.getParentCategoryId()).append("-");
+                                }
+                                String keyFinal = String.valueOf(keyRes);
+                                watsonsShoppingCartDTO.setItemCategoryId(itemCategoryResultOne.getParentCategoryId());
+                                //查一级品类的name
+                                ResponseEntity<String> itemCategoryALevel = smdmRemoteNewService.queryById(tenantId, String.valueOf(itemCategoryResultOne.getParentCategoryId()));
+                                if (ResponseUtils.isFailed(itemCategoryALevel)) {
+                                    logger.error("query itemCategory info By itemCategoryId error! param itemCategoryId: {}", itemCategoryResultOne.getParentCategoryId());
+                                    throw new CommonException("根据一级物料品类id查询一级物料品类信息失败!");
+                                }
+                                logger.info("query itemCategory info By itemCategoryId success! param itemCategoryId: {}", itemCategoryResultOne.getParentCategoryId());
+                                ItemCategoryDTO itemCategoryALevelRes = ResponseUtils.getResponse(itemCategoryALevel, new TypeReference<ItemCategoryDTO>() {
+                                });
+                                watsonsShoppingCartDTO.setItemCategoryName(itemCategoryALevelRes.getCategoryName());
+                                watsonsShoppingCartDTO.setKey(keyFinal);
+                            }
+                            if (splitRes.length == 1) {
+                                //该itemCategoryId就是一级品类id 直接拆单
+                                logger.info("此时只传入物料品类id, 且是一级物料品类");
+                                handleNormalSplit(purReqMergeRule, watsonsShoppingCartDTO, keyRes);
+                                if (BaseConstants.Flag.YES.equals(purReqMergeRule.getCategory())) {
+                                    keyRes.append(itemCategoryResultOne.getCategoryId()).append("-");
+                                }
+                                String keyFinal = String.valueOf(keyRes);
+                                watsonsShoppingCartDTO.setItemCategoryId(itemCategoryResultOne.getCategoryId());
+                                watsonsShoppingCartDTO.setItemCategoryName(itemCategoryResultOne.getCategoryName());
+                                watsonsShoppingCartDTO.setKey(keyFinal);
+                            }
+                            if (splitRes.length == 0) {
+                                logger.error("此时只传入物料品类id, 但没有找到levelPath");
+                                throw new CommonException("根据品类id查询品类信息失败!");
+                            }
+                        } else {
+                            logger.error("只传了物料品类下，当前商品多级映射路径levelPath为空");
+                            throw new CommonException("当前商品没有映射多级映射路径!");
+                        }
+
+                    }
                 }
                 Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(s->s.getKey()));
-
                 resultMap.putAll(result);
-
             } else {
                 resultMap.put(key, groupMap.get(key));
             }
-
             //eric 遍历以默认的并单规则分类购物车list组成map结束
         }
         return resultMap;
+    }
+
+    private void handleNormalSplit(PurReqMergeRule purReqMergeRule, WatsonsShoppingCartDTO watsonsShoppingCartDTO, StringBuffer keyRes) {
+        keyRes.append(watsonsShoppingCartDTO.getSupplierCompanyId()).append("-");
+        if (BaseConstants.Flag.YES.equals(purReqMergeRule.getAddressFlag())) {
+            if (watsonsShoppingCartDTO.getAllocationInfoList() == null) {
+                logger.error("未进行费用分配！:{}", watsonsShoppingCartDTO.getAllocationInfoList());
+                throw new CommonException("未进行费用分配!");
+            }
+            keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getAddressId()).append("-");
+            keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getDeliveryType()).append("-");
+        }
     }
 
     private void setPurMergeRuleForWatsons(PurReqMergeRule purReqMergeRule) {
