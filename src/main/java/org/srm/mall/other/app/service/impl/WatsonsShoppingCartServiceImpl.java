@@ -777,7 +777,14 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 watsonsPreRequestOrderDTO.setMobile(watsonsShoppingCartDTO.getMobile());
                 CustomUserDetails userDetails = DetailsHelper.getUserDetails();
                 watsonsPreRequestOrderDTO.setReceiverContactName(userDetails.getRealName());
-                watsonsPreRequestOrderDTO.setReceiverAddress(watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopName());
+
+
+                List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,tenantId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopId())).build());
+                if (ObjectUtils.isEmpty(addressList)){
+                    throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR,watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopName());
+                }
+                watsonsPreRequestOrderDTO.setReceiverAddress(addressList.get(0).getFullAddress());
+
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
                 watsonsPreRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
             }
