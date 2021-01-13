@@ -295,7 +295,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         if (ScecConstants.enableOrderCenterFlag(tenantId)) {
             List<WatsonsPreRequestOrderDTO> watsonsCanSubmitList = preRequestOrderDTOList.stream().filter(item -> ScecConstants.ConstantNumber.INT_1 == item.getMinPurchaseFlag()).collect(Collectors.toList());
             //oms订单中心启用
-            result = watsonsOmsOrderService.watsonsCreateOrder(tenantId, customizeUnitCode watsonsCanSubmitList);
+            result = watsonsOmsOrderService.watsonsCreateOrder(tenantId, customizeUnitCode, watsonsCanSubmitList);
         } else {
             result = mallOrderService.createPurchaseReq(tenantId, canSubmitList);
         }
