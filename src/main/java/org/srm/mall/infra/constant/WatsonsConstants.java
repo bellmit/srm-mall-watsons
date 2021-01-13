@@ -23,4 +23,14 @@ public interface WatsonsConstants {
          */
         public static final String INV_ORGANIZATION_REGION_OOS = "inv.organization.region.oos";
     }
+
+    final class PriceExpandField {
+        private PriceExpandField() {
+
+        }
+        /**
+         * CMS合同号
+         */
+        public static final String PC_NUM = "pcNum";
+    }
 }
