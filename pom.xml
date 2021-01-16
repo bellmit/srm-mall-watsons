@@ -1,58 +1,47 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-
-	<parent>
-		<groupId>org.srm</groupId>
-		<artifactId>srm-parent</artifactId>
-		<version>test-SNAPSHOT</version>
-	</parent>
-	<artifactId>srm-mall-watsons</artifactId>
-    <version>1.11.0.RELEASE</version>
-	<dependencies>
-		<!--添加标准服务依赖,本示例中即为srm-iam-->
-		<dependency>
-			<groupId>org.srm</groupId>
-			<artifactId>srm-mall</artifactId>
-			<!--版本号必须和父 pom 版本一致-->
-			<version>test-SNAPSHOT</version>
-			<!--必须指定为 provided，这样在打包时不会打进去，在测试时可以正常运行-->
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient</artifactId>
-			<version>4.5.5</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpmime</artifactId>
-			<version>4.5</version>
-		</dependency>
-		<!--支持二开的依赖-->
-		<dependency>
-			<groupId>org.srm.starter</groupId>
-			<artifactId>srm-starter-web</artifactId>
-		</dependency>
-    </dependencies>
-
-	<!--私有仓库配置-->
+<?xml version="1.0" encoding="UTF-8"?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.srm</groupId>
+    <artifactId>srm-parent</artifactId>
+    <version>test-SNAPSHOT</version>
+  </parent>
+  <artifactId>srm-mall-watsons</artifactId>
+  <version>1.11.1.RELEASE</version>
+  <dependencies>
+    <dependency>
+      <groupId>org.srm</groupId>
+      <artifactId>srm-mall</artifactId>
+      <version>test-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.5.5</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpmime</artifactId>
+      <version>4.5</version>
+    </dependency>
+    <dependency>
+      <groupId>org.srm.starter</groupId>
+      <artifactId>srm-starter-web</artifactId>
+    </dependency>
+  </dependencies>
   <repositories>
-      <repository>
-          <id>zhenyun-public</id>
-          <name>Zhenyun Public Repository</name>
-          <url>https://nexus.going-link.com/repository/zhenyun-public/</url>
-          <releases>
-              <enabled>true</enabled>
-          </releases>
-          <snapshots>
-              <enabled>true</enabled>
-              <updatePolicy>always</updatePolicy>
-          </snapshots>
-      </repository>
-	</repositories>
-
+    <repository>
+      <id>zhenyun-public</id>
+      <name>Zhenyun Public Repository</name>
+      <url>https://nexus.going-link.com/repository/zhenyun-public/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+      </snapshots>
+    </repository>
+  </repositories>
 </project>
 
