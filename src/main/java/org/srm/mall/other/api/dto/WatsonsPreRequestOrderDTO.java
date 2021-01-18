@@ -22,7 +22,7 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
     private Long itemCategoryId;
 
     @ApiModelProperty(value = "CE号")
-    private String ceNum;
+    private String ceNumber;
 
     @ApiModelProperty(value = "分组名称key检查")
     private String keyForView;
@@ -43,7 +43,6 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
         this.mobile = mobile;
     }
 
-
     public String getKeyForView() {
         return keyForView;
     }
@@ -60,12 +59,12 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
         this.itemCategoryId = itemCategoryId;
     }
 
-    public String getCeNum() {
-        return ceNum;
+    public String getCeNumber() {
+        return ceNumber;
     }
 
-    public void setCeNum(String ceNum) {
-        this.ceNum = ceNum;
+    public void setCeNumber(String ceNumber) {
+        this.ceNumber = ceNumber;
     }
 
     public List<WatsonsShoppingCartDTO> getWatsonsShoppingCartDTOList() {
