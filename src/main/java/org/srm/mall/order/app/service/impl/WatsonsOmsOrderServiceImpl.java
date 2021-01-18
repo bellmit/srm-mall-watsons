@@ -53,6 +53,7 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
                 batchNumMap.put(Optional.ofNullable(preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId()),batchNum);
             }
             OmsOrderDto omsOrderDto = super.omsOrderDtoBuilder(tenantId, preRequestOrderDTO, batchNum);
+            //设置个性化字段
             List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList = preRequestOrderDTO.getWatsonsShoppingCartDTOList();
             if(Objects.nonNull(watsonsShoppingCartDTOList)){
                 Map<Long, List<WatsonsShoppingCartDTO>> groupBy = watsonsShoppingCartDTOList.stream()
@@ -61,7 +62,11 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
                     if(Objects.nonNull(omsOrderEntry.getSkuId())){
                         List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS = groupBy.get(omsOrderEntry.getSkuId());
                         if(CollectionUtils.isNotEmpty(watsonsShoppingCartDTOS)){
-                            omsOrderEntry.setAttributeLongtext1(JSONObject.toJSONString(watsonsShoppingCartDTOS.get(0).getAllocationInfoList()));
+                            WatsonsShoppingCartDTO watsonsShoppingCartDTO = watsonsShoppingCartDTOS.get(0);
+                            //费用分配
+                            omsOrderEntry.setAttributeLongtext1(JSONObject.toJSONString(watsonsShoppingCartDTO.getAllocationInfoList()));
+                            //合同号
+                            omsOrderEntry.setAttributeVarchar1(watsonsShoppingCartDTO.getCmsNumber());
                             log.debug("watsons allocationInfo:" + JSONObject.toJSONString(omsOrderEntry.getAttributeLongtext1()));
                         }
                     }
