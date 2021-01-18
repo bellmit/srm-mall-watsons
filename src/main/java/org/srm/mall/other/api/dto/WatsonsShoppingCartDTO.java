@@ -39,10 +39,16 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
     @Transient
     private String key;
 
-    @ApiModelProperty(value = "用于传给采购申请预览页面值集Meaning的返回")
-    @Transient
-    private String deliveryTypeMeaning;
+    @ApiModelProperty(value = "CMS合同号")
+    private String cmsNum;
 
+    public String getCmsNum() {
+        return cmsNum;
+    }
+
+    public void setCmsNum(String cmsNum) {
+        this.cmsNum = cmsNum;
+    }
 
     public List<AllocationInfo> getAllocationInfoList() {
         return allocationInfoList;
@@ -50,14 +56,6 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
 
     public void setAllocationInfoList(List<AllocationInfo> allocationInfoList) {
         this.allocationInfoList = allocationInfoList;
-    }
-
-    public String getDeliveryTypeMeaning() {
-        return deliveryTypeMeaning;
-    }
-
-    public void setDeliveryTypeMeaning(String deliveryTypeMeaning) {
-        this.deliveryTypeMeaning = deliveryTypeMeaning;
     }
 
     public String getCeNum() {

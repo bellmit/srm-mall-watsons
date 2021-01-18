@@ -33,8 +33,10 @@ import org.srm.boot.platform.customizesetting.CustomizeSettingHelper;
 import org.srm.common.convert.bean.BeanConvertor;
 import org.srm.mall.agreement.app.service.PostageService;
 import org.srm.mall.agreement.app.service.ProductPoolService;
+import org.srm.mall.agreement.domain.entity.AgreementLine;
 import org.srm.mall.agreement.domain.entity.ProductPool;
 import org.srm.mall.agreement.domain.entity.ProductPoolLadder;
+import org.srm.mall.agreement.domain.repository.AgreementLineRepository;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.SmdmRemoteNewService;
 import org.srm.mall.common.feign.SmdmRemoteService;
@@ -166,6 +168,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Autowired
     private SmdmRemoteNewService smdmRemoteNewService;
 
+    @Autowired
+    private AgreementLineRepository agreementLineRepository;
+
 
 
     @Override
@@ -194,6 +199,22 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
+
+        //进行cms合同号校验
+        preRequestOrderDTOList.stream().forEach(watsonsPreRequestOrderDTO -> {
+            for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+                AgreementLine agreementLine = agreementLineRepository.selectByPrimaryKey(watsonsShoppingCartDTO.getAgreementLineId());
+                //attributeVarchar1是cms合同号
+                if(ObjectUtils.isEmpty(agreementLine)){
+                    throw new CommonException(watsonsShoppingCartDTO.getProductName()+"没有查询到协议行,无法生成采购申请!");
+                }
+                if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
+                    throw new CommonException(watsonsShoppingCartDTO.getProductName()+"没有CMS合同号,无法生成采购申请!");
+                }
+                watsonsShoppingCartDTO.setCmsNum(agreementLine.getAttributeVarchar1());
+            }
+        });
+
         preRequestOrderDTOList.stream().forEach(preRequestOrderDTO -> {
                     if (ObjectUtils.nullSafeEquals(preRequestOrderDTO.getPriceHiddenFlag(), 1)) {
                         Iterator iterator = preRequestOrderDTO.getShoppingCartDTOList().iterator();
@@ -783,6 +804,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 watsonsPreRequestOrderDTO.setReceiverContactName(userDetails.getRealName());
 
 
+                //屈臣氏收货人地址更新
                 List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,tenantId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopId())).build());
                 if (ObjectUtils.isEmpty(addressList)){
                     throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR,watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopName());
