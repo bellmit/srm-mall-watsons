@@ -55,7 +55,8 @@ public class AllocationInfo extends AuditDomain {
     public static final String FIELD_PROJECT_COST_SUBCATEGORY_CODE = "projectCostSubcategoryCode";
     public static final String FIELD_PROJECT_COST_SUBCATEGORY_NAME = "projectCostSubcategoryName";
     public static final String FIELD_PROJECT_COST_SUBCATEGORY_ID = "projectCostSubcategoryId";
-
+    public static final String FIELD_CE_NUMBER = "ceNumber";
+    public static final String FIELD_CE_DISCRIPTION = "ceDiscription";
 
 
 //
@@ -136,6 +137,10 @@ public class AllocationInfo extends AuditDomain {
     private String projectCostSubcategoryName;
     @ApiModelProperty(value = "费用项目子分类id", required = true)
     private Long projectCostSubcategoryId;
+    @ApiModelProperty(value = "ce编号", required = true)
+    private String ceNumber;
+    @ApiModelProperty(value = "ce描述", required = true)
+    private String ceDiscription;
 
 
 //
@@ -154,6 +159,22 @@ public class AllocationInfo extends AuditDomain {
 //
 // getter/setter
 // ------------------------------------------------------------------------------
+
+    public String getCeNumber() {
+        return ceNumber;
+    }
+
+    public void setCeNumber(String ceNumber) {
+        this.ceNumber = ceNumber;
+    }
+
+    public String getCeDiscription() {
+        return ceDiscription;
+    }
+
+    public void setCeDiscription(String ceDiscription) {
+        this.ceDiscription = ceDiscription;
+    }
 
     public Long getProjectCostId() {
         return projectCostId;

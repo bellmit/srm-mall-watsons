@@ -211,7 +211,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
                     throw new CommonException(watsonsShoppingCartDTO.getProductName()+"没有CMS合同号,无法生成采购申请!");
                 }
-                watsonsShoppingCartDTO.setCmsNum(agreementLine.getAttributeVarchar1());
+                watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
             }
         });
 

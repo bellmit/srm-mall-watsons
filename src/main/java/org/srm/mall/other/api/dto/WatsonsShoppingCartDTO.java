@@ -27,7 +27,7 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
     private List<AllocationInfo> allocationInfoList;
 
     @ApiModelProperty(value = "CE号")
-    private String ceNum;
+    private String ceNumber;
 
     @ApiModelProperty(value = "联系电话")
     private String mobile;
@@ -40,15 +40,9 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
     private String key;
 
     @ApiModelProperty(value = "CMS合同号")
-    private String cmsNum;
+    private String cmsNumber;
 
-    public String getCmsNum() {
-        return cmsNum;
-    }
 
-    public void setCmsNum(String cmsNum) {
-        this.cmsNum = cmsNum;
-    }
 
     public List<AllocationInfo> getAllocationInfoList() {
         return allocationInfoList;
@@ -58,12 +52,20 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
         this.allocationInfoList = allocationInfoList;
     }
 
-    public String getCeNum() {
-        return ceNum;
+    public String getCeNumber() {
+        return ceNumber;
     }
 
-    public void setCeNum(String ceNum) {
-        this.ceNum = ceNum;
+    public void setCeNumber(String ceNumber) {
+        this.ceNumber = ceNumber;
+    }
+
+    public String getCmsNumber() {
+        return cmsNumber;
+    }
+
+    public void setCmsNumber(String cmsNumber) {
+        this.cmsNumber = cmsNumber;
     }
 
     @Override
