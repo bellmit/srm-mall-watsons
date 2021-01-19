@@ -69,7 +69,9 @@ import org.srm.mall.product.domain.entity.ScecProductCategory;
 import org.srm.mall.product.domain.repository.ComCategoryCatalogMapRepository;
 import org.srm.mall.product.infra.mapper.ScecProductCategoryMapper;
 import org.srm.mall.region.api.dto.AddressDTO;
+import org.srm.mall.region.api.dto.RegionDTO;
 import org.srm.mall.region.domain.entity.Address;
+import org.srm.mall.region.domain.entity.Region;
 import org.srm.mall.region.domain.repository.AddressRepository;
 import org.srm.web.annotation.Tenant;
 import java.math.BigDecimal;
@@ -323,15 +325,44 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     }
 
     @Override
-    public List<Address> checkAddress(Long organizationId, String organizationCode) {
-        Address address = allocationInfoRepository.selectIdByCode(organizationId,organizationCode);
+    public List<WatsonsAddressDTO> checkAddress(Long organizationId, String organizationCode) {
+        List<WatsonsAddressDTO> watsonsAddressDTOS = new ArrayList<>();
+        //找到地址表信息迁移到watsonsAddress
+        //hpfm通过code找到id
+        AddressDTO addressDTO = allocationInfoRepository.selectIdByCode(organizationId,organizationCode);
         List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(
                 Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,organizationId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER)
-                        .andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,address.getInvOrganizationId())).build());
+                        .andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,addressDTO.getInvOrganizationId())).build());
         if (ObjectUtils.isEmpty(addressList)){
             throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR,organizationCode);
         }
-       return addressList;
+        //address转移到watsonsAddress
+        for (Address address : addressList) {
+            WatsonsAddressDTO watsonsAddressDTO = new WatsonsAddressDTO();
+            BeanUtils.copyProperties(address,watsonsAddressDTO);
+            watsonsAddressDTOS.add(watsonsAddressDTO);
+        }
+        //添加地区信息
+        for (WatsonsAddressDTO watsonsAddressDTO : watsonsAddressDTOS) {
+            Long regionId = watsonsAddressDTO.getRegionId();
+            WatsonsRegionDTO watsonsRegionDTO = allocationInfoRepository.selectRegionInfoByRegionId(regionId);
+            if (ObjectUtils.isEmpty(watsonsRegionDTO)){
+                throw new CommonException("未查到该地区id对应的地区信息!");
+            }
+            String levelPath = watsonsRegionDTO.getLevelPath();
+            String[] splitRes = levelPath.split("\\.");
+            StringBuffer sb = new StringBuffer();
+            for (int i = 0; i < splitRes.length; i++) {
+                WatsonsRegionDTO res = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[i]);
+                if (ObjectUtils.isEmpty(res)){
+                    throw new CommonException("未查到该地区code对应的地区信息!");
+                }
+                sb.append(res.getRegionName());
+            }
+            String regionRes = sb.toString();
+            watsonsAddressDTO.setAddressRegion(regionRes);
+        }
+       return watsonsAddressDTOS;
     }
 
     private void checkBudgetInfo(Long tenantId, ShoppingCartDTO shoppingCartDTO, String budgetSwitch){

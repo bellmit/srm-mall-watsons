@@ -19,6 +19,7 @@ import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.order.api.dto.PreRequestOrderDTO;
 import org.srm.mall.order.api.dto.PreRequestOrderResponseDTO;
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
+import org.srm.mall.other.api.dto.WatsonsAddressDTO;
 import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.app.service.ShoppingCartService;
@@ -84,9 +85,9 @@ public class WatsonsShoppingCartController {
      */
     @ApiOperation(value = "根据送货方式自动带出收货地址")
     @Permission(level = ResourceLevel.ORGANIZATION)
-    @PostMapping("/check-address")
+    @GetMapping("/check-address")
     @ParamLog
-    public ResponseEntity<List<Address>> checkAddress(@PathVariable("organizationId") Long organizationId, String organizationCode) {
+    public ResponseEntity<List<WatsonsAddressDTO>> checkAddress(@PathVariable("organizationId") Long organizationId, String organizationCode) {
         return Results.success(watsonsShoppingCartService.checkAddress(organizationId,organizationCode));
     }
 

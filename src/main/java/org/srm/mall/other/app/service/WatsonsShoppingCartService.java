@@ -3,6 +3,7 @@ package org.srm.mall.other.app.service;
 import org.srm.mall.order.api.dto.PreRequestOrderDTO;
 import org.srm.mall.order.api.dto.PreRequestOrderResponseDTO;
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
+import org.srm.mall.other.api.dto.WatsonsAddressDTO;
 import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.domain.entity.ShoppingCart;
@@ -51,6 +52,6 @@ public interface WatsonsShoppingCartService {
      * @param organizationCode
      * @return
      */
-    List<Address> checkAddress(Long organizationId, String organizationCode);
+    List<WatsonsAddressDTO> checkAddress(Long organizationId, String organizationCode);
 
 }

@@ -57,7 +57,7 @@
         AND
             swpcs.tenant_id = #{tenantId}
     </select>
-    <select id="selectIdByCode" resultType="org.srm.mall.region.domain.entity.Address">
+    <select id="selectIdByCode" resultType="org.srm.mall.region.api.dto.AddressDTO">
         SELECT
         hio.organization_id invOrganizationId,
         hio.organization_code invOrganizationCode,
@@ -70,5 +70,37 @@
             hio.enabled_flag = 1
         AND
             hio.organization_code = #{organizationCode}
+        AND
+            hio.source_code != "SYSTEM"
+    </select>
+    <select id="selectRegionInfoByRegionId" resultType="org.srm.mall.other.api.dto.WatsonsRegionDTO">
+        SELECT
+            sr.region_id,
+            sr.region_code,
+            sr.region_name,
+            sr.parent_region_code,
+            sr.region_level,
+            sr.level_path
+        FROM
+            smal_region sr
+        WHERE
+            sr.enabled_flag = 1
+        AND
+            sr.region_id = #{regionId}
+    </select>
+    <select id="selectRegionInfoByRegionCode" resultType="org.srm.mall.other.api.dto.WatsonsRegionDTO">
+        SELECT
+            sr.region_id,
+            sr.region_code,
+            sr.region_name,
+            sr.parent_region_code,
+            sr.region_level,
+            sr.level_path
+        FROM
+            smal_region sr
+        WHERE
+            sr.enabled_flag = 1
+        AND
+            sr.region_code = #{regionCode}
     </select>
 </mapper>
