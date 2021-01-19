@@ -6,6 +6,7 @@ import org.hzero.mybatis.base.BaseRepository;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
+import org.srm.mall.region.domain.entity.Address;
 
 import java.util.List;
 
@@ -20,4 +21,7 @@ public interface AllocationInfoRepository extends BaseRepository<AllocationInfo>
     Page<OrganizationInfoDTO> selectAllocationShopOrganization(OrganizationInfoDTO organizationInfoDTO, PageRequest pageRequest);
 
     Integer selectHasProjectSubcategoryId(Long projectCostId,Long tenantId);
+
+    //供货组织表根据组织code查组织id
+    Address selectIdByCode(Long organizationId, String organizationCode);
 }

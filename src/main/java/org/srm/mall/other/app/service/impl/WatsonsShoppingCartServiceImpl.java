@@ -68,6 +68,7 @@ import org.srm.mall.product.app.service.ProductStockService;
 import org.srm.mall.product.domain.entity.ScecProductCategory;
 import org.srm.mall.product.domain.repository.ComCategoryCatalogMapRepository;
 import org.srm.mall.product.infra.mapper.ScecProductCategoryMapper;
+import org.srm.mall.region.api.dto.AddressDTO;
 import org.srm.mall.region.domain.entity.Address;
 import org.srm.mall.region.domain.repository.AddressRepository;
 import org.srm.web.annotation.Tenant;
@@ -319,6 +320,18 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             mixDeploymentService.getCataSubmitMessageAndSend(tenantId);
         }
         return preRequestOrderResponseDTO;
+    }
+
+    @Override
+    public List<Address> checkAddress(Long organizationId, String organizationCode) {
+        Address address = allocationInfoRepository.selectIdByCode(organizationId,organizationCode);
+        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(
+                Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,organizationId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER)
+                        .andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,address.getInvOrganizationId())).build());
+        if (ObjectUtils.isEmpty(addressList)){
+            throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR,organizationCode);
+        }
+       return addressList;
     }
 
     private void checkBudgetInfo(Long tenantId, ShoppingCartDTO shoppingCartDTO, String budgetSwitch){
@@ -805,12 +818,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 CustomUserDetails userDetails = DetailsHelper.getUserDetails();
                 watsonsPreRequestOrderDTO.setReceiverContactName(userDetails.getRealName());
 
-
-                //直接根据选择的costshop取供货地址信息
-//                List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,tenantId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopId())).build());
-//                if (ObjectUtils.isEmpty(addressList)){
-//                    throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR,watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopName());
-//                }
 
                 //一个entry对应的购物车们四个维度一样 即费用分配的addressid一样，即costShopId一样  即地址区域和详细地址一样  所以一个订单可以该订单下选任意一个商品的信息
                 String addressRegion = watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getAddressRegion();

@@ -11,6 +11,7 @@ import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 import org.srm.mall.other.domain.repository.AllocationInfoRepository;
 import org.springframework.stereotype.Component;
 import org.srm.mall.other.infra.mapper.AllocationInfoMapper;
+import org.srm.mall.region.domain.entity.Address;
 
 import java.util.List;
 
@@ -33,6 +34,11 @@ public class AllocationInfoRepositoryImpl extends BaseRepositoryImpl<AllocationI
     @Override
     public Integer selectHasProjectSubcategoryId(Long projectCostId, Long tenantId) {
         return allocationInfoMapper.selectHasProjectSubcategoryId(projectCostId,tenantId);
+    }
+
+    @Override
+    public Address selectIdByCode(Long organizationId, String organizationCode) {
+        return allocationInfoMapper.selectIdByCode(organizationId,organizationCode);
     }
 
 

@@ -6,6 +6,8 @@ import org.srm.mall.other.api.dto.ShoppingCartDTO;
 import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.domain.entity.ShoppingCart;
+import org.srm.mall.region.api.dto.AddressDTO;
+import org.srm.mall.region.domain.entity.Address;
 
 import java.util.List;
 
@@ -41,4 +43,14 @@ public interface WatsonsShoppingCartService {
      * @return
      */
     PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList);
+
+    /**
+     * 根据送货方式自动带出收货地址
+     *
+     * @param organizationId
+     * @param organizationCode
+     * @return
+     */
+    List<Address> checkAddress(Long organizationId, String organizationCode);
+
 }
