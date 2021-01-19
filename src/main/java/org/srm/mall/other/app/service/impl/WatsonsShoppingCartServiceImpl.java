@@ -1,5 +1,6 @@
 package org.srm.mall.other.app.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.ctrip.framework.apollo.util.ExceptionUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.choerodon.core.exception.CommonException;
@@ -237,11 +238,17 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         //进行ceNo校验
         for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
             if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
-                try {
-                    ResponseEntity<String> checkCeInfoRes = watsonsCeInfoRemoteService.checkCeInfo(tenantId, watsonsPreRequestOrderDTO.getCeId(), watsonsPreRequestOrderDTO.getTotalAmount());
-                }catch (Exception e){
+                ResponseEntity<String> checkCeInfoRes = watsonsCeInfoRemoteService.checkCeInfo(tenantId, watsonsPreRequestOrderDTO.getCeId(), watsonsPreRequestOrderDTO.getTotalAmount());
+                if(ResponseUtils.isFailed(checkCeInfoRes)){
+                    String message = null;
+                    try {
+                        Exception exception = JSONObject.parseObject(checkCeInfoRes.getBody(),Exception.class);
+                        message = exception.getMessage();
+                    }catch (Exception e){
+                        message = checkCeInfoRes.getBody();
+                    }
                     logger.error("check CE info for order total amount error! {}",watsonsPreRequestOrderDTO.getCeId());
-                    throw new CommonException("该CE号"+watsonsPreRequestOrderDTO.getCeNumber()+"检验报错,"+e.getMessage());
+                    throw new CommonException("该CE号"+watsonsPreRequestOrderDTO.getCeNumber()+"检验报错,"+message);
                 }
                 logger.info("check CE info for order total amount success! {}" ,watsonsPreRequestOrderDTO.getCeId());
             }
