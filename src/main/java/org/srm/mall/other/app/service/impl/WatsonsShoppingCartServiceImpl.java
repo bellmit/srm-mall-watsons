@@ -237,16 +237,13 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         //进行ceNo校验
         for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
             if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
-
                 try {
                     ResponseEntity<String> checkCeInfoRes = watsonsCeInfoRemoteService.checkCeInfo(tenantId, watsonsPreRequestOrderDTO.getCeId(), watsonsPreRequestOrderDTO.getTotalAmount());
                 }catch (Exception e){
-                    CommonException
                     logger.error("check CE info for order total amount error! {}",watsonsPreRequestOrderDTO.getCeId());
-                    throw e;
+                    throw new CommonException("该CE号"+watsonsPreRequestOrderDTO.getCeNumber()+"检验报错,"+e.getMessage());
                 }
                 logger.info("check CE info for order total amount success! {}" ,watsonsPreRequestOrderDTO.getCeId());
-
             }
         }
 
