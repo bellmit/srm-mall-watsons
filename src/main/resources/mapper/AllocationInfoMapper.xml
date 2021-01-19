@@ -57,5 +57,18 @@
         AND
             swpcs.tenant_id = #{tenantId}
     </select>
-
+    <select id="selectIdByCode" resultType="org.srm.mall.region.domain.entity.Address">
+        SELECT
+        hio.organization_id invOrganizationId,
+        hio.organization_code invOrganizationCode,
+        hio.organization_name invOrganizationName
+        FROM
+            hpfm_inv_organization hio
+        WHERE
+            hio.tenant_id = #{organizationId}
+        AND
+            hio.enabled_flag = 1
+        AND
+            hio.organization_code = #{organizationCode}
+    </select>
 </mapper>

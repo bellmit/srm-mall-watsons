@@ -25,6 +25,8 @@ import org.srm.mall.other.app.service.ShoppingCartService;
 import org.srm.mall.other.app.service.WatsonsShoppingCartService;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.srm.mall.other.domain.entity.ShoppingCart;
+import org.srm.mall.region.api.dto.AddressDTO;
+import org.srm.mall.region.domain.entity.Address;
 import org.srm.web.annotation.Tenant;
 
 import java.util.List;
@@ -72,6 +74,20 @@ public class WatsonsShoppingCartController {
     @ParamLog
     public ResponseEntity<PreRequestOrderResponseDTO> preRequestOrder(@PathVariable("organizationId") Long organizationId,@RequestParam(required = false) String customizeUnitCode, @RequestBody @Encrypt List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
         return Results.success(watsonsShoppingCartService.watsonsPreRequestOrder(organizationId,customizeUnitCode, preRequestOrderDTOList));
+    }
+
+
+    /**
+     *     ①若送货方式为直送，则根据【费用承担写字楼/店铺/仓库】带出地址
+     *     ②若送货方式为仓转店，则根据【仓转店收货仓】自动带出收货地址
+     *     @author jianhao.zhang01@hand-china.com 2021-01-19 15:04
+     */
+    @ApiOperation(value = "根据送货方式自动带出收货地址")
+    @Permission(level = ResourceLevel.ORGANIZATION)
+    @PostMapping("/check-address")
+    @ParamLog
+    public ResponseEntity<List<Address>> checkAddress(@PathVariable("organizationId") Long organizationId, String organizationCode) {
+        return Results.success(watsonsShoppingCartService.checkAddress(organizationId,organizationCode));
     }
 
 }
