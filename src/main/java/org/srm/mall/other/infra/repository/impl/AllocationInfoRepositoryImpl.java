@@ -6,11 +6,13 @@ import io.choerodon.mybatis.pagehelper.domain.PageRequest;
 import org.hzero.mybatis.base.impl.BaseRepositoryImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
+import org.srm.mall.other.api.dto.WatsonsRegionDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 import org.srm.mall.other.domain.repository.AllocationInfoRepository;
 import org.springframework.stereotype.Component;
 import org.srm.mall.other.infra.mapper.AllocationInfoMapper;
+import org.srm.mall.region.api.dto.AddressDTO;
 import org.srm.mall.region.domain.entity.Address;
 
 import java.util.List;
@@ -37,8 +39,19 @@ public class AllocationInfoRepositoryImpl extends BaseRepositoryImpl<AllocationI
     }
 
     @Override
-    public Address selectIdByCode(Long organizationId, String organizationCode) {
+    public AddressDTO selectIdByCode(Long organizationId, String organizationCode) {
         return allocationInfoMapper.selectIdByCode(organizationId,organizationCode);
+    }
+
+    @Override
+    public WatsonsRegionDTO selectRegionInfoByRegionId(Long regionId) {
+        return allocationInfoMapper.selectRegionInfoByRegionId(regionId);
+    }
+
+    @Override
+    public WatsonsRegionDTO selectRegionInfoByRegionCode(String regionCode) {
+        return allocationInfoMapper.selectRegionInfoByRegionCode(regionCode);
+
     }
 
 
