@@ -9,6 +9,8 @@ import org.srm.mall.common.feign.WatsonsCeInfoRemoteService;
 import org.srm.mall.common.feign.WatsonsProjectCostRemoteService;
 import org.srm.mall.other.domain.entity.ProjectCost;
 
+import java.math.BigDecimal;
+
 /**
  * CE信息远程服务超时
  *
@@ -25,6 +27,12 @@ public class WatsonsCeInfoRemoteServiceFallbackImpl implements FallbackFactory<W
             @Override
             public ResponseEntity<String> queryCeInfo(Long tenantId, String storeNo, Integer size, Integer page) {
                 LOGGER.error("query CE info error :{}", storeNo);
+                return null;
+            }
+
+            @Override
+            public ResponseEntity<String> checkCeInfo(Long tenantId, int ceId, BigDecimal changeAmount) {
+                LOGGER.error("check CE info error :{}", ceId);
                 return null;
             }
         };
