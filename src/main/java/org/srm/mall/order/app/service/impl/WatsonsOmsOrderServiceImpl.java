@@ -72,6 +72,8 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
                     }
                 });
             }
+            //设置ce号
+            omsOrderDto.getOrder().setAttributeVarchar1(preRequestOrderDTO.getCeNumber());
             omsOrderDto.getOrderAddress().setMobilePhone(preRequestOrderDTO.getMobile());
             omsOrderDtos.add(omsOrderDto);
         }
