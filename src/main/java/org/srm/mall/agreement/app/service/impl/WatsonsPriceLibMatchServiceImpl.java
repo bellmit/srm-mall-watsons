@@ -29,10 +29,10 @@ public class WatsonsPriceLibMatchServiceImpl extends PriceLibMatchServiceImpl {
     @Override
     protected void handExpandField(PriceLibMatch priceLibMatch, Map<String, PriceLibLnDTO> priceLibLnDTOMap) {
         super.handExpandField(priceLibMatch, priceLibLnDTOMap);
-        if (priceLibLnDTOMap.containsKey(WatsonsConstants.PriceExpandField.PC_NUM)) {
+        if (priceLibLnDTOMap.containsKey(WatsonsConstants.PriceExpandField.CONTRACT_NUM)) {
             String pcNum = priceLibMatch.getAttributeVarchar1();
             try {
-                pcNum = priceLibLnDTOMap.get(WatsonsConstants.PriceExpandField.PC_NUM).getDimensionValue();
+                pcNum = priceLibLnDTOMap.get(WatsonsConstants.PriceExpandField.CONTRACT_NUM).getDimensionValue();
             } catch (Exception e) {
                 logger.error("error is {}", ExceptionUtils.getMessage(e));
             }
