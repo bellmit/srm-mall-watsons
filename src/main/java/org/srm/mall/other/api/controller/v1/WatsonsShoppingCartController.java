@@ -78,17 +78,22 @@ public class WatsonsShoppingCartController {
     }
 
 
-    /**
-     *     ①若送货方式为直送，则根据【费用承担写字楼/店铺/仓库】带出地址
-     *     ②若送货方式为仓转店，则根据【仓转店收货仓】自动带出收货地址
-     *     @author jianhao.zhang01@hand-china.com 2021-01-19 15:04
-     */
-    @ApiOperation(value = "根据送货方式自动带出收货地址")
+    @ApiOperation(value = "根据送货方式仓转店或者直送自动带出地址区域和详细地址")
     @Permission(level = ResourceLevel.ORGANIZATION)
     @GetMapping("/check-address")
     @ParamLog
     public ResponseEntity<List<WatsonsAddressDTO>> checkAddress(@PathVariable("organizationId") Long organizationId, Long watsonsOrganizationId, String watsonsOrganizationCode) {
         return Results.success(watsonsShoppingCartService.checkAddress(organizationId,watsonsOrganizationId,watsonsOrganizationCode));
     }
+
+
+    @ApiOperation(value = "详细地址和地址区域校验")
+    @Permission(level = ResourceLevel.ORGANIZATION)
+    @GetMapping("/check-address-validate")
+    @ParamLog
+    public ResponseEntity<String> checkAddressValidate(@PathVariable("organizationId") Long organizationId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS) {
+        return Results.success(watsonsShoppingCartService.checkAddressValidate(organizationId,watsonsShoppingCartDTOS));
+    }
+
 
 }

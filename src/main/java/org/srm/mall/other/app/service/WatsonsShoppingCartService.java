@@ -46,12 +46,22 @@ public interface WatsonsShoppingCartService {
     PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList);
 
     /**
-     * 根据送货方式自动带出收货地址
+     * 根据送货方式仓转店或者直送自动带出地址区域和详细地址
      *
      * @param organizationId
-     * @param organizationCode
+     * @param watsonsOrganizationCode
+     * @param watsonsOrganizationId
      * @return
      */
     List<WatsonsAddressDTO> checkAddress(Long organizationId, Long watsonsOrganizationId, String watsonsOrganizationCode);
+
+    /**
+     *  校验传来的购物车的详细地址和地址区域
+     *
+     * @param organizationId
+     * @param watsonsShoppingCartDTOS
+     * @return
+     */
+    String checkAddressValidate(Long organizationId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS);
 
 }
