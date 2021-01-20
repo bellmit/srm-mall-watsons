@@ -158,9 +158,21 @@ public class AllocationInfo extends AuditDomain {
     @Transient
     private String deliveryTypeMeaning;
 
+    @Transient
+    private String fromWhichShoppingCart;
+
 //
 // getter/setter
 // ------------------------------------------------------------------------------
+
+    public String getFromWhichShoppingCart() {
+        return fromWhichShoppingCart;
+    }
+
+    public void setFromWhichShoppingCart(String fromWhichShoppingCart) {
+        this.fromWhichShoppingCart = fromWhichShoppingCart;
+    }
+
 
     public String getAddressRegion() {
         return addressRegion;

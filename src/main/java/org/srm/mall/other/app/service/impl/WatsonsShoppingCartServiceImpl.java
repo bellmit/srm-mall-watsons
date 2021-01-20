@@ -415,6 +415,56 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     }
 
+    @Override
+    public String checkAddressValidate(Long organizationId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS) {
+
+
+//
+//
+//        //校验每个购物车自己的费用分配是否有问题
+//        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOS) {
+//            //costShopId为key  费用分配list为value
+//            Map<Long, List<AllocationInfo>> allocationMap = watsonsShoppingCartDTO.getAllocationInfoList().stream().collect(Collectors.groupingBy(AllocationInfo::getCostShopId));
+//            for (Map.Entry<Long, List<AllocationInfo>> entry : allocationMap.entrySet()) {
+//                //同一个购物车中同一个costShopId对应的费用分配
+//                List<AllocationInfo> allocationInfos = entry.getValue();
+//                String address4Check = allocationInfos.get(0).getAddressRegion()+allocationInfos.get(0).getFullAddress();
+//                for (AllocationInfo allocationInfo : allocationInfos) {
+//                    if(!address4Check.equals(allocationInfo.getAddressRegion()+allocationInfo.getFullAddress())){
+//                        throw new CommonException(
+//                                watsonsShoppingCartDTO.getProductName()+allocationInfo.getCostShopCode()+allocationInfo.getCostShopName() + "分配的地址不一致，请修改!");
+//                    }
+//                }
+//            }
+//        }
+
+
+        //此时每个购物车自己没问题了，即使有相同的costShopId，但是地址区域+详细地址是一样的
+        //校验购物车和购物车之间费用分配有没有问题
+
+        List<AllocationInfo> allocationInfos = new ArrayList<>();
+        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOS) {
+            for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()) {
+                allocationInfo.setFromWhichShoppingCart(watsonsShoppingCartDTO.getProductName());
+                allocationInfos.add(allocationInfo);
+            }
+        }
+
+        Map<Long, List<AllocationInfo>> collecRes = allocationInfos.stream().collect(Collectors.groupingBy(AllocationInfo::getCostShopId));
+        for (Map.Entry<Long, List<AllocationInfo>> longListEntry : collecRes.entrySet()) {
+            List<AllocationInfo> value = longListEntry.getValue();
+            String address4Check = value.get(0).getAddressRegion()+value.get(0).getFullAddress();
+            for (AllocationInfo allocationInfo : value) {
+                if(!((allocationInfo.getAddressRegion()+allocationInfo.getFullAddress()).equals(address4Check))){
+                    throw new CommonException(
+                            allocationInfo.getFromWhichShoppingCart()+allocationInfo.getCostShopCode()+allocationInfo.getCostShopName() + "分配的地址不一致，请修改!");
+                    }
+                }
+            }
+        return null;
+    }
+
+
     private void checkBudgetInfo(Long tenantId, ShoppingCartDTO shoppingCartDTO, String budgetSwitch){
         if (ScecConstants.ConstantNumber.STRING_1.equals(budgetSwitch)) {
             List<BudgetInfo> budgetInfoList = shoppingCartDTO.getBudgetInfoList();
@@ -654,26 +704,35 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
 
         //校验每个商品的每个费用分配当【费用承担写字楼/店铺/仓库】相同时,【地址区域】+【收货地址】是否相同
-        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
-            for (int i = 0; i < watsonsShoppingCartDTO.getAllocationInfoList().size(); i++) {
-                //取到每个商品的每个费用分配
-                Long costShopId = watsonsShoppingCartDTO.getAllocationInfoList().get(i).getCostShopId();
-                String addressRegion = watsonsShoppingCartDTO.getAllocationInfoList().get(i).getAddressRegion();
-                String fullAddress = watsonsShoppingCartDTO.getAllocationInfoList().get(i).getFullAddress();
-                String str4Check = addressRegion+fullAddress;
-                //和每个商品的每个费用分配比
-                for (WatsonsShoppingCartDTO shoppingCartDTO : watsonsShoppingCartDTOList) {
-                    for (int i1 = 0; i1 < shoppingCartDTO.getAllocationInfoList().size(); i1++) {
+        //每个商品行上addressCheckSuccess  和 addressCheckErrorMessage
+        //错误信息中是店铺编码加店铺名字
 
-                        if(shoppingCartDTO.getAllocationInfoList().get(i1).getCostShopId().equals(costShopId)) {
-                            if (!((shoppingCartDTO.getAllocationInfoList().get(i1).getAddressRegion() + shoppingCartDTO.getAllocationInfoList().get(i1).getFullAddress()).equals(str4Check))) {
-                                throw new CommonException(shoppingCartDTO.getAllocationInfoList().get(i1).getCostShopName() + "分配的地址不一致，请修改!");
-                            }
-                        }
-                    }
-                }
-            }
-        }
+//
+//        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
+//            for (int i = 0; i < watsonsShoppingCartDTO.getAllocationInfoList().size(); i++) {
+//                //取到每个商品的每个费用分配
+//                Long costShopId = watsonsShoppingCartDTO.getAllocationInfoList().get(i).getCostShopId();
+//                String addressRegion = watsonsShoppingCartDTO.getAllocationInfoList().get(i).getAddressRegion();
+//                String fullAddress = watsonsShoppingCartDTO.getAllocationInfoList().get(i).getFullAddress();
+//                String str4Check = addressRegion+fullAddress;
+//                //和每个商品的每个费用分配比
+//                for (WatsonsShoppingCartDTO shoppingCartDTO : watsonsShoppingCartDTOList) {
+//                    shoppingCartDTO.setAddressCheckSuccess(null);
+//                    shoppingCartDTO.setAddressCheckErrorMessage(null);
+//                    for (int i1 = 0; i1 < shoppingCartDTO.getAllocationInfoList().size(); i1++) {
+//                        if(shoppingCartDTO.getAllocationInfoList().get(i1).getCostShopId().equals(costShopId)) {
+//                            if (!((shoppingCartDTO.getAllocationInfoList().get(i1).getAddressRegion() + shoppingCartDTO.getAllocationInfoList().get(i1).getFullAddress()).equals(str4Check))) {
+//                                shoppingCartDTO.setAddressCheckSuccess(0);
+//                                shoppingCartDTO.setAddressCheckErrorMessage(shoppingCartDTO.getAllocationInfoList().get(i1).getCostShopCode()+shoppingCartDTO.getAllocationInfoList().get(i1).getCostShopName() + "分配的地址不一致，请修改!");
+//                            }else {
+//                                shoppingCartDTO.setAddressCheckSuccess(1);
+//                                shoppingCartDTO.setAddressCheckErrorMessage(null);
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
 
         //如果有服务商品，从底层list取出放到上层list
         List<ShoppingCartDTO> re = new ArrayList<>();
