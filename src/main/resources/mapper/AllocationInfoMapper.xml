@@ -69,7 +69,7 @@
         AND
             hio.enabled_flag = 1
         AND
-            hio.organization_code = #{organizationCode}
+            hio.organization_code = #{watsonsOrganizationCode}
         AND
             hio.source_code != "SYSTEM"
     </select>

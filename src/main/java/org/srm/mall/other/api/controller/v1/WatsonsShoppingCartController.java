@@ -87,8 +87,8 @@ public class WatsonsShoppingCartController {
     @Permission(level = ResourceLevel.ORGANIZATION)
     @GetMapping("/check-address")
     @ParamLog
-    public ResponseEntity<List<WatsonsAddressDTO>> checkAddress(@PathVariable("organizationId") Long organizationId, String organizationCode) {
-        return Results.success(watsonsShoppingCartService.checkAddress(organizationId,organizationCode));
+    public ResponseEntity<List<WatsonsAddressDTO>> checkAddress(@PathVariable("organizationId") Long organizationId, Long watsonsOrganizationId, String watsonsOrganizationCode) {
+        return Results.success(watsonsShoppingCartService.checkAddress(organizationId,watsonsOrganizationId,watsonsOrganizationCode));
     }
 
 }
