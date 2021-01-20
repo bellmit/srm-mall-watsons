@@ -4,11 +4,15 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.srm.mall.agreement.domain.entity.AgreementLine;
+import org.srm.mall.agreement.domain.entity.AgreementUnit;
 import org.srm.mall.agreement.domain.entity.PriceLibMatch;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.platform.api.dto.PriceLibLnDTO;
 import org.srm.web.annotation.Tenant;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,6 +38,31 @@ public class WatsonsPriceLibMatchServiceImpl extends PriceLibMatchServiceImpl {
             }
             priceLibMatch.setAttributeVarchar1(pcNum);
         }
+
+        if (priceLibLnDTOMap.containsKey(WatsonsConstants.PriceExpandField.LAST_PURCHASE_QUANTITY)) {
+            BigDecimal lastPurchaseQuantity = priceLibMatch.getAttributeDecimal1();
+            try {
+                lastPurchaseQuantity =new BigDecimal(priceLibLnDTOMap.get(WatsonsConstants.PriceExpandField.LAST_PURCHASE_QUANTITY).getDimensionValue());
+            } catch (Exception e) {
+                logger.error("error is {}", ExceptionUtils.getMessage(e));
+            }
+            priceLibMatch.setAttributeDecimal1(lastPurchaseQuantity);
+        }
     }
 
+    @Override
+    protected void convertData(AgreementLine agreementLine, PriceLibMatch priceLibMatch) {
+        super.convertData(agreementLine, priceLibMatch);
+        // 协议自动升级处理
+        agreementLine.setPurchaseQuantityLimit(priceLibMatch.getAttributeDecimal1());
+    }
+
+    @Override
+    public AgreementLine generateAgreementLineFromPriceLibray(Long tenantId, List<AgreementUnit> agreementUnits, AgreementLine agreementLine, PriceLibMatch priceLibMatch) {
+        AgreementLine line = super.generateAgreementLineFromPriceLibray(tenantId, agreementUnits, agreementLine, priceLibMatch);
+        // 协议自动创建和界面创建转换
+        agreementLine.setAttributeVarchar1(priceLibMatch.getAttributeVarchar1());
+        agreementLine.setPurchaseQuantityLimit(priceLibMatch.getAttributeDecimal1());
+        return line;
+    }
 }
