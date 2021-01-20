@@ -25,7 +25,7 @@ public interface AllocationInfoRepository extends BaseRepository<AllocationInfo>
     Integer selectHasProjectSubcategoryId(Long projectCostId, Long tenantId);
 
     //供货组织表根据组织code查组织id
-    AddressDTO selectIdByCode(Long organizationId, String organizationCode);
+    AddressDTO selectIdByCode(Long organizationId, String watsonsOrganizationCode);
 
     WatsonsRegionDTO selectRegionInfoByRegionId(Long regionId);
 

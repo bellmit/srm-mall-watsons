@@ -22,7 +22,7 @@ public interface AllocationInfoMapper extends BaseMapper<AllocationInfo> {
 
     Integer selectHasProjectSubcategoryId(@Param("projectCostId") Long projectCostId, @Param("tenantId")Long tenantId);
 
-    AddressDTO selectIdByCode(Long organizationId, String organizationCode);
+    AddressDTO selectIdByCode(Long organizationId, String watsonsOrganizationCode);
 
     WatsonsRegionDTO selectRegionInfoByRegionId(Long regionId);
 

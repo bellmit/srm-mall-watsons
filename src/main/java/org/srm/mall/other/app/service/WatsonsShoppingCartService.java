@@ -52,6 +52,6 @@ public interface WatsonsShoppingCartService {
      * @param organizationCode
      * @return
      */
-    List<WatsonsAddressDTO> checkAddress(Long organizationId, String organizationCode);
+    List<WatsonsAddressDTO> checkAddress(Long organizationId, Long watsonsOrganizationId, String watsonsOrganizationCode);
 
 }

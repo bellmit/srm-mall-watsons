@@ -39,8 +39,8 @@ public class AllocationInfoRepositoryImpl extends BaseRepositoryImpl<AllocationI
     }
 
     @Override
-    public AddressDTO selectIdByCode(Long organizationId, String organizationCode) {
-        return allocationInfoMapper.selectIdByCode(organizationId,organizationCode);
+    public AddressDTO selectIdByCode(Long organizationId, String watsonsOrganizationCode) {
+        return allocationInfoMapper.selectIdByCode(organizationId,watsonsOrganizationCode);
     }
 
     @Override
