@@ -418,9 +418,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Override
     public String checkAddressValidate(Long organizationId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS) {
 
-
-//
-//
 //        //校验每个购物车自己的费用分配是否有问题
 //        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOS) {
 //            //costShopId为key  费用分配list为value
@@ -437,11 +434,10 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 //                }
 //            }
 //        }
+//    此时每个购物车自己没问题了，即使有相同的costShopId，但是地址区域+详细地址是一样的
+//    校验购物车和购物车之间费用分配有没有问题
 
-
-        //此时每个购物车自己没问题了，即使有相同的costShopId，但是地址区域+详细地址是一样的
-        //校验购物车和购物车之间费用分配有没有问题
-
+        //降维处理  把商品行维度降为费用分配维度
         List<AllocationInfo> allocationInfos = new ArrayList<>();
         for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOS) {
             for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()) {
@@ -450,8 +446,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             }
         }
 
-        Map<Long, List<AllocationInfo>> collecRes = allocationInfos.stream().collect(Collectors.groupingBy(AllocationInfo::getCostShopId));
-        for (Map.Entry<Long, List<AllocationInfo>> longListEntry : collecRes.entrySet()) {
+        Map<Long, List<AllocationInfo>> collectRes = allocationInfos.stream().collect(Collectors.groupingBy(AllocationInfo::getCostShopId));
+        for (Map.Entry<Long, List<AllocationInfo>> longListEntry : collectRes.entrySet()) {
             List<AllocationInfo> value = longListEntry.getValue();
             String address4Check = value.get(0).getAddressRegion()+value.get(0).getFullAddress();
             for (AllocationInfo allocationInfo : value) {
