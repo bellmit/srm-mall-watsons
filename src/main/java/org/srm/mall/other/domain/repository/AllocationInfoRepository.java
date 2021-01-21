@@ -5,6 +5,7 @@ import io.choerodon.mybatis.pagehelper.domain.PageRequest;
 import org.hzero.mybatis.base.BaseRepository;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.api.dto.WatsonsRegionDTO;
+import org.srm.mall.other.api.dto.WhLovResultDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 import org.srm.mall.region.api.dto.AddressDTO;
@@ -31,5 +32,5 @@ public interface AllocationInfoRepository extends BaseRepository<AllocationInfo>
 
     WatsonsRegionDTO selectRegionInfoByRegionCode(String regionCode);
 
-    String selectInvNameByInvCode(String inventoryCode);
+    WhLovResultDTO selectInvNameByInvCode(String inventoryCode, Long organizationId);
 }
