@@ -7,6 +7,7 @@ import org.hzero.mybatis.base.impl.BaseRepositoryImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.api.dto.WatsonsRegionDTO;
+import org.srm.mall.other.api.dto.WhLovResultDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 import org.srm.mall.other.domain.repository.AllocationInfoRepository;
@@ -55,9 +56,8 @@ public class AllocationInfoRepositoryImpl extends BaseRepositoryImpl<AllocationI
     }
 
     @Override
-    public String selectInvNameByInvCode(String inventoryCode) {
-        return allocationInfoMapper.selectInvNameByInvCode(inventoryCode);
-
+    public WhLovResultDTO selectInvNameByInvCode(String inventoryCode, Long organizationId) {
+        return allocationInfoMapper.selectInvNameByInvCode(inventoryCode,organizationId);
     }
 
 

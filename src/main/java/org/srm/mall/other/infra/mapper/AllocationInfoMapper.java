@@ -4,6 +4,7 @@ import org.apache.ibatis.annotations.Param;
 import org.springframework.security.core.parameters.P;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.api.dto.WatsonsRegionDTO;
+import org.srm.mall.other.api.dto.WhLovResultDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import io.choerodon.mybatis.common.BaseMapper;
 import org.srm.mall.region.api.dto.AddressDTO;
@@ -28,5 +29,5 @@ public interface AllocationInfoMapper extends BaseMapper<AllocationInfo> {
 
     WatsonsRegionDTO selectRegionInfoByRegionCode(String regionCode);
 
-    String selectInvNameByInvCode(String inventoryCode);
+    WhLovResultDTO selectInvNameByInvCode(String inventoryCode, Long organizationId);
 }
