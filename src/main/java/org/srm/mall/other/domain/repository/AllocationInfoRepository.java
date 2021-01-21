@@ -30,4 +30,6 @@ public interface AllocationInfoRepository extends BaseRepository<AllocationInfo>
     WatsonsRegionDTO selectRegionInfoByRegionId(Long regionId);
 
     WatsonsRegionDTO selectRegionInfoByRegionCode(String regionCode);
+
+    String selectInvNameByInvCode(String inventoryCode);
 }

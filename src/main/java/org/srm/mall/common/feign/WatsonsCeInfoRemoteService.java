@@ -4,6 +4,7 @@ package org.srm.mall.common.feign;
 import io.choerodon.mybatis.pagehelper.domain.PageRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.*;
 import org.srm.mall.common.feign.fallback.WatsonsCeInfoRemoteServiceFallbackImpl;
 import org.srm.mall.common.feign.fallback.WatsonsProjectCostRemoteServiceFallbackImpl;
@@ -16,7 +17,6 @@ import java.math.BigDecimal;
  *
  * @author jianhao.zhang01@hand-china.com 2021/01/07 17:38
  */
-
 @FeignClient(value = "srm-interface", fallbackFactory = WatsonsCeInfoRemoteServiceFallbackImpl.class, path = "/v1")
 public interface WatsonsCeInfoRemoteService {
 

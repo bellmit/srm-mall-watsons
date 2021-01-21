@@ -54,5 +54,11 @@ public class AllocationInfoRepositoryImpl extends BaseRepositoryImpl<AllocationI
 
     }
 
+    @Override
+    public String selectInvNameByInvCode(String inventoryCode) {
+        return allocationInfoMapper.selectInvNameByInvCode(inventoryCode);
+
+    }
+
 
 }

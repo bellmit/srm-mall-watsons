@@ -5,6 +5,7 @@ import io.choerodon.mybatis.pagehelper.domain.PageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.srm.mall.common.feign.WatsonsCeInfoRemoteService;
 import org.srm.mall.common.feign.WatsonsProjectCostRemoteService;
 import org.srm.mall.other.domain.entity.ProjectCost;
@@ -16,6 +17,7 @@ import java.math.BigDecimal;
  *
  * @author jianhao.zhang01@hand-china.com 2021/01/18 23:08
  */
+@Component
 public class WatsonsCeInfoRemoteServiceFallbackImpl implements FallbackFactory<WatsonsCeInfoRemoteService> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WatsonsCeInfoRemoteServiceFallbackImpl.class);
