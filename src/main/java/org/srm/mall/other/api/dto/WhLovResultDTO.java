@@ -7,11 +7,23 @@ import org.srm.mall.product.api.dto.BaseDto;
  *
  * @author jianhao.zhang01@hand-china.com 2021/01/21 17:02
  */
-public class WhLovResultDTO extends BaseDto {
+public class WhLovResultDTO {
+
+
+    private String inventoryId;
 
     private String inventoryCode;
 
     private String inventoryName;
+
+    public String getInventoryId() {
+        return inventoryId;
+    }
+
+    public void setInventoryId(String inventoryId) {
+        this.inventoryId = inventoryId;
+    }
+
 
     public String getInventoryCode() {
         return inventoryCode;

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.choerodon.core.domain.Page;
 import io.choerodon.core.exception.CommonException;
 import io.choerodon.mybatis.pagehelper.domain.PageRequest;
-import lombok.val;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hzero.core.base.BaseAppService;
 import org.hzero.core.base.BaseConstants;
@@ -23,10 +22,15 @@ import org.srm.mall.common.feign.*;
 import org.srm.mall.common.feign.WatsonsProjectCostRemoteService;
 import org.srm.mall.common.feign.SagmRemoteService;
 import org.srm.mall.common.feign.SmdmRemoteNewService;
+import org.srm.mall.common.feign.*;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.other.api.dto.AllocationInfoDTO;
 import org.srm.mall.other.api.dto.WhLovResultDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
+import org.srm.mall.other.api.dto.WatsonStoreInventoryRelationDTO;
+import org.srm.mall.other.api.dto.WhLovResultDTO;
+import org.srm.mall.other.domain.entity.CeLovResult;
+import org.srm.mall.other.api.dto.CeLovResultDTO;
 import org.srm.mall.other.app.service.AllocationInfoService;
 import org.srm.mall.other.app.service.ShoppingCartService;
 import org.srm.mall.other.domain.entity.AllocationInfo;
@@ -82,6 +86,11 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
 
     @Autowired
     private WatsonsWareHouseRemoteService watsonsWareHouseRemoteService;
+
+    @Autowired
+    private WatsonsCeInfoRemoteService watsonsCeInfoRemoteService;
+
+
 
 
     @Override
@@ -446,18 +455,36 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     }
 
     @Override
+    public List<CeLovResultDTO> selectCeInfoLov(Long organizationId, String storeNo, Integer size, Integer page) {
+
+        ResponseEntity<String> ceInfo = watsonsCeInfoRemoteService.queryCeInfo(organizationId, storeNo, size, page);
+        if (ResponseUtils.isFailed(ceInfo)) {
+            logger.error("select CE info failed :{}", storeNo);
+            throw new CommonException("根据店铺id查询ce编号信息失败! 店铺号为:" + storeNo);
+        }
+        logger.info("select CE info success :{}", storeNo);
+        CeLovResult ceLovResult = ResponseUtils.getResponse(ceInfo, new TypeReference<CeLovResult>() {
+        });
+        List<CeLovResultDTO> ceInfoList = ceLovResult.getList();
+        return ceInfoList;
+    }
+
+    @Override
     public WhLovResultDTO selectWhLov(Long organizationId, String storeId) {
+        WhLovResultDTO whLovResultDTO = new WhLovResultDTO();
         ResponseEntity<String> whInfo = watsonsWareHouseRemoteService.queryWhInfo(organizationId, storeId);
         if (ResponseUtils.isFailed(whInfo)) {
             logger.error("select warehouse info failed :{}", storeId);
             throw new CommonException("根据店铺code查询仓转店信息失败! 店铺号为:" + storeId);
         }
         logger.info("select warehouse info success :{}", storeId);
-        WhLovResultDTO response = ResponseUtils.getResponse(whInfo, new TypeReference<WhLovResultDTO>() {
+        Page<WatsonStoreInventoryRelationDTO> response = ResponseUtils.getResponse(whInfo, new TypeReference<Page<WatsonStoreInventoryRelationDTO>>() {
         });
-        String invName = allocationInfoRepository.selectInvNameByInvCode(response.getInventoryCode());
-        response.setInventoryName(invName);
-        return response;
+
+        WhLovResultDTO res = allocationInfoRepository.selectInvNameByInvCode(response.get(0).getInventoryCode(),organizationId);
+        whLovResultDTO.setInventoryCode(response.get(0).getInventoryCode());
+        whLovResultDTO.setInventoryName(res.getInventoryName());
+        return whLovResultDTO;
     }
 
     private List<ProjectCost> getProjectCosts(Long organizationId, ProjectCost projectCost, PageRequest pageRequest, ItemCategoryDTO itemCategoryResultOne, String levelPath, String s) {
