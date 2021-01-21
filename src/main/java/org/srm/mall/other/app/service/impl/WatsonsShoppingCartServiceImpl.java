@@ -986,10 +986,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 String fullAddress = watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getFullAddress();
                 //一个拆好的订单的所有商品行的详细地址+地址区域要一样  所以这里可以取任意一个
                 watsonsPreRequestOrderDTO.setReceiverAddress(addressRegion+fullAddress);
-
-                // TODO: 2021/1/21 检测storeNo
                 watsonsPreRequestOrderDTO.setStoreNo(watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopCode());
-
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
                 watsonsPreRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
             }
@@ -1431,12 +1428,14 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 throw new CommonException("未进行费用分配!");
             }
             keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getAddressRegion()).append("-").append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getFullAddress()).append("-");
-            keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getDeliveryType()).append("-");
         }
+        keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getDeliveryType()).append("-");
+        keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getCostShopId()).append("-");
     }
 
     private void setPurMergeRuleForWatsons(PurReqMergeRule purReqMergeRule) {
         purReqMergeRule.setCategory(BaseConstants.Flag.YES);
+        purReqMergeRule.setWarehousing(BaseConstants.Flag.YES);
 //        purReqMergeRule.setAddressFlag(BaseConstants.Flag.YES);
     }
 }
