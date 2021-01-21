@@ -57,6 +57,7 @@ public class AllocationInfo extends AuditDomain {
     public static final String FIELD_PROJECT_COST_SUBCATEGORY_ID = "projectCostSubcategoryId";
     public static final String FIELD_ADDRESS_REGION = "addressRegion";
     public static final String FIELD_FULL_ADDRESS = "fullAddress";
+    public static final String FIELD_LAST_REGION_ID = "lastRegionId";
 
 
 
@@ -142,8 +143,8 @@ public class AllocationInfo extends AuditDomain {
     private String addressRegion;
     @ApiModelProperty(value = "详细地址", required = true)
     private String fullAddress;
-
-
+    @ApiModelProperty(value = "最后一级地址", required = true)
+    private Long lastRegionId;
 
 //
 // 非数据库字段
@@ -164,6 +165,14 @@ public class AllocationInfo extends AuditDomain {
 //
 // getter/setter
 // ------------------------------------------------------------------------------
+
+    public Long getLastRegionId() {
+        return lastRegionId;
+    }
+
+    public void setLastRegionId(Long lastRegionId) {
+        this.lastRegionId = lastRegionId;
+    }
 
     public String getFromWhichShoppingCart() {
         return fromWhichShoppingCart;
