@@ -1,19 +1,26 @@
 package org.srm.mall.other.app.service.impl;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.hzero.boot.scheduler.infra.annotation.JobHandler;
 import org.hzero.boot.scheduler.infra.enums.ReturnT;
 import org.hzero.boot.scheduler.infra.handler.IJobHandler;
 import org.hzero.boot.scheduler.infra.tool.SchedulerTool;
+import org.hzero.core.base.BaseConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.other.api.dto.WatsonsAddressDTO;
 import org.srm.mall.other.async.WatsonsAddressAsyncTask;
 import org.srm.mall.other.domain.repository.WatsonsAddressRepository;
 import org.srm.web.annotation.Tenant;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -37,9 +44,7 @@ public class WatsonsAddressHandler implements IJobHandler {
     @Override
     public ReturnT execute(Map<String, String> map, SchedulerTool tool) {
         //查询当前时间前25小时之内的更新数据
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(Calendar.HOUR_OF_DAY, calendar.get(Calendar.HOUR_OF_DAY) - 25);
-        Date date = calendar.getTime();
+        Date date = getSelectParamDate(tool);
         //查询屈臣氏的租户id
         Long tenantId = watsonsAddressRepository.selectTenantId(WatsonsConstants.TENANT_NUMBER);
         List<WatsonsAddressDTO> addressList = watsonsAddressRepository.selectUpdateAddressInfo(tenantId, date);
@@ -74,9 +79,34 @@ public class WatsonsAddressHandler implements IJobHandler {
         return ReturnT.SUCCESS;
     }
 
+    private Date getSelectParamDate(SchedulerTool tool){
+        String schedulePram = tool.getJobDataDTO().getParam();
+        Date date = null;
+        try{
+            if (!StringUtils.isEmpty(schedulePram)){
+                JSONObject jsonObject = JSON.parseObject(schedulePram);
+                String time = (String) jsonObject.get("time");
+                if (!StringUtils.isEmpty(time)){
+                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(BaseConstants.Pattern.DATETIME);
+                    date = simpleDateFormat.parse(time);
+                }
+            }
+        } catch (ParseException e) {
+            log.error("时间转换错误");
+            e.printStackTrace();
+        }
+        if (date == null){
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(Calendar.HOUR_OF_DAY, calendar.get(Calendar.HOUR_OF_DAY) - 25);
+            date = calendar.getTime();
+        }
+        return date;
+    }
+
     private void selectInvOrgAddress(Long tenantId, List<WatsonsAddressDTO> list){
         List<Long> invOrganizationIdList = list.stream().filter(WatsonsAddressDTO::getSuccess).map(WatsonsAddressDTO::getInvOrganizationId).collect(Collectors.toList());
         List<WatsonsAddressDTO> resultList = watsonsAddressRepository.selectInvorgAddress(invOrganizationIdList, tenantId);
+        resultList = resultList.stream().filter(s -> !StringUtils.isEmpty(s.getAddress()) && !ObjectUtils.isEmpty(s.getCompanyId())).collect(Collectors.toList());
         if (CollectionUtils.isEmpty(resultList)){
             return;
         }

@@ -32,8 +32,8 @@
         smal_region_mapping m
         left join smal_region r on m.smal_region_id = r.region_id
         where
-        m.source_from = 'baidu'
-        m.region_code in
+        m.source_from = 'BAIDU'
+        and m.region_code in
         <foreach collection="adCodeList" index="index" item="item" close=")" open="(" separator=",">
             #{item}
         </foreach>
@@ -42,11 +42,14 @@
     <select id="selectInvorgAddress" resultType="org.srm.mall.other.api.dto.WatsonsAddressDTO">
         select
         h.organization_id inv_organization_id,
-        s.address
+        s.address,
+        u.company_id
         from
         hpfm_inv_organization h
         left join spfm_inv_organization s on h.organization_id = s.organization_id
+        left join hpfm_operation_unit u on h.ou_id = u.ou_id
         where h.tenant_id = #{tenantId}
+        and u.external_system_code != 'SYSTEM'
         and h.organization_id in
         <foreach collection="organizationIdList" separator="," open="(" close=")" item="item" index="index">
             #{item}
