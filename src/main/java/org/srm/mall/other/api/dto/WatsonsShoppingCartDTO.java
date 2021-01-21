@@ -26,6 +26,7 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
 
     private List<AllocationInfo> allocationInfoList;
 
+
     @ApiModelProperty(value = "联系电话")
     private String mobile;
 
@@ -36,33 +37,8 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
     @Transient
     private String key;
 
-    @ApiModelProperty(value = "用于传给采购申请预览页面值集Meaning的返回")
-    @Transient
-    private String deliveryTypeMeaning;
-
-    @ApiModelProperty(value = "地址区域和详细地址校验标志位")
-    @Transient
-    private Integer addressCheckSuccess;
-
-    @ApiModelProperty(value = "地址区域和详细地址校验错误信息")
-    @Transient
-    private String addressCheckErrorMessage;
-
-    public Integer getAddressCheckSuccess() {
-        return addressCheckSuccess;
-    }
-
-    public void setAddressCheckSuccess(Integer addressCheckSuccess) {
-        this.addressCheckSuccess = addressCheckSuccess;
-    }
-
-    public String getAddressCheckErrorMessage() {
-        return addressCheckErrorMessage;
-    }
-
-    public void setAddressCheckErrorMessage(String addressCheckErrorMessage) {
-        this.addressCheckErrorMessage = addressCheckErrorMessage;
-    }
+    @ApiModelProperty(value = "CMS合同号")
+    private String cmsNumber;
 
 
     public List<AllocationInfo> getAllocationInfoList() {
@@ -73,12 +49,12 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
         this.allocationInfoList = allocationInfoList;
     }
 
-    public String getDeliveryTypeMeaning() {
-        return deliveryTypeMeaning;
+    public String getCmsNumber() {
+        return cmsNumber;
     }
 
-    public void setDeliveryTypeMeaning(String deliveryTypeMeaning) {
-        this.deliveryTypeMeaning = deliveryTypeMeaning;
+    public void setCmsNumber(String cmsNumber) {
+        this.cmsNumber = cmsNumber;
     }
 
     @Override

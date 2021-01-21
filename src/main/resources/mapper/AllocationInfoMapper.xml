@@ -103,7 +103,7 @@
         AND
             sr.region_code = #{regionCode}
     </select>
-    <select id="selectInvNameByInvCode" resultType="java.lang.String">
+    <select id="selectInvNameByInvCode" resultType="org.srm.mall.other.api.dto.WhLovResultDTO">
         SELECT
             hio.organization_id inventoryId,
             hio.organization_name inventoryName,
@@ -112,5 +112,11 @@
             hpfm_inv_organization hio
         WHERE
             hio.organization_code = #{inventoryCode}
+        AND
+            hio.enabled_flag = 1
+        AND
+            hio.tenant_id = #{organizationId}
+        AND
+            hio.source_code != "SYSTEM"
     </select>
 </mapper>
