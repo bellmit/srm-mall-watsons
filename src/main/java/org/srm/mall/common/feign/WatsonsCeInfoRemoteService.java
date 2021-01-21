@@ -17,7 +17,6 @@ import java.math.BigDecimal;
  *
  * @author jianhao.zhang01@hand-china.com 2021/01/07 17:38
  */
-@Component
 @FeignClient(value = "srm-interface", fallbackFactory = WatsonsCeInfoRemoteServiceFallbackImpl.class, path = "/v1")
 public interface WatsonsCeInfoRemoteService {
 
