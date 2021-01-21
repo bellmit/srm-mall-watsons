@@ -57,7 +57,10 @@ public class AllocationInfo extends AuditDomain {
     public static final String FIELD_PROJECT_COST_SUBCATEGORY_ID = "projectCostSubcategoryId";
     public static final String FIELD_ADDRESS_REGION = "addressRegion";
     public static final String FIELD_FULL_ADDRESS = "fullAddress";
+    public static final String FIELD_LAST_REGION_ID = "lastRegionId";
 
+    public static final String FIELD_CE_NUMBER = "ceNumber";
+    public static final String FIELD_CE_DISCRIPTION = "ceDiscription";
 
 
 //
@@ -142,7 +145,12 @@ public class AllocationInfo extends AuditDomain {
     private String addressRegion;
     @ApiModelProperty(value = "详细地址", required = true)
     private String fullAddress;
-
+    @ApiModelProperty(value = "最后一级地址", required = true)
+    private Long lastRegionId;
+    @ApiModelProperty(value = "ce编号", required = true)
+    private String ceNumber;
+    @ApiModelProperty(value = "ce描述", required = true)
+    private String ceDiscription;
 
 
 //
@@ -164,6 +172,14 @@ public class AllocationInfo extends AuditDomain {
 //
 // getter/setter
 // ------------------------------------------------------------------------------
+
+    public Long getLastRegionId() {
+        return lastRegionId;
+    }
+
+    public void setLastRegionId(Long lastRegionId) {
+        this.lastRegionId = lastRegionId;
+    }
 
     public String getFromWhichShoppingCart() {
         return fromWhichShoppingCart;
@@ -190,6 +206,22 @@ public class AllocationInfo extends AuditDomain {
         this.fullAddress = fullAddress;
     }
 
+
+    public String getCeNumber() {
+        return ceNumber;
+    }
+
+    public void setCeNumber(String ceNumber) {
+        this.ceNumber = ceNumber;
+    }
+
+    public String getCeDiscription() {
+        return ceDiscription;
+    }
+
+    public void setCeDiscription(String ceDiscription) {
+        this.ceDiscription = ceDiscription;
+    }
 
     public Long getProjectCostId() {
         return projectCostId;

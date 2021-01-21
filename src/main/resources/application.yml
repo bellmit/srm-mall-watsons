@@ -109,6 +109,9 @@ hzero:
     auto-register: true
   export:
     enable-async: true
+  actuator:
+    permission:
+      duplicatedCodeCheck: false
   service:
     # 注册中心
     register:

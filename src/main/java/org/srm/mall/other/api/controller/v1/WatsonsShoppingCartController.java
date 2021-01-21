@@ -77,7 +77,6 @@ public class WatsonsShoppingCartController {
         return Results.success(watsonsShoppingCartService.watsonsPreRequestOrder(organizationId,customizeUnitCode, preRequestOrderDTOList));
     }
 
-
     @ApiOperation(value = "根据送货方式仓转店或者直送自动带出地址区域和详细地址")
     @Permission(level = ResourceLevel.ORGANIZATION)
     @GetMapping("/check-address")
@@ -86,8 +85,7 @@ public class WatsonsShoppingCartController {
         return Results.success(watsonsShoppingCartService.checkAddress(organizationId,watsonsOrganizationId,watsonsOrganizationCode));
     }
 
-
-    @ApiOperation(value = "详细地址和地址区域校验")
+    @ApiOperation(value = "详细地址和地址区域校验  暂时未用")
     @Permission(level = ResourceLevel.ORGANIZATION)
     @GetMapping("/check-address-validate")
     @ParamLog

@@ -27,4 +27,6 @@ public interface AllocationInfoMapper extends BaseMapper<AllocationInfo> {
     WatsonsRegionDTO selectRegionInfoByRegionId(Long regionId);
 
     WatsonsRegionDTO selectRegionInfoByRegionCode(String regionCode);
+
+    String selectInvNameByInvCode(String inventoryCode);
 }
