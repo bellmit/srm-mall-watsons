@@ -72,7 +72,10 @@ import org.srm.mall.product.app.service.ProductStockService;
 import org.srm.mall.product.domain.entity.ScecProductCategory;
 import org.srm.mall.product.domain.repository.ComCategoryCatalogMapRepository;
 import org.srm.mall.product.infra.mapper.ScecProductCategoryMapper;
+import org.srm.mall.region.api.dto.AddressDTO;
+import org.srm.mall.region.api.dto.RegionDTO;
 import org.srm.mall.region.domain.entity.Address;
+import org.srm.mall.region.domain.entity.Region;
 import org.srm.mall.region.domain.repository.AddressRepository;
 import org.srm.web.annotation.Tenant;
 import java.math.BigDecimal;
@@ -382,6 +385,143 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         return preRequestOrderResponseDTO;
     }
 
+    @Override
+    public List<WatsonsAddressDTO> checkAddress(Long organizationId, Long watsonsOrganizationId, String watsonsOrganizationCode) {
+
+        if(ObjectUtils.isEmpty(watsonsOrganizationId) && ObjectUtils.isEmpty(watsonsOrganizationCode)){
+            throw new CommonException("仓转店或店铺的id和编码都为空, 无法根据仓转店或店铺自动带出详细地址和地址区域!");
+        }
+        //优先用id查
+        if(!ObjectUtils.isEmpty(watsonsOrganizationId)){
+            logger.info("当前正在使用id查询详细地址和地址区域!");
+            List<WatsonsAddressDTO> watsonsAddressDTOS = new ArrayList<>();
+            //找到地址表信息迁移到watsonsAddress
+            List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(
+                    Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,organizationId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER)
+                            .andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,watsonsOrganizationId)).build());
+            if (ObjectUtils.isEmpty(addressList)){
+                throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR,watsonsOrganizationCode);
+            }
+            //address转移到watsonsAddress
+            for (Address address : addressList) {
+                WatsonsAddressDTO watsonsAddressDTO = new WatsonsAddressDTO();
+                BeanUtils.copyProperties(address,watsonsAddressDTO);
+                watsonsAddressDTOS.add(watsonsAddressDTO);
+            }
+            //添加地区信息
+            for (WatsonsAddressDTO watsonsAddressDTO : watsonsAddressDTOS) {
+                Long regionId = watsonsAddressDTO.getRegionId();
+                WatsonsRegionDTO watsonsRegionDTO = allocationInfoRepository.selectRegionInfoByRegionId(regionId);
+                if (ObjectUtils.isEmpty(watsonsRegionDTO)){
+                    throw new CommonException("未查到该地区id对应的地区信息!");
+                }
+                String levelPath = watsonsRegionDTO.getLevelPath();
+                String[] splitRes = levelPath.split("\\.");
+                StringBuffer sb = new StringBuffer();
+                for (int i = 0; i < splitRes.length; i++) {
+                    WatsonsRegionDTO res = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[i]);
+                    if (ObjectUtils.isEmpty(res)){
+                        throw new CommonException("未查到该地区code对应的地区信息!");
+                    }
+                    sb.append(res.getRegionName());
+                }
+                String regionRes = sb.toString();
+                watsonsAddressDTO.setAddressRegion(regionRes);
+            }
+            return watsonsAddressDTOS;
+        }
+
+        //id没有用code查
+        if(!ObjectUtils.isEmpty(watsonsOrganizationCode)){
+            logger.info("当前正在使用code查询详细地址和地址区域!");
+            List<WatsonsAddressDTO> watsonsAddressDTOS = new ArrayList<>();
+            //找到地址表信息迁移到watsonsAddress
+            //hpfm通过code找到id
+            AddressDTO addressDTO = allocationInfoRepository.selectIdByCode(organizationId,watsonsOrganizationCode);
+            List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(
+                    Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,organizationId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER)
+                            .andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,addressDTO.getInvOrganizationId())).build());
+            if (ObjectUtils.isEmpty(addressList)){
+                throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR,watsonsOrganizationCode);
+            }
+            //address转移到watsonsAddress
+            for (Address address : addressList) {
+                WatsonsAddressDTO watsonsAddressDTO = new WatsonsAddressDTO();
+                BeanUtils.copyProperties(address,watsonsAddressDTO);
+                watsonsAddressDTOS.add(watsonsAddressDTO);
+            }
+            //添加地区信息
+            for (WatsonsAddressDTO watsonsAddressDTO : watsonsAddressDTOS) {
+                Long regionId = watsonsAddressDTO.getRegionId();
+                WatsonsRegionDTO watsonsRegionDTO = allocationInfoRepository.selectRegionInfoByRegionId(regionId);
+                if (ObjectUtils.isEmpty(watsonsRegionDTO)){
+                    throw new CommonException("未查到该地区id对应的地区信息!");
+                }
+                String levelPath = watsonsRegionDTO.getLevelPath();
+                String[] splitRes = levelPath.split("\\.");
+                StringBuffer sb = new StringBuffer();
+                for (int i = 0; i < splitRes.length; i++) {
+                    WatsonsRegionDTO res = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[i]);
+                    if (ObjectUtils.isEmpty(res)){
+                        throw new CommonException("未查到该地区code对应的地区信息!");
+                    }
+                    sb.append(res.getRegionName());
+                }
+                String regionRes = sb.toString();
+                watsonsAddressDTO.setAddressRegion(regionRes);
+            }
+            return watsonsAddressDTOS;
+        }
+        return null;
+
+    }
+
+    @Override
+    public String checkAddressValidate(Long organizationId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS) {
+
+//        //校验每个购物车自己的费用分配是否有问题
+//        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOS) {
+//            //costShopId为key  费用分配list为value
+//            Map<Long, List<AllocationInfo>> allocationMap = watsonsShoppingCartDTO.getAllocationInfoList().stream().collect(Collectors.groupingBy(AllocationInfo::getCostShopId));
+//            for (Map.Entry<Long, List<AllocationInfo>> entry : allocationMap.entrySet()) {
+//                //同一个购物车中同一个costShopId对应的费用分配
+//                List<AllocationInfo> allocationInfos = entry.getValue();
+//                String address4Check = allocationInfos.get(0).getAddressRegion()+allocationInfos.get(0).getFullAddress();
+//                for (AllocationInfo allocationInfo : allocationInfos) {
+//                    if(!address4Check.equals(allocationInfo.getAddressRegion()+allocationInfo.getFullAddress())){
+//                        throw new CommonException(
+//                                watsonsShoppingCartDTO.getProductName()+allocationInfo.getCostShopCode()+allocationInfo.getCostShopName() + "分配的地址不一致，请修改!");
+//                    }
+//                }
+//            }
+//        }
+//    此时每个购物车自己没问题了，即使有相同的costShopId，但是地址区域+详细地址是一样的
+//    校验购物车和购物车之间费用分配有没有问题
+
+        //降维处理  把商品行维度降为费用分配维度
+        List<AllocationInfo> allocationInfos = new ArrayList<>();
+        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOS) {
+            for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()) {
+                allocationInfo.setFromWhichShoppingCart(watsonsShoppingCartDTO.getProductName());
+                allocationInfos.add(allocationInfo);
+            }
+        }
+
+        Map<Long, List<AllocationInfo>> collectRes = allocationInfos.stream().collect(Collectors.groupingBy(AllocationInfo::getCostShopId));
+        for (Map.Entry<Long, List<AllocationInfo>> longListEntry : collectRes.entrySet()) {
+            List<AllocationInfo> value = longListEntry.getValue();
+            String address4Check = value.get(0).getAddressRegion()+value.get(0).getFullAddress();
+            for (AllocationInfo allocationInfo : value) {
+                if(!((allocationInfo.getAddressRegion()+allocationInfo.getFullAddress()).equals(address4Check))){
+                    throw new CommonException(
+                            allocationInfo.getFromWhichShoppingCart()+allocationInfo.getCostShopCode()+allocationInfo.getCostShopName() + "分配的地址不一致，请修改!");
+                    }
+                }
+            }
+        return null;
+    }
+
+
     private void checkBudgetInfo(Long tenantId, ShoppingCartDTO shoppingCartDTO, String budgetSwitch){
         if (ScecConstants.ConstantNumber.STRING_1.equals(budgetSwitch)) {
             List<BudgetInfo> budgetInfoList = shoppingCartDTO.getBudgetInfoList();
@@ -611,6 +751,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Override
     public List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderView(Long tenantId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
 
+        //校验所有的商品的地址是否一致  不一致的话后续默认拆单不一样 但是按费用分配的三个维度拆可能一样就会出现丢失
         Long addressId4Check = watsonsShoppingCartDTOList.get(0).getAddressId();
         for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
             Long addressId = watsonsShoppingCartDTO.getAddressId();
@@ -618,6 +759,30 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 throw new CommonException("必须选择同地址的商品!");
             }
         }
+
+        //校验每个商品的每个费用分配当【费用承担写字楼/店铺/仓库】相同时,【地址区域】+【收货地址】是否相同
+        List<AllocationInfo> allocationInfos = new ArrayList<>();
+        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
+            for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()) {
+                allocationInfo.setFromWhichShoppingCart(watsonsShoppingCartDTO.getProductName());
+                allocationInfos.add(allocationInfo);
+            }
+        }
+
+        Map<Long, List<AllocationInfo>> collectRes = allocationInfos.stream().collect(Collectors.groupingBy(AllocationInfo::getCostShopId));
+        for (Map.Entry<Long, List<AllocationInfo>> longListEntry : collectRes.entrySet()) {
+            List<AllocationInfo> value = longListEntry.getValue();
+            String address4Check = value.get(0).getAddressRegion()+value.get(0).getFullAddress();
+            for (AllocationInfo allocationInfo : value) {
+                if(!((allocationInfo.getAddressRegion()+allocationInfo.getFullAddress()).equals(address4Check))){
+                    throw new CommonException(
+                            "商品"+value.get(0).getFromWhichShoppingCart()+"的"+value.get(0).getCostShopCode()+value.get(0).getCostShopName()+
+                            "与商品"+allocationInfo.getFromWhichShoppingCart()+"的"+allocationInfo.getCostShopCode()+allocationInfo.getCostShopName() + "分配的地址不一致，请修改!");
+                }
+            }
+        }
+
+
 
         //如果有服务商品，从底层list取出放到上层list
         List<ShoppingCartDTO> re = new ArrayList<>();
@@ -844,12 +1009,10 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 watsonsPreRequestOrderDTO.setReceiverContactName(userDetails.getRealName());
 
 
-                //屈臣氏收货人地址更新
-                List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,tenantId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopId())).build());
-                if (ObjectUtils.isEmpty(addressList)){
-                    throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR,watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopName());
-                }
-                watsonsPreRequestOrderDTO.setReceiverAddress(addressList.get(0).getFullAddress());
+                //一个entry对应的购物车们四个维度一样 即费用分配的addressid一样，即costShopId一样  即地址区域和详细地址一样  所以一个订单可以该订单下选任意一个商品的信息
+                String addressRegion = watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getAddressRegion();
+                String fullAddress = watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getFullAddress();
+                watsonsPreRequestOrderDTO.setReceiverAddress(addressRegion+fullAddress);
 
                 watsonsPreRequestOrderDTO.setStoreNo(watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopCode());
 
@@ -1095,7 +1258,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             //eric  拿到该并单规则下的每一个购物车
             List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList = groupMap.get(key);
 
-            //eric 按照供应商+品类+费用分配的门店+送货方式 更新并单规则
+            //eric 按照供应商+品类+费用分配的门店地址+送货方式 更新并单规则
             this.setPurMergeRuleForWatsons(purReqMergeRule);
 
             //如果开启了物料，先查询库存信息

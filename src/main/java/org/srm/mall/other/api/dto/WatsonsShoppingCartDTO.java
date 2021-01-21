@@ -41,6 +41,30 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
     private String cmsNumber;
 
 
+    @ApiModelProperty(value = "地址区域和详细地址校验标志位")
+    @Transient
+    private Integer addressCheckSuccess;
+
+    @ApiModelProperty(value = "地址区域和详细地址校验错误信息")
+    @Transient
+    private String addressCheckErrorMessage;
+
+    public Integer getAddressCheckSuccess() {
+        return addressCheckSuccess;
+    }
+
+    public void setAddressCheckSuccess(Integer addressCheckSuccess) {
+        this.addressCheckSuccess = addressCheckSuccess;
+    }
+
+    public String getAddressCheckErrorMessage() {
+        return addressCheckErrorMessage;
+    }
+
+    public void setAddressCheckErrorMessage(String addressCheckErrorMessage) {
+        this.addressCheckErrorMessage = addressCheckErrorMessage;
+    }
+
 
     public List<AllocationInfo> getAllocationInfoList() {
         return allocationInfoList;

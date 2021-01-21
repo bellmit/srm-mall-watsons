@@ -55,6 +55,10 @@ public class AllocationInfo extends AuditDomain {
     public static final String FIELD_PROJECT_COST_SUBCATEGORY_CODE = "projectCostSubcategoryCode";
     public static final String FIELD_PROJECT_COST_SUBCATEGORY_NAME = "projectCostSubcategoryName";
     public static final String FIELD_PROJECT_COST_SUBCATEGORY_ID = "projectCostSubcategoryId";
+    public static final String FIELD_ADDRESS_REGION = "addressRegion";
+    public static final String FIELD_FULL_ADDRESS = "fullAddress";
+    public static final String FIELD_LAST_REGION_ID = "lastRegionId";
+
     public static final String FIELD_CE_NUMBER = "ceNumber";
     public static final String FIELD_CE_DISCRIPTION = "ceDiscription";
 
@@ -137,6 +141,12 @@ public class AllocationInfo extends AuditDomain {
     private String projectCostSubcategoryName;
     @ApiModelProperty(value = "费用项目子分类id", required = true)
     private Long projectCostSubcategoryId;
+    @ApiModelProperty(value = "地址区域", required = true)
+    private String addressRegion;
+    @ApiModelProperty(value = "详细地址", required = true)
+    private String fullAddress;
+    @ApiModelProperty(value = "最后一级地址", required = true)
+    private Long lastRegionId;
     @ApiModelProperty(value = "ce编号", required = true)
     private String ceNumber;
     @ApiModelProperty(value = "ce描述", required = true)
@@ -156,9 +166,46 @@ public class AllocationInfo extends AuditDomain {
     @Transient
     private String deliveryTypeMeaning;
 
+    @Transient
+    private String fromWhichShoppingCart;
+
 //
 // getter/setter
 // ------------------------------------------------------------------------------
+
+    public Long getLastRegionId() {
+        return lastRegionId;
+    }
+
+    public void setLastRegionId(Long lastRegionId) {
+        this.lastRegionId = lastRegionId;
+    }
+
+    public String getFromWhichShoppingCart() {
+        return fromWhichShoppingCart;
+    }
+
+    public void setFromWhichShoppingCart(String fromWhichShoppingCart) {
+        this.fromWhichShoppingCart = fromWhichShoppingCart;
+    }
+
+
+    public String getAddressRegion() {
+        return addressRegion;
+    }
+
+    public void setAddressRegion(String addressRegion) {
+        this.addressRegion = addressRegion;
+    }
+
+    public String getFullAddress() {
+        return fullAddress;
+    }
+
+    public void setFullAddress(String fullAddress) {
+        this.fullAddress = fullAddress;
+    }
+
 
     public String getCeNumber() {
         return ceNumber;
