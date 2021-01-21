@@ -51,10 +51,25 @@ public class WatsonsAddressHandler implements IJobHandler {
         if (CollectionUtils.isEmpty(addressList)){
             return ReturnT.SUCCESS;
         }
+        List<WatsonsAddressDTO> successList = new ArrayList<>();
+        List<WatsonsAddressDTO> errorList = new ArrayList<>();
+        //查询详细地址和公司id
+        selectInvOrgAddress(tenantId, addressList);
+        for (WatsonsAddressDTO watsonsAddressDTO : addressList){
+            if (StringUtils.isEmpty(watsonsAddressDTO.getAddress()) || ObjectUtils.isEmpty(watsonsAddressDTO.getCompanyId())){
+                watsonsAddressDTO.setSuccess(false);
+                watsonsAddressDTO.setResultMsg("该库存组织"+ watsonsAddressDTO.getInvOrganizationId() +"对应的公司id或地址为空:" + watsonsAddressDTO);
+                errorList.add(watsonsAddressDTO);
+            } else {
+                watsonsAddressDTO.setSuccess(true);
+                successList.add(watsonsAddressDTO);
+            }
+        }
+        //判断是否有公司id和地址是否为空
         //查询经纬度
-        List<WatsonsAddressDTO> resultList = selectBaiduReverseGeocoding(addressList, tenantId);
-        List<WatsonsAddressDTO> successList = resultList.stream().filter(WatsonsAddressDTO::getSuccess).collect(Collectors.toList());
-        List<WatsonsAddressDTO> errorList = resultList.stream().filter(s -> !s.getSuccess()).collect(Collectors.toList());
+        List<WatsonsAddressDTO> resultList = selectBaiduReverseGeocoding(successList, tenantId);
+        successList = resultList.stream().filter(WatsonsAddressDTO::getSuccess).collect(Collectors.toList());
+        errorList.addAll(resultList.stream().filter(s -> !s.getSuccess()).collect(Collectors.toList()));
         if (CollectionUtils.isEmpty(successList)){
             tool.error("更新商城地址失败，成功数量： 0 , 失败数量：" + errorList.size());
             createErrorInfo(errorList, tool);
@@ -65,9 +80,7 @@ public class WatsonsAddressHandler implements IJobHandler {
         if (CollectionUtils.isEmpty(list)){
             return ReturnT.FAILURE;
         }
-        //查询详细地址
-        selectInvOrgAddress(tenantId, list);
-        //查询商城regionId对应的地址信息
+        //更新
         List<WatsonsAddressDTO> result = updateMallAddress(list, tenantId);
         List<WatsonsAddressDTO> successResults = result.stream().filter(WatsonsAddressDTO::getSuccess).collect(Collectors.toList());
         List<WatsonsAddressDTO> errorResults = result.stream().filter(s -> !s.getSuccess()).collect(Collectors.toList());
@@ -104,15 +117,19 @@ public class WatsonsAddressHandler implements IJobHandler {
     }
 
     private void selectInvOrgAddress(Long tenantId, List<WatsonsAddressDTO> list){
-        List<Long> invOrganizationIdList = list.stream().filter(WatsonsAddressDTO::getSuccess).map(WatsonsAddressDTO::getInvOrganizationId).collect(Collectors.toList());
+        List<Long> invOrganizationIdList = list.stream().map(WatsonsAddressDTO::getInvOrganizationId).collect(Collectors.toList());
         List<WatsonsAddressDTO> resultList = watsonsAddressRepository.selectInvorgAddress(invOrganizationIdList, tenantId);
         resultList = resultList.stream().filter(s -> !StringUtils.isEmpty(s.getAddress()) && !ObjectUtils.isEmpty(s.getCompanyId())).collect(Collectors.toList());
         if (CollectionUtils.isEmpty(resultList)){
             return;
         }
-        Map<Long, String> map = resultList.stream().collect(Collectors.toMap(WatsonsAddressDTO::getInvOrganizationId, WatsonsAddressDTO::getAddress, (k1, k2) -> k1));
+        Map<Long, WatsonsAddressDTO> map = resultList.stream().collect(Collectors.toMap(WatsonsAddressDTO::getInvOrganizationId, Function.identity(), (k1, k2) -> k1));
         for (WatsonsAddressDTO address : list){
-            address.setAddress(map.get(address.getInvOrganizationId()));
+            WatsonsAddressDTO watsonsAddressDTO = map.get(address.getInvOrganizationId());
+            if (watsonsAddressDTO != null){
+                address.setAddress(watsonsAddressDTO.getAddress());
+                address.setCompanyId(watsonsAddressDTO.getCompanyId());
+            }
         }
     }
 
