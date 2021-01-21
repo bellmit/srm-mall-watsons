@@ -19,11 +19,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.srm.mall.common.constant.ScecConstants;
+import org.srm.mall.common.feign.*;
 import org.srm.mall.common.feign.WatsonsProjectCostRemoteService;
 import org.srm.mall.common.feign.SagmRemoteService;
 import org.srm.mall.common.feign.SmdmRemoteNewService;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.other.api.dto.AllocationInfoDTO;
+import org.srm.mall.other.api.dto.WhLovResultDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.app.service.AllocationInfoService;
 import org.srm.mall.other.app.service.ShoppingCartService;
@@ -77,6 +79,9 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
 
     @Autowired
     private SmdmRemoteNewService smdmRemoteNewService;
+
+    @Autowired
+    private WatsonsWareHouseRemoteService watsonsWareHouseRemoteService;
 
 
     @Override
@@ -438,6 +443,21 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             }
         }
         return null;
+    }
+
+    @Override
+    public WhLovResultDTO selectWhLov(Long organizationId, String storeId) {
+        ResponseEntity<String> whInfo = watsonsWareHouseRemoteService.queryWhInfo(organizationId, storeId);
+        if (ResponseUtils.isFailed(whInfo)) {
+            logger.error("select warehouse info failed :{}", storeId);
+            throw new CommonException("根据店铺code查询仓转店信息失败! 店铺号为:" + storeId);
+        }
+        logger.info("select warehouse info success :{}", storeId);
+        WhLovResultDTO response = ResponseUtils.getResponse(whInfo, new TypeReference<WhLovResultDTO>() {
+        });
+        String invName = allocationInfoRepository.selectInvNameByInvCode(response.getInventoryCode());
+        response.setInventoryName(invName);
+        return response;
     }
 
     private List<ProjectCost> getProjectCosts(Long organizationId, ProjectCost projectCost, PageRequest pageRequest, ItemCategoryDTO itemCategoryResultOne, String levelPath, String s) {
