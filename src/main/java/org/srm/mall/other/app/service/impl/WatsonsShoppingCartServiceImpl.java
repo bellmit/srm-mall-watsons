@@ -206,56 +206,56 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
-        //进行ceNo和discription存表
-        for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
-            if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
-                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
-                    for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()) {
-                        allocationInfo.setCeNumber(watsonsPreRequestOrderDTO.getCeNumber());
-                        if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getDiscription())){
-                            allocationInfo.setCeDiscription(watsonsPreRequestOrderDTO.getDiscription());
-                        }
-                        allocationInfoRepository.updateByPrimaryKeySelective(allocationInfo);
-                    }
-                }
-            }
-        }
+//        //进行ceNo和discription存表
+//        for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
+//            if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
+//                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+//                    for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()) {
+//                        allocationInfo.setCeNumber(watsonsPreRequestOrderDTO.getCeNumber());
+//                        if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getDiscription())){
+//                            allocationInfo.setCeDiscription(watsonsPreRequestOrderDTO.getDiscription());
+//                        }
+//                        allocationInfoRepository.updateByPrimaryKeySelective(allocationInfo);
+//                    }
+//                }
+//            }
+//        }
 
         //CE NO和CMS合同号的校验顺序，先CMS，后CE NO
         //进行cms合同号取值
-        preRequestOrderDTOList.stream().forEach(watsonsPreRequestOrderDTO -> {
-            for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
-                AgreementLine agreementLine = agreementLineRepository.selectByPrimaryKey(watsonsShoppingCartDTO.getAgreementLineId());
-                //attributeVarchar1是cms合同号
-                if(ObjectUtils.isEmpty(agreementLine)){
-                    throw new CommonException(watsonsShoppingCartDTO.getProductName()+"没有查询到协议行,无法生成采购申请!");
-                }
-                if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
-                    throw new CommonException(watsonsShoppingCartDTO.getProductName()+"没有CMS合同号,无法生成采购申请!");
-                }
-                watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
-            }
-        });
+//        preRequestOrderDTOList.stream().forEach(watsonsPreRequestOrderDTO -> {
+//            for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+//                AgreementLine agreementLine = agreementLineRepository.selectByPrimaryKey(watsonsShoppingCartDTO.getAgreementLineId());
+//                //attributeVarchar1是cms合同号
+//                if(ObjectUtils.isEmpty(agreementLine)){
+//                    throw new CommonException(watsonsShoppingCartDTO.getProductName()+"没有查询到协议行,无法生成采购申请!");
+//                }
+//                if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
+//                    throw new CommonException(watsonsShoppingCartDTO.getProductName()+"没有CMS合同号,无法生成采购申请!");
+//                }
+//                watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
+//            }
+//        });
         //进行cms合同号校验
 
         //进行ceNo校验
-        for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
-            if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
-                ResponseEntity<String> checkCeInfoRes = watsonsCeInfoRemoteService.checkCeInfo(tenantId, watsonsPreRequestOrderDTO.getCeId(), watsonsPreRequestOrderDTO.getTotalAmount());
-                if(ResponseUtils.isFailed(checkCeInfoRes)){
-                    String message = null;
-                    try {
-                        Exception exception = JSONObject.parseObject(checkCeInfoRes.getBody(),Exception.class);
-                        message = exception.getMessage();
-                    }catch (Exception e){
-                        message = checkCeInfoRes.getBody();
-                    }
-                    logger.error("check CE info for order total amount error! {}",watsonsPreRequestOrderDTO.getCeId());
-                    throw new CommonException("CE号"+watsonsPreRequestOrderDTO.getCeNumber()+"检验报错,"+message);
-                }
-                logger.info("check CE info for order total amount success! {}" ,watsonsPreRequestOrderDTO.getCeId());
-            }
-        }
+//        for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
+//            if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
+//                ResponseEntity<String> checkCeInfoRes = watsonsCeInfoRemoteService.checkCeInfo(tenantId, watsonsPreRequestOrderDTO.getCeId(), watsonsPreRequestOrderDTO.getTotalAmount());
+//                if(ResponseUtils.isFailed(checkCeInfoRes)){
+//                    String message = null;
+//                    try {
+//                        Exception exception = JSONObject.parseObject(checkCeInfoRes.getBody(),Exception.class);
+//                        message = exception.getMessage();
+//                    }catch (Exception e){
+//                        message = checkCeInfoRes.getBody();
+//                    }
+//                    logger.error("check CE info for order total amount error! {}",watsonsPreRequestOrderDTO.getCeId());
+//                    throw new CommonException("CE号"+watsonsPreRequestOrderDTO.getCeNumber()+"检验报错,"+message);
+//                }
+//                logger.info("check CE info for order total amount success! {}" ,watsonsPreRequestOrderDTO.getCeId());
+//            }
+//        }
 
 
         preRequestOrderDTOList.stream().forEach(preRequestOrderDTO -> {
