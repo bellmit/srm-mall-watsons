@@ -747,7 +747,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 allocationInfos.add(allocationInfo);
             }
         }
-
         Map<Long, List<AllocationInfo>> collectRes = allocationInfos.stream().collect(Collectors.groupingBy(AllocationInfo::getCostShopId));
         for (Map.Entry<Long, List<AllocationInfo>> longListEntry : collectRes.entrySet()) {
             List<AllocationInfo> value = longListEntry.getValue();
@@ -760,8 +759,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 }
             }
         }
-
-
 
         //如果有服务商品，从底层list取出放到上层list
         List<ShoppingCartDTO> re = new ArrayList<>();
@@ -979,22 +976,17 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     BeanConvertor.convert(paymentInfo, watsonsPreRequestOrderDTO);
                 }
                 watsonsPreRequestOrderDTO.setPreRequestOrderNumber(UUID.randomUUID().toString());
-
-                // TODO: 2020/12/24   ce号设置
-
                 watsonsPreRequestOrderDTO.setWatsonsShoppingCartDTOList(watsonsShoppingCartDTOList4Trans);
                 watsonsPreRequestOrderDTO.setMobile(watsonsShoppingCartDTO.getMobile());
                 CustomUserDetails userDetails = DetailsHelper.getUserDetails();
                 watsonsPreRequestOrderDTO.setReceiverContactName(userDetails.getRealName());
 
 
-                //一个entry对应的购物车们四个维度一样 即费用分配的addressid一样，即costShopId一样  即地址区域和详细地址一样  所以一个订单可以该订单下选任意一个商品的信息
                 String addressRegion = watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getAddressRegion();
                 String fullAddress = watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getFullAddress();
+                //一个拆好的订单的所有商品行的详细地址+地址区域要一样  所以这里可以取任意一个
                 watsonsPreRequestOrderDTO.setReceiverAddress(addressRegion+fullAddress);
-
                 watsonsPreRequestOrderDTO.setStoreNo(watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopCode());
-
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
                 watsonsPreRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
             }
@@ -1416,10 +1408,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                             logger.error("只传了物料品类下，当前商品多级映射路径levelPath为空");
                             throw new CommonException("当前商品没有映射多级映射路径!");
                         }
-
                     }
                 }
-                Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(s->s.getKey()));
+                Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(WatsonsShoppingCartDTO::getKey));
                 resultMap.putAll(result);
             } else {
                 resultMap.put(key, groupMap.get(key));
@@ -1436,13 +1427,15 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 logger.error("未进行费用分配！:{}", watsonsShoppingCartDTO.getAllocationInfoList());
                 throw new CommonException("未进行费用分配!");
             }
-            keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getAddressId()).append("-");
-            keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getDeliveryType()).append("-");
+            keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getAddressRegion()).append("-").append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getFullAddress()).append("-");
         }
+        keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getDeliveryType()).append("-");
+        keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getCostShopId()).append("-");
     }
 
     private void setPurMergeRuleForWatsons(PurReqMergeRule purReqMergeRule) {
         purReqMergeRule.setCategory(BaseConstants.Flag.YES);
+        purReqMergeRule.setWarehousing(BaseConstants.Flag.YES);
 //        purReqMergeRule.setAddressFlag(BaseConstants.Flag.YES);
     }
 }
