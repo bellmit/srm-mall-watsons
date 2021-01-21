@@ -42,10 +42,22 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
     @IsList
     private List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList;
 
+
+    @ApiModelProperty(value = "拆单完成后每个单子的费用承担店铺的code")
+    private String storeNo;
+
+
+    public String getStoreNo() {
+        return storeNo;
+    }
+
+    public void setStoreNo(String storeNo) {
+        this.storeNo = storeNo;
+    }
+
     public String getDiscription() {
         return discription;
     }
-
     public void setDiscription(String discription) {
         this.discription = discription;
     }
