@@ -103,4 +103,14 @@
         AND
             sr.region_code = #{regionCode}
     </select>
+    <select id="selectInvNameByInvCode" resultType="java.lang.String">
+        SELECT
+            hio.organization_id inventoryId,
+            hio.organization_name inventoryName,
+            hio.organization_code inventoryCode
+        FROM
+            hpfm_inv_organization hio
+        WHERE
+            hio.organization_code = #{inventoryCode}
+    </select>
 </mapper>
