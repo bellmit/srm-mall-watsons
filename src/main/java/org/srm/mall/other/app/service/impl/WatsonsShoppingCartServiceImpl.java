@@ -478,26 +478,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     @Override
     public String checkAddressValidate(Long organizationId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS) {
-
-//        //校验每个购物车自己的费用分配是否有问题
-//        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOS) {
-//            //costShopId为key  费用分配list为value
-//            Map<Long, List<AllocationInfo>> allocationMap = watsonsShoppingCartDTO.getAllocationInfoList().stream().collect(Collectors.groupingBy(AllocationInfo::getCostShopId));
-//            for (Map.Entry<Long, List<AllocationInfo>> entry : allocationMap.entrySet()) {
-//                //同一个购物车中同一个costShopId对应的费用分配
-//                List<AllocationInfo> allocationInfos = entry.getValue();
-//                String address4Check = allocationInfos.get(0).getAddressRegion()+allocationInfos.get(0).getFullAddress();
-//                for (AllocationInfo allocationInfo : allocationInfos) {
-//                    if(!address4Check.equals(allocationInfo.getAddressRegion()+allocationInfo.getFullAddress())){
-//                        throw new CommonException(
-//                                watsonsShoppingCartDTO.getProductName()+allocationInfo.getCostShopCode()+allocationInfo.getCostShopName() + "分配的地址不一致，请修改!");
-//                    }
-//                }
-//            }
-//        }
-//    此时每个购物车自己没问题了，即使有相同的costShopId，但是地址区域+详细地址是一样的
-//    校验购物车和购物车之间费用分配有没有问题
-
         //降维处理  把商品行维度降为费用分配维度
         List<AllocationInfo> allocationInfos = new ArrayList<>();
         for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOS) {
@@ -520,7 +500,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             }
         return null;
     }
-
 
     private void checkBudgetInfo(Long tenantId, ShoppingCartDTO shoppingCartDTO, String budgetSwitch){
         if (ScecConstants.ConstantNumber.STRING_1.equals(budgetSwitch)) {
