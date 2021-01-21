@@ -155,10 +155,8 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
 
         //TODO 在自动生成地址功能完成前，不限制ownedBy
 //        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,tenantId).andEqualTo(Address.FIELD_OWNED_BY, -1L).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,allocationInfo.getCostShopId())).build());
-        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID, tenantId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID, allocationInfo.getCostShopId())).build());
-        if (ObjectUtils.isEmpty(addressList)) {
-            throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR, allocationInfo.getCostShopName());
-        }
+        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID, tenantId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID, ObjectUtils.isEmpty(allocationInfo.getReceiveWarehouseId()) ? allocationInfo.getCostShopId() : allocationInfo.getReceiveWarehouseId())).build());
+
         allocationInfo.setAddressId(addressList.get(0).getAddressId());
     }
 
