@@ -53,6 +53,7 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
                 batchNumMap.put(Optional.ofNullable(preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId()),batchNum);
             }
             OmsOrderDto omsOrderDto = super.omsOrderDtoBuilder(tenantId, preRequestOrderDTO, batchNum);
+            //设置个性化字段
             List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList = preRequestOrderDTO.getWatsonsShoppingCartDTOList();
             if(Objects.nonNull(watsonsShoppingCartDTOList)){
                 Map<Long, List<WatsonsShoppingCartDTO>> groupBy = watsonsShoppingCartDTOList.stream()
@@ -61,12 +62,33 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
                     if(Objects.nonNull(omsOrderEntry.getSkuId())){
                         List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS = groupBy.get(omsOrderEntry.getSkuId());
                         if(CollectionUtils.isNotEmpty(watsonsShoppingCartDTOS)){
-                            omsOrderEntry.setAttributeLongtext1(JSONObject.toJSONString(watsonsShoppingCartDTOS.get(0).getAllocationInfoList()));
+                            WatsonsShoppingCartDTO watsonsShoppingCartDTO = watsonsShoppingCartDTOS.get(0);
+                            //库存组织
+                            omsOrderEntry.setInvOrganizationId(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getCostShopId());
+                            omsOrderEntry.setInvOrganizationCode(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getCostShopCode());
+                            omsOrderEntry.setInvOrganizationName(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getCostShopName());
+                            //费用承担部门
+                            omsOrderEntry.setAttributeBigint7(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getCostDepartmentId());
+                            //仓转店收货仓
+                            omsOrderEntry.setAttributeBigint5(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getReceiveWarehouseId());
+                            //费用项目
+                            omsOrderEntry.setAttributeVarchar5(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getProjectCostCode());
+                            //费用项目子分类
+                            omsOrderEntry.setAttributeVarchar6(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getProjectCostSubcategoryCode());
+                            //合同号
+                            omsOrderEntry.setAttributeVarchar7(watsonsShoppingCartDTO.getCmsNumber());
+                            //费用分配
+                            omsOrderEntry.setAttributeLongtext1(JSONObject.toJSONString(watsonsShoppingCartDTO.getAllocationInfoList()));
                             log.debug("watsons allocationInfo:" + JSONObject.toJSONString(omsOrderEntry.getAttributeLongtext1()));
                         }
                     }
                 });
             }
+            //设置ce号
+            omsOrderDto.getOrder().setAttributeVarchar2(preRequestOrderDTO.getCeNumber());
+            //设置送货方式
+            omsOrderDto.getOrder().setAttributeVarchar3(preRequestOrderDTO.getWatsonsShoppingCartDTOList().get(0).getAllocationInfoList().get(0).getDeliveryType());
+            //设置联系电话
             omsOrderDto.getOrderAddress().setMobilePhone(preRequestOrderDTO.getMobile());
             omsOrderDtos.add(omsOrderDto);
         }

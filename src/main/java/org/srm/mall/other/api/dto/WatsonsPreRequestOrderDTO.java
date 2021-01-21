@@ -21,8 +21,15 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
     @Encrypt
     private Long itemCategoryId;
 
-    @ApiModelProperty(value = "CE号")
+    @ApiModelProperty(value = "CE编码")
     private String ceNumber;
+
+    @ApiModelProperty(value = "CE编码描述")
+    private String discription;
+
+
+    @ApiModelProperty(value = "CEid")
+    private int ceId;
 
     @ApiModelProperty(value = "分组名称key检查")
     private String keyForView;
@@ -34,6 +41,34 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
     @Compare
     @IsList
     private List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList;
+
+
+    @ApiModelProperty(value = "拆单完成后每个单子的费用承担店铺的code")
+    private String storeNo;
+
+
+    public String getStoreNo() {
+        return storeNo;
+    }
+
+    public void setStoreNo(String storeNo) {
+        this.storeNo = storeNo;
+    }
+
+    public String getDiscription() {
+        return discription;
+    }
+    public void setDiscription(String discription) {
+        this.discription = discription;
+    }
+
+    public int getCeId() {
+        return ceId;
+    }
+
+    public void setCeId(int ceId) {
+        this.ceId = ceId;
+    }
 
     public String getMobile() {
         return mobile;

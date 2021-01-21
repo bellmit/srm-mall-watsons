@@ -87,7 +87,7 @@ public class WatsonsShoppingCartController {
     }
 
 
-    @ApiOperation(value = "详细地址和地址区域校验")
+    @ApiOperation(value = "详细地址和地址区域校验  暂时未用")
     @Permission(level = ResourceLevel.ORGANIZATION)
     @GetMapping("/check-address-validate")
     @ParamLog

@@ -1,5 +1,6 @@
 package org.srm.mall.other.app.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.ctrip.framework.apollo.util.ExceptionUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.choerodon.core.exception.CommonException;
@@ -33,11 +34,14 @@ import org.srm.boot.platform.customizesetting.CustomizeSettingHelper;
 import org.srm.common.convert.bean.BeanConvertor;
 import org.srm.mall.agreement.app.service.PostageService;
 import org.srm.mall.agreement.app.service.ProductPoolService;
+import org.srm.mall.agreement.domain.entity.AgreementLine;
 import org.srm.mall.agreement.domain.entity.ProductPool;
 import org.srm.mall.agreement.domain.entity.ProductPoolLadder;
+import org.srm.mall.agreement.domain.repository.AgreementLineRepository;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.SmdmRemoteNewService;
 import org.srm.mall.common.feign.SmdmRemoteService;
+import org.srm.mall.common.feign.WatsonsCeInfoRemoteService;
 import org.srm.mall.common.task.MallOrderAsyncTask;
 import org.srm.mall.common.utils.snapshot.SnapshotUtil;
 import org.srm.mall.common.utils.snapshot.SnapshotUtilErrorBean;
@@ -169,6 +173,11 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Autowired
     private SmdmRemoteNewService smdmRemoteNewService;
 
+    @Autowired
+    private AgreementLineRepository agreementLineRepository;
+
+    @Autowired
+    private WatsonsCeInfoRemoteService watsonsCeInfoRemoteService;
 
 
     @Override
@@ -197,6 +206,58 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
+        //进行ceNo和discription存表
+        for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
+            if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
+                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+                    for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()) {
+                        allocationInfo.setCeNumber(watsonsPreRequestOrderDTO.getCeNumber());
+                        if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getDiscription())){
+                            allocationInfo.setCeDiscription(watsonsPreRequestOrderDTO.getDiscription());
+                        }
+                        allocationInfoRepository.updateByPrimaryKeySelective(allocationInfo);
+                    }
+                }
+            }
+        }
+
+        //CE NO和CMS合同号的校验顺序，先CMS，后CE NO
+        //进行cms合同号取值
+        preRequestOrderDTOList.stream().forEach(watsonsPreRequestOrderDTO -> {
+            for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+                AgreementLine agreementLine = agreementLineRepository.selectByPrimaryKey(watsonsShoppingCartDTO.getAgreementLineId());
+                //attributeVarchar1是cms合同号
+                if(ObjectUtils.isEmpty(agreementLine)){
+                    throw new CommonException(watsonsShoppingCartDTO.getProductName()+"没有查询到协议行,无法生成采购申请!");
+                }
+                if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
+                    throw new CommonException(watsonsShoppingCartDTO.getProductName()+"没有CMS合同号,无法生成采购申请!");
+                }
+                watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
+            }
+        });
+        //进行cms合同号校验
+
+        //进行ceNo校验
+        for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
+            if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
+                ResponseEntity<String> checkCeInfoRes = watsonsCeInfoRemoteService.checkCeInfo(tenantId, watsonsPreRequestOrderDTO.getCeId(), watsonsPreRequestOrderDTO.getTotalAmount());
+                if(ResponseUtils.isFailed(checkCeInfoRes)){
+                    String message = null;
+                    try {
+                        Exception exception = JSONObject.parseObject(checkCeInfoRes.getBody(),Exception.class);
+                        message = exception.getMessage();
+                    }catch (Exception e){
+                        message = checkCeInfoRes.getBody();
+                    }
+                    logger.error("check CE info for order total amount error! {}",watsonsPreRequestOrderDTO.getCeId());
+                    throw new CommonException("CE号"+watsonsPreRequestOrderDTO.getCeNumber()+"检验报错,"+message);
+                }
+                logger.info("check CE info for order total amount success! {}" ,watsonsPreRequestOrderDTO.getCeId());
+            }
+        }
+
+
         preRequestOrderDTOList.stream().forEach(preRequestOrderDTO -> {
                     if (ObjectUtils.nullSafeEquals(preRequestOrderDTO.getPriceHiddenFlag(), 1)) {
                         Iterator iterator = preRequestOrderDTO.getShoppingCartDTOList().iterator();
@@ -417,26 +478,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     @Override
     public String checkAddressValidate(Long organizationId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS) {
-
-//        //校验每个购物车自己的费用分配是否有问题
-//        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOS) {
-//            //costShopId为key  费用分配list为value
-//            Map<Long, List<AllocationInfo>> allocationMap = watsonsShoppingCartDTO.getAllocationInfoList().stream().collect(Collectors.groupingBy(AllocationInfo::getCostShopId));
-//            for (Map.Entry<Long, List<AllocationInfo>> entry : allocationMap.entrySet()) {
-//                //同一个购物车中同一个costShopId对应的费用分配
-//                List<AllocationInfo> allocationInfos = entry.getValue();
-//                String address4Check = allocationInfos.get(0).getAddressRegion()+allocationInfos.get(0).getFullAddress();
-//                for (AllocationInfo allocationInfo : allocationInfos) {
-//                    if(!address4Check.equals(allocationInfo.getAddressRegion()+allocationInfo.getFullAddress())){
-//                        throw new CommonException(
-//                                watsonsShoppingCartDTO.getProductName()+allocationInfo.getCostShopCode()+allocationInfo.getCostShopName() + "分配的地址不一致，请修改!");
-//                    }
-//                }
-//            }
-//        }
-//    此时每个购物车自己没问题了，即使有相同的costShopId，但是地址区域+详细地址是一样的
-//    校验购物车和购物车之间费用分配有没有问题
-
         //降维处理  把商品行维度降为费用分配维度
         List<AllocationInfo> allocationInfos = new ArrayList<>();
         for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOS) {
@@ -459,7 +500,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             }
         return null;
     }
-
 
     private void checkBudgetInfo(Long tenantId, ShoppingCartDTO shoppingCartDTO, String budgetSwitch){
         if (ScecConstants.ConstantNumber.STRING_1.equals(budgetSwitch)) {
@@ -952,6 +992,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 String addressRegion = watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getAddressRegion();
                 String fullAddress = watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getFullAddress();
                 watsonsPreRequestOrderDTO.setReceiverAddress(addressRegion+fullAddress);
+
+                watsonsPreRequestOrderDTO.setStoreNo(watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopCode());
 
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
                 watsonsPreRequestOrderDTOList.add(watsonsPreRequestOrderDTO);

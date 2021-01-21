@@ -3,6 +3,7 @@ package org.srm.mall.other.app.service;
 import io.choerodon.core.domain.Page;
 import io.choerodon.mybatis.pagehelper.domain.PageRequest;
 import org.srm.mall.other.api.dto.AllocationInfoDTO;
+import org.srm.mall.other.api.dto.CeLovResultDTO;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
@@ -62,4 +63,12 @@ public interface AllocationInfoService {
      * @return
      */
     List<ProjectCost> selectAllocationProjectLov(Long organizationId, Long itemCategoryId, Long itemId, Integer size, Integer page);
+
+    /**
+     * 查询店铺对应的CE信息
+     * @param organizationId
+     * @param storeNo
+     * @return
+     */
+    List<CeLovResultDTO> selectCeInfoLov(Long organizationId, String storeNo, Integer size, Integer page);
 }
