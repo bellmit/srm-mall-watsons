@@ -1,9 +1,10 @@
 package org.srm.mall.other.api.dto;
 
 import lombok.Data;
+import org.srm.mall.region.api.dto.AddressDTO;
 
 @Data
-public class WatsonsAddressDTO {
+public class WatsonsAddressDTO extends AddressDTO {
 
     /**
      * 纬度
