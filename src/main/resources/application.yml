@@ -207,7 +207,7 @@ srm:
 
 amkt:
   gateway:
-    url: ${AMKT_GATEWAY_URL:http://dev.market-gateway.going-link.com}
+    url: ${AMKT_GATEWAY_URL:https://gateway.dev.market.going-link.com}
   oauth:
     clientId: ${AMKT_OAUTH_CLIENT_ID:g21xWQfQyOII}
     clientSecret: ${AMKT_OAUTH_CLIENT_SECRET:4iApyLk6n0lWv4aI}
