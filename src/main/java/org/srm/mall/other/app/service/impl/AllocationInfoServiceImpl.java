@@ -480,9 +480,8 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         logger.info("select warehouse info success :{}", storeId);
         Page<WatsonStoreInventoryRelationDTO> response = ResponseUtils.getResponse(whInfo, new TypeReference<Page<WatsonStoreInventoryRelationDTO>>() {
         });
-
-        WhLovResultDTO res = allocationInfoRepository.selectInvNameByInvCode(response.get(0).getInventoryCode(),organizationId);
-        whLovResultDTO.setInventoryCode(response.get(0).getInventoryCode());
+        WhLovResultDTO res = allocationInfoRepository.selectInvNameByInvCode(response.getContent().get(0).getInventoryCode(),organizationId);
+        whLovResultDTO.setInventoryCode(response.getContent().get(0).getInventoryCode());
         whLovResultDTO.setInventoryName(res.getInventoryName());
         return whLovResultDTO;
     }
