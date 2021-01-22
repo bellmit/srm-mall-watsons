@@ -2,6 +2,7 @@ package org.srm.mall.other.app.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.choerodon.core.domain.Page;
+import io.choerodon.core.domain.PageInfo;
 import io.choerodon.core.exception.CommonException;
 import io.choerodon.mybatis.pagehelper.domain.PageRequest;
 import org.apache.commons.collections4.CollectionUtils;
@@ -451,23 +452,19 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     }
 
     @Override
-    public List<CeLovResultDTO> selectCeInfoLov(Long organizationId, String storeNo, Integer size, Integer page) {
-
-        ResponseEntity<String> ceInfo = watsonsCeInfoRemoteService.queryCeInfo(organizationId, storeNo, size, page);
+    public Page<CeLovResultDTO> selectCeInfoLov(Long organizationId, String storeNo, Integer size, Integer page) {
+        ResponseEntity<String> ceInfo = watsonsCeInfoRemoteService.queryCeInfo(organizationId, storeNo, size, page+1);
         if (ResponseUtils.isFailed(ceInfo)) {
             logger.error("select CE info failed :{}", storeNo);
             throw new CommonException("根据店铺id查询ce编号信息失败! 店铺号为:" + storeNo);
         }
         logger.info("select CE info success :{}", storeNo);
-        CeLovResult ceLovResult = ResponseUtils.getResponse(ceInfo, new TypeReference<CeLovResult>() {
-        });
-        List<CeLovResultDTO> ceInfoList = ceLovResult.getList();
-        return ceInfoList;
+        CeLovResult ceLovResult = ResponseUtils.getResponse(ceInfo, new TypeReference<CeLovResult>() {});
+        return new Page<>(ceLovResult.getList(),new PageInfo(page,size),ceLovResult.getTotal());
     }
 
     @Override
-    public WhLovResultDTO selectWhLov(Long organizationId, String storeId) {
-        WhLovResultDTO whLovResultDTO = new WhLovResultDTO();
+    public Page<WatsonStoreInventoryRelationDTO> selectWhLov(Long organizationId, String storeId, Integer size, Integer page) {
         ResponseEntity<String> whInfo = watsonsWareHouseRemoteService.queryWhInfo(organizationId, storeId);
         if (ResponseUtils.isFailed(whInfo)) {
             logger.error("select warehouse info failed :{}", storeId);
@@ -478,9 +475,8 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         });
 
         WhLovResultDTO res = allocationInfoRepository.selectInvNameByInvCode(response.getContent().get(0).getInventoryCode(),organizationId);
-        whLovResultDTO.setInventoryCode(response.getContent().get(0).getInventoryCode());
-        whLovResultDTO.setInventoryName(res.getInventoryName());
-        return whLovResultDTO;
+        response.getContent().get(0).setInventoryName(res.getInventoryName());
+        return new Page<>(response.getContent(),new PageInfo(page,size),response.getTotalElements());
     }
 
     private List<ProjectCost> getProjectCosts(Long organizationId, ProjectCost projectCost, PageRequest pageRequest, ItemCategoryDTO itemCategoryResultOne, String levelPath, String s) {

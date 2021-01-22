@@ -104,15 +104,15 @@ public class CostAllocationInfoController extends BaseController {
     @ApiOperation(value = "屈臣氏CE信息值集接口")
     @Permission(level = ResourceLevel.ORGANIZATION)
     @GetMapping("/cost-ce-lov")
-    public ResponseEntity<List<CeLovResultDTO>> selectCeInfoLov(@PathVariable("organizationId") Long organizationId, @RequestParam("storeNo")String storeNo, @RequestParam("size") Integer size, @RequestParam("page") Integer page) {
+    public ResponseEntity<Page<CeLovResultDTO>> selectCeInfoLov(@PathVariable("organizationId") Long organizationId, @RequestParam("storeNo")String storeNo, @RequestParam("size") Integer size, @RequestParam("page") Integer page) {
         return Results.success(allocationInfoService.selectCeInfoLov(organizationId, storeNo,size,page));
     }
 
     @ApiOperation(value = "屈臣氏仓转店收货仓值集")
     @Permission(level = ResourceLevel.ORGANIZATION)
     @GetMapping("/cost-warehouse-lov")
-    public ResponseEntity<WhLovResultDTO> selectWhLov(@PathVariable("organizationId") Long organizationId, @RequestParam("storeId")String storeId) {
+    public ResponseEntity<Page<WatsonStoreInventoryRelationDTO>> selectWhLov(@PathVariable("organizationId") Long organizationId, @RequestParam("storeId")String storeId,@RequestParam("size") Integer size, @RequestParam("page") Integer page) {
         //storeId传店铺code
-        return Results.success(allocationInfoService.selectWhLov(organizationId,storeId));
+        return Results.success(allocationInfoService.selectWhLov(organizationId,storeId,size,page));
     }
 }
