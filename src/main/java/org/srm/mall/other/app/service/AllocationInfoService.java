@@ -71,7 +71,7 @@ public interface AllocationInfoService {
      * @param storeNo
      * @return
      */
-    List<CeLovResultDTO> selectCeInfoLov(Long organizationId, String storeNo, Integer size, Integer page);
+    Page<CeLovResultDTO> selectCeInfoLov(Long organizationId, String storeNo, Integer size, Integer page);
 
     /**
      * 查询店铺对应的仓转店信息
@@ -79,5 +79,5 @@ public interface AllocationInfoService {
      * @param storeId 其实是店铺code
      * @return
      */
-    WhLovResultDTO selectWhLov(Long organizationId, String storeId);
+    Page<WatsonStoreInventoryRelationDTO> selectWhLov(Long organizationId, String storeId,Integer size,Integer page);
 }
