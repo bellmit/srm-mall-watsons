@@ -400,7 +400,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,organizationId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER)
                             .andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,watsonsOrganizationId)).build());
             if (ObjectUtils.isEmpty(addressList)){
-                throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR,watsonsOrganizationCode);
+                throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR,watsonsOrganizationId);
             }
             //address转移到watsonsAddress
             for (Address address : addressList) {
