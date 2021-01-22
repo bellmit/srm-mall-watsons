@@ -38,6 +38,7 @@
         h.tenant_id = #{organizationId}
         AND h.enabled_flag = 1
         AND h.attribute2 = #{type}
+        AND h.source_code != "SYSTEM"
         <if test="organizationCode != null and organizationCode != ''">
             <bind name="organizationCodeLike" value="'%' + organizationCode + '%'"/>
             AND h.organization_code like #{organizationCodeLike}
