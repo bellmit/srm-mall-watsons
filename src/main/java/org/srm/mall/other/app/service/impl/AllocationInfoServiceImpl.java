@@ -115,7 +115,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         }
         for (AllocationInfo allocationInfo : allocationInfoList) {
             //查询对应的地址
-            handleReceiverAddress(allocationInfo, tenantId);
+//            handleReceiverAddress(allocationInfo, tenantId);
 
             //校验对应的地址商品是否可售,等待价格服务提供接口
             saleAndStockCheck(tenantId, allocationInfo, watsonsShoppingCart);
