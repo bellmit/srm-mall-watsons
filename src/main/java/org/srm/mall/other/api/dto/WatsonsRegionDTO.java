@@ -3,7 +3,7 @@ package org.srm.mall.other.api.dto;
 import org.srm.mall.product.api.dto.BaseDto;
 
 /**
- * description
+ * 地址信息返回DTO
  *
  * @author jianhao.zhang01@hand-china.com 2021/01/19 16:56
  */
