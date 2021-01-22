@@ -38,7 +38,7 @@
         h.tenant_id = #{organizationId}
         AND h.enabled_flag = 1
         AND h.attribute2 = #{type}
-        AND h.source_code != "SYSTEM"
+        AND h.source_code != 'SYSTEM'
         <if test="organizationCode != null and organizationCode != ''">
             <bind name="organizationCodeLike" value="'%' + organizationCode + '%'"/>
             AND h.organization_code like #{organizationCodeLike}
@@ -72,7 +72,7 @@
         AND
             hio.organization_code = #{watsonsOrganizationCode}
         AND
-            hio.source_code != "SYSTEM"
+            hio.source_code != 'SYSTEM'
     </select>
     <select id="selectRegionInfoByRegionId" resultType="org.srm.mall.other.api.dto.WatsonsRegionDTO">
         SELECT
@@ -118,6 +118,6 @@
         AND
             hio.tenant_id = #{organizationId}
         AND
-            hio.source_code != "SYSTEM"
+            hio.source_code != 'SYSTEM'
     </select>
 </mapper>
