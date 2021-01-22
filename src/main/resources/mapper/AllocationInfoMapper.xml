@@ -57,5 +57,66 @@
         AND
             swpcs.tenant_id = #{tenantId}
     </select>
-
+    <select id="selectIdByCode" resultType="org.srm.mall.region.api.dto.AddressDTO">
+        SELECT
+        hio.organization_id invOrganizationId,
+        hio.organization_code invOrganizationCode,
+        hio.organization_name invOrganizationName
+        FROM
+            hpfm_inv_organization hio
+        WHERE
+            hio.tenant_id = #{organizationId}
+        AND
+            hio.enabled_flag = 1
+        AND
+            hio.organization_code = #{watsonsOrganizationCode}
+        AND
+            hio.source_code != "SYSTEM"
+    </select>
+    <select id="selectRegionInfoByRegionId" resultType="org.srm.mall.other.api.dto.WatsonsRegionDTO">
+        SELECT
+            sr.region_id,
+            sr.region_code,
+            sr.region_name,
+            sr.parent_region_code,
+            sr.region_level,
+            sr.level_path
+        FROM
+            smal_region sr
+        WHERE
+            sr.enabled_flag = 1
+        AND
+            sr.region_id = #{regionId}
+    </select>
+    <select id="selectRegionInfoByRegionCode" resultType="org.srm.mall.other.api.dto.WatsonsRegionDTO">
+        SELECT
+            sr.region_id,
+            sr.region_code,
+            sr.region_name,
+            sr.parent_region_code,
+            sr.region_level,
+            sr.level_path
+        FROM
+            smal_region sr
+        WHERE
+            sr.enabled_flag = 1
+        AND
+            sr.region_code = #{regionCode}
+    </select>
+    <select id="selectInvNameByInvCode" resultType="org.srm.mall.other.api.dto.WhLovResultDTO">
+        SELECT
+            hio.organization_id inventoryId,
+            hio.organization_name inventoryName,
+            hio.organization_code inventoryCode
+        FROM
+            hpfm_inv_organization hio
+        WHERE
+            hio.organization_code = #{inventoryCode}
+        AND
+            hio.enabled_flag = 1
+        AND
+            hio.tenant_id = #{organizationId}
+        AND
+            hio.source_code != "SYSTEM"
+    </select>
 </mapper>
