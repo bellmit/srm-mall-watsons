@@ -120,9 +120,9 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             //校验对应的地址商品是否可售,等待价格服务提供接口
             saleAndStockCheck(tenantId, allocationInfo, watsonsShoppingCart);
             if (allocationInfo.getAllocationId() == null) {
-                allocationInfoRepository.insertSelective(allocationInfo);
+                allocationInfoRepository.insert(allocationInfo);
             } else {
-                allocationInfoRepository.updateByPrimaryKeySelective(allocationInfo);
+                allocationInfoRepository.updateByPrimaryKey(allocationInfo);
             }
         }
 
@@ -475,6 +475,9 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         logger.info("select warehouse info success :{}", storeId);
         Page<WatsonStoreInventoryRelationDTO> response = ResponseUtils.getResponse(whInfo, new TypeReference<Page<WatsonStoreInventoryRelationDTO>>() {
         });
+        if(CollectionUtils.isEmpty(response.getContent())){
+            throw new CommonException("根据店铺code查询仓转店信息为空! 店铺号为:" + storeId);
+        }
         WhLovResultDTO res = allocationInfoRepository.selectInvNameByInvCode(response.getContent().get(0).getInventoryCode(),organizationId);
         response.getContent().get(0).setInventoryName(res.getInventoryName());
         return new Page<>(response.getContent(),new PageInfo(page,size),response.getTotalElements());

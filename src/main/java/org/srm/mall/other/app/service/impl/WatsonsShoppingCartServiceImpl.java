@@ -399,36 +399,35 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(
                     Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,organizationId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER)
                             .andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,watsonsOrganizationId)).build());
-            if (ObjectUtils.isEmpty(addressList)){
-                throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR,watsonsOrganizationId);
-            }
-            //address转移到watsonsAddress
-            for (Address address : addressList) {
-                WatsonsAddressDTO watsonsAddressDTO = new WatsonsAddressDTO();
-                BeanUtils.copyProperties(address,watsonsAddressDTO);
-                watsonsAddressDTOS.add(watsonsAddressDTO);
-            }
-            //添加地区信息
-            for (WatsonsAddressDTO watsonsAddressDTO : watsonsAddressDTOS) {
-                Long regionId = watsonsAddressDTO.getRegionId();
-                WatsonsRegionDTO watsonsRegionDTO = allocationInfoRepository.selectRegionInfoByRegionId(regionId);
-                if (ObjectUtils.isEmpty(watsonsRegionDTO)){
-                    throw new CommonException("未查到该地区id对应的地区信息!");
+            if(!CollectionUtils.isEmpty(addressList)) {
+                //address转移到watsonsAddress
+                for (Address address : addressList) {
+                    WatsonsAddressDTO watsonsAddressDTO = new WatsonsAddressDTO();
+                    BeanUtils.copyProperties(address, watsonsAddressDTO);
+                    watsonsAddressDTOS.add(watsonsAddressDTO);
                 }
-                String levelPath = watsonsRegionDTO.getLevelPath();
-                String[] splitRes = levelPath.split("\\.");
-                StringBuffer sb = new StringBuffer();
-                for (int i = 0; i < splitRes.length; i++) {
-                    WatsonsRegionDTO res = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[i]);
-                    if (ObjectUtils.isEmpty(res)){
-                        throw new CommonException("未查到该地区code对应的地区信息!");
+                //添加地址区域
+                for (WatsonsAddressDTO watsonsAddressDTO : watsonsAddressDTOS) {
+                    Long regionId = watsonsAddressDTO.getRegionId();
+                    WatsonsRegionDTO watsonsRegionDTO = allocationInfoRepository.selectRegionInfoByRegionId(regionId);
+                    if (ObjectUtils.isEmpty(watsonsRegionDTO)) {
+                        throw new CommonException("未查到该地区id对应的地区信息!");
                     }
-                    sb.append(res.getRegionName());
+                    String levelPath = watsonsRegionDTO.getLevelPath();
+                    String[] splitRes = levelPath.split("\\.");
+                    StringBuffer sb = new StringBuffer();
+                    for (int i = 0; i < splitRes.length; i++) {
+                        WatsonsRegionDTO res = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[i]);
+                        if (ObjectUtils.isEmpty(res)) {
+                            throw new CommonException("未查到该地区code对应的地区信息!");
+                        }
+                        sb.append(res.getRegionName());
+                    }
+                    String regionRes = sb.toString();
+                    watsonsAddressDTO.setAddressRegion(regionRes);
                 }
-                String regionRes = sb.toString();
-                watsonsAddressDTO.setAddressRegion(regionRes);
+                return watsonsAddressDTOS;
             }
-            return watsonsAddressDTOS;
         }
 
         //id没有用code查
@@ -438,39 +437,40 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             //找到地址表信息迁移到watsonsAddress
             //hpfm通过code找到id
             AddressDTO addressDTO = allocationInfoRepository.selectIdByCode(organizationId,watsonsOrganizationCode);
-            List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(
-                    Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,organizationId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER)
-                            .andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,addressDTO.getInvOrganizationId())).build());
-            if (ObjectUtils.isEmpty(addressList)){
-                throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR,watsonsOrganizationCode);
-            }
-            //address转移到watsonsAddress
-            for (Address address : addressList) {
-                WatsonsAddressDTO watsonsAddressDTO = new WatsonsAddressDTO();
-                BeanUtils.copyProperties(address,watsonsAddressDTO);
-                watsonsAddressDTOS.add(watsonsAddressDTO);
-            }
-            //添加地区信息
-            for (WatsonsAddressDTO watsonsAddressDTO : watsonsAddressDTOS) {
-                Long regionId = watsonsAddressDTO.getRegionId();
-                WatsonsRegionDTO watsonsRegionDTO = allocationInfoRepository.selectRegionInfoByRegionId(regionId);
-                if (ObjectUtils.isEmpty(watsonsRegionDTO)){
-                    throw new CommonException("未查到该地区id对应的地区信息!");
-                }
-                String levelPath = watsonsRegionDTO.getLevelPath();
-                String[] splitRes = levelPath.split("\\.");
-                StringBuffer sb = new StringBuffer();
-                for (int i = 0; i < splitRes.length; i++) {
-                    WatsonsRegionDTO res = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[i]);
-                    if (ObjectUtils.isEmpty(res)){
-                        throw new CommonException("未查到该地区code对应的地区信息!");
+            if(!ObjectUtils.isEmpty(addressDTO.getInvOrganizationId())) {
+                List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(
+                        Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID, organizationId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER)
+                                .andEqualTo(Address.FIELD_INV_ORGANIZATION_ID, addressDTO.getInvOrganizationId())).build());
+                if (!CollectionUtils.isEmpty(addressList)) {
+                    //address转移到watsonsAddress
+                    for (Address address : addressList) {
+                        WatsonsAddressDTO watsonsAddressDTO = new WatsonsAddressDTO();
+                        BeanUtils.copyProperties(address, watsonsAddressDTO);
+                        watsonsAddressDTOS.add(watsonsAddressDTO);
                     }
-                    sb.append(res.getRegionName());
+                    //添加地区信息
+                    for (WatsonsAddressDTO watsonsAddressDTO : watsonsAddressDTOS) {
+                        Long regionId = watsonsAddressDTO.getRegionId();
+                        WatsonsRegionDTO watsonsRegionDTO = allocationInfoRepository.selectRegionInfoByRegionId(regionId);
+                        if (ObjectUtils.isEmpty(watsonsRegionDTO)) {
+                            throw new CommonException("未查到该地区id对应的地区信息!");
+                        }
+                        String levelPath = watsonsRegionDTO.getLevelPath();
+                        String[] splitRes = levelPath.split("\\.");
+                        StringBuffer sb = new StringBuffer();
+                        for (int i = 0; i < splitRes.length; i++) {
+                            WatsonsRegionDTO res = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[i]);
+                            if (ObjectUtils.isEmpty(res)) {
+                                throw new CommonException("未查到该地区code对应的地区信息!");
+                            }
+                            sb.append(res.getRegionName());
+                        }
+                        String regionRes = sb.toString();
+                        watsonsAddressDTO.setAddressRegion(regionRes);
+                    }
+                    return watsonsAddressDTOS;
                 }
-                String regionRes = sb.toString();
-                watsonsAddressDTO.setAddressRegion(regionRes);
             }
-            return watsonsAddressDTOS;
         }
         return null;
 
