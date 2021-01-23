@@ -139,7 +139,6 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     private void saleAndStockCheck(Long tenantId, AllocationInfo allocationInfo, WatsonsShoppingCart watsonsShoppingCart) {
         String provinceId = null;
         String cityId = null;
-        Long regionId = null;
         String countyId = null;
         // 校验可售
         PriceParamDTO priceParamDTO = new PriceParamDTO(tenantId, addressRepository.querySecondRegionId(allocationInfo.getAddressId()), null, watsonsShoppingCart.getProductId());
@@ -155,30 +154,17 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         if(splitRes.length < 3){
             throw new CommonException(allocationInfo.getCostShopName()+"选择的地址区域不满足省市区三级或以上,无法校验库存和可售信息!");
         }
-        if(splitRes.length == 3){
-            WatsonsRegionDTO province = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[0]);
-            WatsonsRegionDTO city = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[1]);
-            WatsonsRegionDTO region = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[2]);
-            provinceId = province.getRegionId().toString();
-            cityId = city.getRegionId().toString();
-            regionId = region.getRegionId();
-            priceParamDTO.setRegionId(Long.valueOf(cityId));
-        }
-        if(splitRes.length == 4){
-            WatsonsRegionDTO province = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[0]);
-            WatsonsRegionDTO city = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[1]);
-            WatsonsRegionDTO region = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[2]);
-            WatsonsRegionDTO county = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[3]);
-            provinceId = province.getRegionId().toString();
-            cityId = city.getRegionId().toString();
-            regionId = region.getRegionId();
-            countyId = county.getRegionId().toString();
-            priceParamDTO.setRegionId(Long.valueOf(cityId));
-        }
+        WatsonsRegionDTO province = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[0]);
+        WatsonsRegionDTO city = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[1]);
+        WatsonsRegionDTO region = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[2]);
+        provinceId = province.getRegionId().toString();
+        cityId = city.getRegionId().toString();
+        countyId = region.getRegionId().toString();
+        priceParamDTO.setRegionId(Long.valueOf(cityId));
+
         ProductSaleCheckDTO productSaleCheckDTO = new ProductSaleCheckDTO();
         productSaleCheckDTO.setProvinceId(provinceId);
         productSaleCheckDTO.setCityId(cityId);
-        productSaleCheckDTO.setRegionId(regionId);
         productSaleCheckDTO.setCountyId(countyId);
         priceParamDTO.setEcProductCheckDto(productSaleCheckDTO);
 
