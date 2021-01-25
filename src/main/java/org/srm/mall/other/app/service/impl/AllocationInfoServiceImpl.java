@@ -2,9 +2,9 @@ package org.srm.mall.other.app.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.choerodon.core.domain.Page;
+import io.choerodon.core.domain.PageInfo;
 import io.choerodon.core.exception.CommonException;
 import io.choerodon.mybatis.pagehelper.domain.PageRequest;
-import lombok.val;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hzero.core.base.BaseAppService;
 import org.hzero.core.base.BaseConstants;
@@ -19,12 +19,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.srm.mall.common.constant.ScecConstants;
+import org.srm.mall.common.feign.*;
 import org.srm.mall.common.feign.WatsonsProjectCostRemoteService;
 import org.srm.mall.common.feign.SagmRemoteService;
 import org.srm.mall.common.feign.SmdmRemoteNewService;
+import org.srm.mall.common.feign.*;
 import org.srm.mall.infra.constant.WatsonsConstants;
-import org.srm.mall.other.api.dto.AllocationInfoDTO;
-import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
+import org.srm.mall.other.api.dto.*;
+import org.srm.mall.other.api.dto.WhLovResultDTO;
+import org.srm.mall.other.domain.entity.CeLovResult;
 import org.srm.mall.other.app.service.AllocationInfoService;
 import org.srm.mall.other.app.service.ShoppingCartService;
 import org.srm.mall.other.domain.entity.AllocationInfo;
@@ -38,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.srm.mall.product.api.dto.ItemCategoryDTO;
 import org.srm.mall.product.api.dto.PriceParamDTO;
 import org.srm.mall.product.api.dto.PriceResultDTO;
+import org.srm.mall.product.api.dto.ProductSaleCheckDTO;
 import org.srm.mall.region.domain.entity.Address;
 import org.srm.mall.region.domain.repository.AddressRepository;
 
@@ -46,6 +50,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.validation.constraints.NotBlank;
 
 /**
  * 屈臣氏费用分配表应用服务默认实现
@@ -78,6 +83,14 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     @Autowired
     private SmdmRemoteNewService smdmRemoteNewService;
 
+    @Autowired
+    private WatsonsWareHouseRemoteService watsonsWareHouseRemoteService;
+
+    @Autowired
+    private WatsonsCeInfoRemoteService watsonsCeInfoRemoteService;
+
+
+
 
     @Override
     public List<AllocationInfo> list(Long tenantId, Long cartId) {
@@ -100,14 +113,14 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         }
         for (AllocationInfo allocationInfo : allocationInfoList) {
             //查询对应的地址
-            handleReceiverAddress(allocationInfo, tenantId);
+//            handleReceiverAddress(allocationInfo, tenantId);
 
             //校验对应的地址商品是否可售,等待价格服务提供接口
             saleAndStockCheck(tenantId, allocationInfo, watsonsShoppingCart);
             if (allocationInfo.getAllocationId() == null) {
-                allocationInfoRepository.insertSelective(allocationInfo);
+                allocationInfoRepository.insert(allocationInfo);
             } else {
-                allocationInfoRepository.updateByPrimaryKeySelective(allocationInfo);
+                allocationInfoRepository.updateByPrimaryKey(allocationInfo);
             }
         }
 
@@ -124,11 +137,37 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
      * @param watsonsShoppingCart
      */
     private void saleAndStockCheck(Long tenantId, AllocationInfo allocationInfo, WatsonsShoppingCart watsonsShoppingCart) {
+        String provinceId = null;
+        String cityId = null;
+        String countyId = null;
         // 校验可售
         PriceParamDTO priceParamDTO = new PriceParamDTO(tenantId, addressRepository.querySecondRegionId(allocationInfo.getAddressId()), null, watsonsShoppingCart.getProductId());
         priceParamDTO.setAddressId(allocationInfo.getAddressId());
         priceParamDTO.getSkuParamDTOS().get(0).setQuantity(BigDecimal.ONE);
         priceParamDTO.setUnitLevelPath(watsonsShoppingCart.getLevelPath());
+        WatsonsRegionDTO watsonsRegionDTO = allocationInfoRepository.selectRegionInfoByRegionId(allocationInfo.getLastRegionId());
+        if(ObjectUtils.isEmpty(watsonsRegionDTO.getLevelPath())){
+            throw new CommonException(allocationInfo.getCostShopName()+"的地址的区域信息不存在,无法校验库存和可售信息!");
+        }
+        String levelPath = watsonsRegionDTO.getLevelPath();
+        String[] splitRes = levelPath.split("\\.");
+        if(splitRes.length < 3){
+            throw new CommonException(allocationInfo.getCostShopName()+"选择的地址区域不满足省市区三级或以上,无法校验库存和可售信息!");
+        }
+        WatsonsRegionDTO province = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[0]);
+        WatsonsRegionDTO city = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[1]);
+        WatsonsRegionDTO region = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[2]);
+        provinceId = province.getRegionId().toString();
+        cityId = city.getRegionId().toString();
+        countyId = region.getRegionId().toString();
+        priceParamDTO.setRegionId(Long.valueOf(cityId));
+
+        ProductSaleCheckDTO productSaleCheckDTO = new ProductSaleCheckDTO();
+        productSaleCheckDTO.setProvinceId(provinceId);
+        productSaleCheckDTO.setCityId(cityId);
+        productSaleCheckDTO.setCountyId(countyId);
+        priceParamDTO.setEcProductCheckDto(productSaleCheckDTO);
+
         ResponseEntity<String> result = sagmRemoteService.selectPrice(tenantId, ScecConstants.SagmSourceCode.SHOPPING_CART, priceParamDTO);
         List<PriceResultDTO> priceResultDTOS = ResponseUtils.getResponse(result, new TypeReference<List<PriceResultDTO>>() {
         });
@@ -144,10 +183,8 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
 
         //TODO 在自动生成地址功能完成前，不限制ownedBy
 //        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,tenantId).andEqualTo(Address.FIELD_OWNED_BY, -1L).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,allocationInfo.getCostShopId())).build());
-        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID, tenantId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID, allocationInfo.getCostShopId())).build());
-        if (ObjectUtils.isEmpty(addressList)) {
-            throw new CommonException(WatsonsConstants.ErrorCode.INV_ORGANIZATION_ADDRESS_ERROR, allocationInfo.getCostShopName());
-        }
+        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID, tenantId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID, ObjectUtils.isEmpty(allocationInfo.getReceiveWarehouseId()) ? allocationInfo.getCostShopId() : allocationInfo.getReceiveWarehouseId())).build());
+
         allocationInfo.setAddressId(addressList.get(0).getAddressId());
     }
 
@@ -438,6 +475,36 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             }
         }
         return null;
+    }
+
+    @Override
+    public Page<CeLovResultDTO> selectCeInfoLov(Long organizationId, String storeNo, Integer size, Integer page) {
+        ResponseEntity<String> ceInfo = watsonsCeInfoRemoteService.queryCeInfo(organizationId, storeNo, size, page+1);
+        if (ResponseUtils.isFailed(ceInfo)) {
+            logger.error("select CE info failed :{}", storeNo);
+            throw new CommonException("根据店铺id查询ce编号信息失败! 店铺号为:" + storeNo);
+        }
+        logger.info("select CE info success :{}", storeNo);
+        CeLovResult ceLovResult = ResponseUtils.getResponse(ceInfo, new TypeReference<CeLovResult>() {});
+        return new Page<>(ceLovResult.getList(),new PageInfo(page,size),ceLovResult.getTotal());
+    }
+
+    @Override
+    public Page<WatsonStoreInventoryRelationDTO> selectWhLov(Long organizationId, String storeId, Integer size, Integer page) {
+        ResponseEntity<String> whInfo = watsonsWareHouseRemoteService.queryWhInfo(organizationId, storeId);
+        if (ResponseUtils.isFailed(whInfo)) {
+            logger.error("select warehouse info failed :{}", storeId);
+            throw new CommonException("根据店铺code查询仓转店信息失败! 店铺号为:" + storeId);
+        }
+        logger.info("select warehouse info success :{}", storeId);
+        Page<WatsonStoreInventoryRelationDTO> response = ResponseUtils.getResponse(whInfo, new TypeReference<Page<WatsonStoreInventoryRelationDTO>>() {
+        });
+        if(CollectionUtils.isEmpty(response.getContent())){
+            throw new CommonException("根据店铺code查询仓转店信息为空! 店铺号为:" + storeId);
+        }
+        WhLovResultDTO res = allocationInfoRepository.selectInvNameByInvCode(response.getContent().get(0).getInventoryCode(),organizationId);
+        response.getContent().get(0).setInventoryName(res.getInventoryName());
+        return new Page<>(response.getContent(),new PageInfo(page,size),response.getTotalElements());
     }
 
     private List<ProjectCost> getProjectCosts(Long organizationId, ProjectCost projectCost, PageRequest pageRequest, ItemCategoryDTO itemCategoryResultOne, String levelPath, String s) {

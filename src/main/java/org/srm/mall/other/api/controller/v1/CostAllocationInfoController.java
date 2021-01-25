@@ -9,9 +9,11 @@ import org.hzero.core.base.BaseController;
 import org.hzero.starter.keyencrypt.core.Encrypt;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.order.domain.entity.PoHeader;
+import org.srm.mall.other.api.dto.*;
 import org.srm.mall.other.api.dto.AllocationInfoDTO;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
+import org.srm.mall.other.api.dto.*;
 import org.srm.mall.other.app.service.AllocationInfoService;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,5 +99,20 @@ public class CostAllocationInfoController extends BaseController {
     @GetMapping("/cost-allocation-project-lov")
     public ResponseEntity<List<ProjectCost>> selectAllocationProjectLov(@PathVariable("organizationId") Long organizationId, Long itemCategoryId, Long itemId, @RequestParam("size") Integer size, @RequestParam("page") Integer page) {
         return Results.success(allocationInfoService.selectAllocationProjectLov(organizationId, itemCategoryId,itemId,size,page));
+    }
+
+    @ApiOperation(value = "屈臣氏CE信息值集接口")
+    @Permission(level = ResourceLevel.ORGANIZATION)
+    @GetMapping("/cost-ce-lov")
+    public ResponseEntity<Page<CeLovResultDTO>> selectCeInfoLov(@PathVariable("organizationId") Long organizationId, @RequestParam("storeNo")String storeNo, @RequestParam("size") Integer size, @RequestParam("page") Integer page) {
+        return Results.success(allocationInfoService.selectCeInfoLov(organizationId, storeNo,size,page));
+    }
+
+    @ApiOperation(value = "屈臣氏仓转店收货仓值集")
+    @Permission(level = ResourceLevel.ORGANIZATION)
+    @GetMapping("/cost-warehouse-lov")
+    public ResponseEntity<Page<WatsonStoreInventoryRelationDTO>> selectWhLov(@PathVariable("organizationId") Long organizationId, @RequestParam("storeId")String storeId,@RequestParam("size") Integer size, @RequestParam("page") Integer page) {
+        //storeId传店铺code
+        return Results.success(allocationInfoService.selectWhLov(organizationId,storeId,size,page));
     }
 }

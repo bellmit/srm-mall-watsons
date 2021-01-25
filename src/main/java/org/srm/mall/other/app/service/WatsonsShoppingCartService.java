@@ -3,9 +3,12 @@ package org.srm.mall.other.app.service;
 import org.srm.mall.order.api.dto.PreRequestOrderDTO;
 import org.srm.mall.order.api.dto.PreRequestOrderResponseDTO;
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
+import org.srm.mall.other.api.dto.WatsonsAddressDTO;
 import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.domain.entity.ShoppingCart;
+import org.srm.mall.region.api.dto.AddressDTO;
+import org.srm.mall.region.domain.entity.Address;
 
 import java.util.List;
 
@@ -41,4 +44,24 @@ public interface WatsonsShoppingCartService {
      * @return
      */
     PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList);
+
+    /**
+     * 根据送货方式仓转店或者直送自动带出地址区域和详细地址
+     *
+     * @param organizationId
+     * @param watsonsOrganizationCode
+     * @param watsonsOrganizationId
+     * @return
+     */
+    List<WatsonsAddressDTO> checkAddress(Long organizationId, Long watsonsOrganizationId, String watsonsOrganizationCode);
+
+    /**
+     *  校验传来的购物车的详细地址和地址区域
+     *
+     * @param organizationId
+     * @param watsonsShoppingCartDTOS
+     * @return
+     */
+    String checkAddressValidate(Long organizationId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS);
+
 }
