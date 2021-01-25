@@ -14,7 +14,6 @@ import org.srm.mall.other.domain.entity.ProjectCost;
  *
  * @author jianhao.zhang01@hand-china.com 2021/01/07 18:30
  */
-
 @Component
 public class WatsonsProjectCostRemoteServiceFallbackImpl implements FallbackFactory<WatsonsProjectCostRemoteService> {
 
