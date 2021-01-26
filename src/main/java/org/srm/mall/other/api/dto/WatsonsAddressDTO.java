@@ -45,7 +45,7 @@ public class WatsonsAddressDTO {
     /**
      * 商城对应的地区等级
      */
-    private Integer mallRegionLevel;
+    private Long mallRegionLevel;
 
     /**
      * 百度地区编码
