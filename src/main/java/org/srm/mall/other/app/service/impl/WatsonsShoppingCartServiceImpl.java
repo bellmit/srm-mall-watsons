@@ -262,7 +262,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                         message = checkCeInfoRes.getBody();
                     }
                     logger.error("check CE info for order total amount error! {}",watsonsPreRequestOrderDTO.getCeId());
-                    throw new CommonException("CE号"+watsonsPreRequestOrderDTO.getCeNumber()+"检验报错,"+message);
+                    throw new CommonException("检验CE号"+watsonsPreRequestOrderDTO.getCeNumber()+"报错,"+message);
                 }
                 logger.info("check CE info for order total amount success! {}" ,watsonsPreRequestOrderDTO.getCeId());
             }
