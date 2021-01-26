@@ -205,6 +205,7 @@ srm:
     topic-config-ref:
       smal_auto_create_agreement: SMAL_AUTO_CREATE_AGREEMENT_DEV
       srm-mall-test-demo: wangmin-test
+      smal_order_confirm: ${SMAL_ORDER_CONFIRM_TOPIC:SMAL_OMS_ORDER_DEV_ONLINE}
     open-async-message-send: true
 
 

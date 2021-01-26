@@ -7,6 +7,7 @@ import io.choerodon.core.exception.CommonException;
 import io.choerodon.core.oauth.CustomUserDetails;
 import io.choerodon.core.oauth.DetailsHelper;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.servicecomb.pack.omega.context.annotations.SagaStart;
 import org.hzero.core.base.BaseConstants;
 import org.hzero.core.message.MessageAccessor;
 import org.hzero.core.util.ResponseUtils;
@@ -77,6 +78,7 @@ import org.srm.mall.region.api.dto.RegionDTO;
 import org.srm.mall.region.domain.entity.Address;
 import org.srm.mall.region.domain.entity.Region;
 import org.srm.mall.region.domain.repository.AddressRepository;
+import org.srm.mq.service.producer.MessageProducer;
 import org.srm.web.annotation.Tenant;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -179,6 +181,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Autowired
     private WatsonsCeInfoRemoteService watsonsCeInfoRemoteService;
 
+    @Autowired
+    private MessageProducer messageProducer;
+
 
     @Override
     public List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart) {
@@ -204,6 +209,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     }
 
     @Override
+    @SagaStart
     @Transactional(rollbackFor = Exception.class)
     public PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
 //        //进行ceNo和discription存表
@@ -372,6 +378,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             BeanUtils.copyProperties(result, preRequestOrderResponseDTO);
             //回调协同
             mallOrderAsyncTask.synCallBackBudgetMallOrderNum(tenantId, result.getPrHeaderList(), budgetSwitch);
+            //根据业务规则判断是否自动创建协议
+            List<String> list = preRequestOrderDTOList.stream().map(PreRequestOrderDTO::getPreRequestOrderNumber).collect(Collectors.toList());
+            messageProducer.sendMessageAfterTransactionCommit(tenantId, ScecConstants.EventCode.SMAL_OMS_ORDER, null, "ORDER_CONFIRM", list);
         } else {
             //创建预采购订单失败
             throw new CommonException(ScecConstants.ErrorCode.PRE_REQUEST_ORDER_FAILED);
