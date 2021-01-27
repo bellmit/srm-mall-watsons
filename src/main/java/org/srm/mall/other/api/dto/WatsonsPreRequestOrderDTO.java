@@ -58,13 +58,6 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
         this.itemName = itemName;
     }
 
-    public String getTransactionId() {
-        return transactionId;
-    }
-
-    public void setTransactionId(String transactionId) {
-        this.transactionId = transactionId;
-    }
 
     public String getStoreNo() {
         return storeNo;
