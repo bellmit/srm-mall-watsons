@@ -27,6 +27,8 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
     @ApiModelProperty(value = "CE编码描述")
     private String discription;
 
+    @ApiModelProperty(value = "CE明细名称")
+    private String itemName;
 
     @ApiModelProperty(value = "CEid")
     private int ceId;
@@ -46,6 +48,23 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
     @ApiModelProperty(value = "拆单完成后每个单子的费用承担店铺的code")
     private String storeNo;
 
+
+
+    public String getItemName() {
+        return itemName;
+    }
+
+    public void setItemName(String itemName) {
+        this.itemName = itemName;
+    }
+
+    public String getTransactionId() {
+        return transactionId;
+    }
+
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
+    }
 
     public String getStoreNo() {
         return storeNo;
