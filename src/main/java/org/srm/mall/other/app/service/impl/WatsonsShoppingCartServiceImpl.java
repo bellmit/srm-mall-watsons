@@ -218,19 +218,19 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Transactional(rollbackFor = Exception.class)
     public PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
         //进行ceNo和discription存表
-        for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
-            if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
-                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
-                    for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()) {
-                        allocationInfo.setCeNumber(watsonsPreRequestOrderDTO.getCeNumber());
-                        if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getDiscription())){
-                            allocationInfo.setCeDiscription(watsonsPreRequestOrderDTO.getDiscription());
-                        }
-                        allocationInfoRepository.updateByPrimaryKeySelective(allocationInfo);
-                    }
-                }
-            }
-        }
+//        for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
+//            if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
+//                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+//                    for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()) {
+//                        allocationInfo.setCeNumber(watsonsPreRequestOrderDTO.getCeNumber());
+//                        if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getDiscription())){
+//                            allocationInfo.setCeDiscription(watsonsPreRequestOrderDTO.getDiscription());
+//                        }
+//                        allocationInfoRepository.updateByPrimaryKeySelective(allocationInfo);
+//                    }
+//                }
+//            }
+//        }
 
         //CE NO和CMS合同号的校验顺序，先CMS，后CE NO
         //进行cms合同号取值

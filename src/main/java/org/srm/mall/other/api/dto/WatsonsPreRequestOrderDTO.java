@@ -30,9 +30,6 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
     @ApiModelProperty(value = "CE明细名称")
     private String itemName;
 
-    @ApiModelProperty(value = "SRM采购订单号")
-    private String transactionId;
-
     @ApiModelProperty(value = "CEid")
     private int ceId;
 
