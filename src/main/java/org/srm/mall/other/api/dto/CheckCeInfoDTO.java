@@ -8,14 +8,21 @@ import java.math.BigDecimal;
  */
 public class CheckCeInfoDTO {
 
-
+    /*
+        ceId
+     */
     private Integer ceId;
 
+    /*
+        该订单未含税价格
+     */
     private BigDecimal changeAmount;
 
+    /*
+        ce明细名称
+     */
     private String itemName;
 
-    private String transactionId;
 
     public String getItemName() {
         return itemName;
@@ -25,13 +32,6 @@ public class CheckCeInfoDTO {
         this.itemName = itemName;
     }
 
-    public String getTransactionId() {
-        return transactionId;
-    }
-
-    public void setTransactionId(String transactionId) {
-        this.transactionId = transactionId;
-    }
 
     public Integer getCeId() {
         return ceId;
