@@ -33,4 +33,23 @@ public interface WatsonsConstants {
          */
         public static final String PC_NUM = "pcNum";
     }
+    public final class ValueType {
+        private ValueType() {
+        }
+
+        /**
+         * 字符串
+         */
+        public static final String STRING = "String";
+
+        /**
+         * 字符串
+         */
+        public static final String INT = "Int";
+
+        /**
+         * 其他 预定义的维度使用
+         */
+        public static final String OTHER = "OTHER";
+    }
 }
