@@ -131,12 +131,12 @@ public class WatsonsAddressHandler implements IJobHandler {
     private void selectInvOrgAddress(Long tenantId, List<WatsonsAddressDTO> list){
         List<Long> invOrganizationIdList = list.stream().map(WatsonsAddressDTO::getInvOrganizationId).collect(Collectors.toList());
         List<WatsonsAddressDTO> resultList = watsonsAddressRepository.selectInvorgAddress(invOrganizationIdList, tenantId);
-        resultList = resultList.stream().filter(s -> !StringUtils.isEmpty(s.getAddress()) && !ObjectUtils.isEmpty(s.getCompanyId())).collect(Collectors.toList());
+        CompanyDTO companyDTO = companyRepository.selectByCompanyName("屈臣氏");
+        resultList = resultList.stream().filter(s -> !StringUtils.isEmpty(s.getAddress()) && companyDTO != null && !ObjectUtils.isEmpty(companyDTO.getCompanyId())).collect(Collectors.toList());
         if (CollectionUtils.isEmpty(resultList)){
             return;
         }
         //公司id使用‘屈臣氏’公司的公司id
-        CompanyDTO companyDTO = companyRepository.selectByCompanyName("屈臣氏");
         Map<Long, WatsonsAddressDTO> map = resultList.stream().collect(Collectors.toMap(WatsonsAddressDTO::getInvOrganizationId, Function.identity(), (k1, k2) -> k1));
         for (WatsonsAddressDTO address : list){
             WatsonsAddressDTO watsonsAddressDTO = map.get(address.getInvOrganizationId());

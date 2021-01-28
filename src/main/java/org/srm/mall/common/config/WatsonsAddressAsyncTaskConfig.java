@@ -23,11 +23,11 @@ public class WatsonsAddressAsyncTaskConfig {
     public ThreadPoolTaskExecutor getAddressExecutor() {
         ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
         // 设置核心线程数
-        taskExecutor.setCorePoolSize(16);
+        taskExecutor.setCorePoolSize(5);
         // 设置最大线程数
-        taskExecutor.setMaxPoolSize(100);
+        taskExecutor.setMaxPoolSize(5);
         // 设置队列容量
-        taskExecutor.setQueueCapacity(1000);
+        taskExecutor.setQueueCapacity(100000);
         // 设置线程活跃时间（秒）
         taskExecutor.setKeepAliveSeconds(60);
         // 设置默认线程名称
