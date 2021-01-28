@@ -27,8 +27,11 @@ import org.srm.mall.other.api.dto.ShoppingCartDTO;
 import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
+import org.srm.mall.other.domain.repository.WatsonsItemRepository;
 import org.srm.mall.platform.api.dto.PrHeaderCreateDTO;
 import org.srm.mall.platform.api.dto.PrLineCreateDTO;
+import org.srm.mall.product.api.dto.QueryItemCodeDTO;
+import org.srm.mall.product.app.service.ProductCommonService;
 import org.srm.mall.region.domain.entity.Address;
 import org.srm.mall.region.domain.entity.MallRegion;
 import org.srm.mall.region.domain.repository.MallRegionRepository;
@@ -49,6 +52,10 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
     private SmodrRemoteService smodrRemoteService;
     @Autowired
     private MallRegionRepository mallRegionRepository;
+    @Autowired
+    private ProductCommonService productCommonService;
+    @Autowired
+    private WatsonsItemRepository watsonsItemRepository;
 
     @Override
     @Transactional
@@ -66,6 +73,11 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
                 batchNumMap.put(Optional.ofNullable(preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId()),batchNum);
             }
             OmsOrderDto omsOrderDto = self().omsOrderDtoBuilder(tenantId, preRequestOrderDTO, batchNum);
+            //一级品类信息
+            omsOrderDto.getOrder().setAttributeBigint10(preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId());
+            QueryItemCodeDTO queryItemCode = watsonsItemRepository.selectItemByCode(tenantId,preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId());
+            omsOrderDto.getOrder().setAttributeVarchar10(queryItemCode.getCategoryCode());
+            omsOrderDto.getOrder().setAttributeVarchar11(queryItemCode.getCategoryName());
             //设置个性化字段
             List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList = preRequestOrderDTO.getWatsonsShoppingCartDTOList();
             if(Objects.nonNull(watsonsShoppingCartDTOList)){
