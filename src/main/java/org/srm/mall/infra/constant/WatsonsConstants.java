@@ -57,4 +57,35 @@ public interface WatsonsConstants {
          */
         public static final String OTHER = "OTHER";
     }
+
+
+    public static class operationTypeCode{
+
+        /**
+         * 占用
+         */
+        public static final String SPCM_OCCUPY = "OCCUPY";
+
+        /**
+         * 取消
+         */
+        public static final String SPCM_CANCEL = "CANCEL";
+        /**
+         * 更新
+         */
+        public static final String SPCM_UPDATE = "UPDATE";
+        /**
+         * 扣减-用于后续财务模块使用
+         */
+        public static final String SPCM_DEDUCT = "DEDUCT";
+    }
+
+    public static class smalSourceType{
+
+        /**
+         * 商城预占
+         */
+        public static final String SMAL_PRE = "SMAL_PRE";
+    }
+
 }
