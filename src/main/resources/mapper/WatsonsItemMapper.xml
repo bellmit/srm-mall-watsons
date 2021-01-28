@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.srm.mall.other.infra.mapper.WatsonsItemMapper">
+
+    <select id="selectItemByCode" resultType="org.srm.mall.product.api.dto.QueryItemCodeDTO">
+        SELECT
+        sic.category_id,
+        sic.category_code,
+        sic.category_name
+        FROM
+        smdm_item_category sic
+        WHERE
+        sic.tenant_id = #{tenantId}
+        AND sic.category_id = #{itemCategoryId}
+    </select>
+</mapper>
