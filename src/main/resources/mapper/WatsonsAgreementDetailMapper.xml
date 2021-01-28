@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.srm.mall.agreement.infra.mapper.WatsonsAgreementDetailMapper">
+    <select id="queryExistsAuth" resultType="org.srm.mall.agreement.domain.entity.WatsonsAuthorityList">
+        select saol.authority_list_id,
+        saol.line_seq,
+        saol.authority_list_code,
+        saol.authority_list_name,
+        saol.agreement_header_num,
+        saol.effective_start_date,
+        saol.effective_end_date,
+        saol.control_way_code,
+        saol.all_user_enable,
+        saol.enable_flag,
+        saol.show_flag,
+        saol.effective_flag,
+        saol.version_num,
+        saol.delete_flag,
+        saol.auth_dimension,
+        saol.agreement_type,
+        saol.agreement_header_id,
+        saol.all_area_enable,
+        saol.all_org_enable,
+        saol.all_sku_enable,
+        saol.status_code,
+        saol.tenant_id,
+        saol.remark,
+        saol.object_version_number,
+        saol.creation_date,
+        saol.created_by,
+        saol.last_updated_by,
+        saol.last_update_date,
+        saol.automatically_flag,
+        sad.agreement_detail_id
+        from smal_agreement_detail sad
+        join smal_agreement_line sal
+        on sad.agreement_line_id = sal.agreement_line_id and sad.tenant_id = sal.tenant_id
+        join smal_price_lib_match splm on sal.source_from_number = splm.match_id and sal.source_from = 'PRICE'  and sal.tenant_id=splm.tenant_id
+        join sagm_authority_list saol
+        on sal.agreement_id = saol.agreement_header_id and saol.agreement_type = 'PUR_AGREEMENT' and saol.automatically_flag=1
+        <foreach collection="values" item="value">
+            and not exists(
+            select 1
+            from sagm_price_lib_scope spls
+            join sagm_price_lib_scope_ln splsl
+            on spls.scope_id = splsl.scope_id and spls.tenant_id = splsl.tenant_id and
+            spls.include_all_flag = 0
+            left join sagm_auth_dimension_ref sadr
+            on sadr.dimension_code = #{value.dimensionCode}
+            left join
+            <choose>
+                <when test="value.valueType=='Int'">
+                    sagm_auth_dim_int_value
+                    sadiv on splsl.data_id = sadiv.data_int
+                </when>
+                <when test="value.valueType=='String'">
+                    sagm_auth_dim_string_value
+                    sadiv on case when splsl.data_id is not null then splsl.data_id  else splsl.data_code end= sadiv.data_string
+                </when>
+            </choose>
+            and sadr.auth_dimension_ref_id = sadiv.auth_dimension_ref_id
+            where spls.match_id = splm.match_id
+            and spls.tenant_id = splm.tenant_id
+            and sadr.authority_list_id = saol.authority_list_id
+            and sadr.tenant_id = saol.tenant_id
+            and spls.dimension_code = #{value.priceScope}
+            and sadiv.dimension_value_id is null
+            union
+            select 1
+            from sagm_price_lib_scope spls
+            left join sagm_auth_dimension_ref sadr
+            on sadr.dimension_code = #{value.dimensionCode}
+            where spls.match_id = splm.match_id
+            and spls.tenant_id = splm.tenant_id
+            and sadr.authority_list_id = saol.authority_list_id
+            and sadr.tenant_id = saol.tenant_id
+            and spls.dimension_code = #{value.priceScope}
+            and spls.include_all_flag = 1
+            and sadr.auth_dimension_ref_id is not null
+            union
+            select 1
+            from sagm_auth_dimension_ref sadr
+            join
+            <choose>
+                <when test="value.valueType=='Int'">
+                    sagm_auth_dim_int_value
+                </when>
+                <when test="value.valueType=='String'">
+                    sagm_auth_dim_string_value
+                </when>
+            </choose>
+            sadiv
+            on sadr.auth_dimension_ref_id = sadiv.auth_dimension_ref_id
+            left join sagm_price_lib_scope spls on spls.dimension_code = #{value.priceScope}
+            left join sagm_price_lib_scope_ln splsl
+            on spls.scope_id = splsl.scope_id and spls.tenant_id = splsl.tenant_id
+            <choose>
+                <when test="value.valueType=='Int'">
+                    and splsl.data_id = sadiv.data_int
+                </when>
+                <when test="value.valueType=='String'">
+                    and case when splsl.data_id is not null then splsl.data_id else splsl.data_code end=
+                    sadiv.data_string
+                </when>
+            </choose>
+            where sadr.authority_list_id = saol.authority_list_id
+            and sadr.tenant_id = saol.tenant_id
+            and spls.match_id = splm.match_id
+            and spls.tenant_id = splm.tenant_id
+            and sadr.dimension_code =#{value.dimensionCode}
+            and splsl.scope_line_id is null
+            )
+        </foreach>
+        where sad.agreement_detail_id in
+        <foreach collection="agreementDetails" item="agreementDetail" open="(" separator="," close=")">
+            #{agreementDetail.agreementDetailId}
+        </foreach>
+    </select>
+    <select id="queryPriceScope" resultType="org.srm.mall.agreement.domain.entity.WatsonsPriceLibScope">
+        select sad.agreement_detail_id,
+        sal.agreement_id,
+        spls.dimension_code,
+        spls.scope_id
+        from smal_agreement_detail sad
+        join smal_agreement_line sal
+        on sad.agreement_line_id = sal.agreement_line_id and sad.tenant_id = sal.tenant_id
+        join smal_price_lib_match splm on sal.source_from_number = splm.match_id and sal.source_from = 'PRICE'
+        and sal.tenant_id=splm.tenant_id
+        left join sagm_price_lib_scope spls on splm.match_id=spls.match_id and splm.tenant_id=spls.tenant_id
+        where sad.agreement_detail_id in
+        <foreach collection="agreementDetails" item="agreementDetail" open="(" separator="," close=")">
+            #{agreementDetail.agreementDetailId}
+        </foreach>
+    </select>
+</mapper>
