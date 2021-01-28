@@ -50,6 +50,12 @@ public class SmdmRemoteNewServiceFallbackImpl implements FallbackFactory<SmdmRem
                 logger.error("query LevelPath By itemId error! param itemId :{}",itemId);
                 return null;
             }
+
+            @Override
+            public ResponseEntity<String> queryItemById(Long organizationId,Long categoryId){
+                logger.error("query itemCategory info By itemCategoryId error! param itemCategoryId :{}",categoryId);
+                return null;
+            }
         };
     }
 }
