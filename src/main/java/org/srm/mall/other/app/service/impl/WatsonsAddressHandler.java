@@ -8,15 +8,21 @@ import org.hzero.boot.scheduler.infra.enums.ReturnT;
 import org.hzero.boot.scheduler.infra.handler.IJobHandler;
 import org.hzero.boot.scheduler.infra.tool.SchedulerTool;
 import org.hzero.core.base.BaseConstants;
+import org.hzero.mybatis.domian.Condition;
+import org.hzero.mybatis.util.Sqls;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
+import org.srm.mall.context.dto.CompanyDTO;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.other.api.dto.WatsonsAddressDTO;
 import org.srm.mall.other.async.WatsonsAddressAsyncTask;
 import org.srm.mall.other.domain.repository.WatsonsAddressRepository;
+import org.srm.mall.platform.domain.repository.CompanyRepository;
+import org.srm.mall.region.domain.entity.Region;
+import org.srm.mall.region.domain.repository.RegionRepository;
 import org.srm.web.annotation.Tenant;
 
 import java.text.ParseException;
@@ -40,6 +46,12 @@ public class WatsonsAddressHandler implements IJobHandler {
 
     @Autowired
     private WatsonsAddressAsyncTask addressAsyncTask;
+
+    @Autowired
+    private CompanyRepository companyRepository;
+
+    @Autowired
+    private RegionRepository regionRepository;
 
     @Override
     public ReturnT execute(Map<String, String> map, SchedulerTool tool) {
@@ -119,16 +131,18 @@ public class WatsonsAddressHandler implements IJobHandler {
     private void selectInvOrgAddress(Long tenantId, List<WatsonsAddressDTO> list){
         List<Long> invOrganizationIdList = list.stream().map(WatsonsAddressDTO::getInvOrganizationId).collect(Collectors.toList());
         List<WatsonsAddressDTO> resultList = watsonsAddressRepository.selectInvorgAddress(invOrganizationIdList, tenantId);
-        resultList = resultList.stream().filter(s -> !StringUtils.isEmpty(s.getAddress()) && !ObjectUtils.isEmpty(s.getCompanyId())).collect(Collectors.toList());
+        CompanyDTO companyDTO = companyRepository.selectByCompanyName("屈臣氏");
+        resultList = resultList.stream().filter(s -> !StringUtils.isEmpty(s.getAddress()) && companyDTO != null && !ObjectUtils.isEmpty(companyDTO.getCompanyId())).collect(Collectors.toList());
         if (CollectionUtils.isEmpty(resultList)){
             return;
         }
+        //公司id使用‘屈臣氏’公司的公司id
         Map<Long, WatsonsAddressDTO> map = resultList.stream().collect(Collectors.toMap(WatsonsAddressDTO::getInvOrganizationId, Function.identity(), (k1, k2) -> k1));
         for (WatsonsAddressDTO address : list){
             WatsonsAddressDTO watsonsAddressDTO = map.get(address.getInvOrganizationId());
             if (watsonsAddressDTO != null){
                 address.setAddress(watsonsAddressDTO.getAddress());
-                address.setCompanyId(watsonsAddressDTO.getCompanyId());
+                address.setCompanyId(companyDTO == null ? null : companyDTO.getCompanyId());
             }
         }
     }
@@ -177,22 +191,33 @@ public class WatsonsAddressHandler implements IJobHandler {
         }
         //查询对应的映射
         List<WatsonsAddressDTO> mappingAddressList = watsonsAddressRepository.selectRegionMapping(adCodeList);
+        List<Region> mallRegionList = regionRepository.selectByCondition(Condition.builder(Region.class).andWhere(Sqls.custom().andIn(Region.FIELD_REGION_CODE, adCodeList)).build());
         if (CollectionUtils.isEmpty(mappingAddressList)){
             tool.error("更新商城地址失败，百度adcode与商城地址无映射，无映射的百度adcodes为：" + adCodeList);
             return new ArrayList<>();
         }
         Map<Integer, WatsonsAddressDTO> mappingAddressMap = mappingAddressList.stream().collect(Collectors.toMap(WatsonsAddressDTO::getAdCode, Function.identity(), (k1, k2) -> k1));
+        Map<String, Region> mallRegionMap = mallRegionList.stream().collect(Collectors.toMap(Region::getRegionCode, Function.identity(), (k1, k2) -> k1));
         for (WatsonsAddressDTO externalAddress : successList){
             //将查询出来的商城地址信息复制到结果对象中
             externalAddress.setAdCode(externalAddress.getAddressResult().getAddressComponent().getAdcode());
             WatsonsAddressDTO temp = mappingAddressMap.get(externalAddress.getAdCode());
-            if (temp == null){
+            Region region = mallRegionMap.get(String.valueOf(externalAddress.getAdCode()));
+            if (temp == null && region == null){
+                //判断是否商城也不存在
                 externalAddress.setSuccess(false);
                 externalAddress.setResultMsg("更新商城地址失败，百度adcode与商城地址无映射，无映射的百度adcodes为：" + adCodeList);
             } else {
-                externalAddress.setMallLevelPath(temp.getMallLevelPath());
-                externalAddress.setMallRegionId(temp.getMallRegionId());
-                externalAddress.setMallRegionLevel(temp.getMallRegionLevel());
+                if (temp != null){
+                    externalAddress.setMallLevelPath(temp.getMallLevelPath());
+                    externalAddress.setMallRegionId(temp.getMallRegionId());
+                    externalAddress.setMallRegionLevel(temp.getMallRegionLevel());
+                }else {
+                    externalAddress.setMallLevelPath(region.getLevelPath());
+                    externalAddress.setMallRegionId(region.getRegionId());
+                    externalAddress.setMallRegionLevel(region.getLevelNumber());
+                }
+
             }
         }
         return successList;
