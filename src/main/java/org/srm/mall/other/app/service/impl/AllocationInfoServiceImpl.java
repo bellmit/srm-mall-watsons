@@ -336,7 +336,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             logger.info("query itemCategory info By itemCategoryId success! param itemCategoryId: {}", itemCategoryId);
             ItemCategoryDTO itemCategoryResultOne = ResponseUtils.getResponse(itemCategoryInfoRes, new TypeReference<ItemCategoryDTO>() {
             });
-            if(ObjectUtils.isEmpty(itemCategoryResultOne.getLevelPath())){
+            if(ObjectUtils.isEmpty(itemCategoryResultOne) || ObjectUtils.isEmpty(itemCategoryResultOne.getLevelPath())){
                 throw new CommonException("根据物料品类id查询物料品类信息为空!");
             }
             String levelPath = itemCategoryResultOne.getLevelPath();
@@ -353,7 +353,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             logger.info("query LevelPath By ItemId success, param itemId: {}", itemId);
             ItemCategoryDTO itemCategoryResultOne = ResponseUtils.getResponse(levelPathByItemId, new TypeReference<ItemCategoryDTO>() {
             });
-            if(ObjectUtils.isEmpty(itemCategoryResultOne.getLevelPath())){
+            if(ObjectUtils.isEmpty(itemCategoryResultOne) || ObjectUtils.isEmpty(itemCategoryResultOne.getLevelPath())){
                 throw new CommonException("根据物料id查询物料品类信息为空!");
             }
             String levelPath = itemCategoryResultOne.getLevelPath();
@@ -370,7 +370,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             logger.info("query itemCategory info By itemCategoryId success! param itemCategoryId: {}", itemCategoryId);
             ItemCategoryDTO itemCategoryResultOne = ResponseUtils.getResponse(itemCategoryInfoRes, new TypeReference<ItemCategoryDTO>() {
             });
-            if(ObjectUtils.isEmpty(itemCategoryResultOne.getLevelPath())){
+            if(ObjectUtils.isEmpty(itemCategoryResultOne) || ObjectUtils.isEmpty(itemCategoryResultOne.getLevelPath())){
                 throw new CommonException("根据物料品类id查询物料品类信息为空!");
             }
             String levelPath = itemCategoryResultOne.getLevelPath();
@@ -400,7 +400,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                     logger.info("query LevelPath By ItemId success, param itemId: {}", itemId);
                     ItemCategoryDTO itemCategoryResultTwo = ResponseUtils.getResponse(levelPathByItemId, new TypeReference<ItemCategoryDTO>() {
                     });
-                    if(ObjectUtils.isEmpty(itemCategoryResultTwo.getLevelPath())){
+                    if(ObjectUtils.isEmpty(itemCategoryResultTwo)  || ObjectUtils.isEmpty(itemCategoryResultTwo.getLevelPath())){
                         throw new CommonException("根据物料id查询物料品类信息为空!");
                     }
                     String levelPathNew = itemCategoryResultTwo.getLevelPath();
