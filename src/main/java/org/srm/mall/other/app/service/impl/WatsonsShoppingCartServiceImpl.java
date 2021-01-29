@@ -299,13 +299,13 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     logger.error("occupy CMS price error! param pcOccupyDTOS: {}", pcOccupyDTOS);
                     throw new CommonException("CMS金额预占出现异常!");
                 }
-                logger.info("occupy CMS price error! param pcOccupyDTOS: {}", pcOccupyDTOS);
                 ItfBaseBO itfBaseBO  = ResponseUtils.getResponse(cmsOccupyResult, new TypeReference<ItfBaseBO>() {
                 });
                 if(itfBaseBO.getErrorFlag() == 1 && !ObjectUtils.isEmpty(itfBaseBO.getErrorMessage())){
                     logger.error("occupy CMS price error! param pcOccupyDTOS: {}", pcOccupyDTOS);
                     throw new CommonException("预占CMS合同号报错,错误原因:",itfBaseBO.getErrorMessage());
                 }
+                logger.info("occupy CMS price success! param pcOccupyDTOS: {}", pcOccupyDTOS);
             }
         }
 
