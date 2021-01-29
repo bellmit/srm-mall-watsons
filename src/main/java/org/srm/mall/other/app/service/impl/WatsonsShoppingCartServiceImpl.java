@@ -240,21 +240,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
 
 
-//        进行cms合同号取值
-        preRequestOrderDTOList.stream().forEach(watsonsPreRequestOrderDTO -> {
-            for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
-                AgreementLine agreementLine = agreementLineRepository.selectByPrimaryKey(watsonsShoppingCartDTO.getAgreementLineId());
-                //attributeVarchar1是cms合同号
-                if(ObjectUtils.isEmpty(agreementLine)){
-                    logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的协议行!");
-                }
-                if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
-                    logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的CMS合同号!");
-                }
-                watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
-            }
-        });
-
         //进行cms合同号校验
         for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
             //拆单完后的每个订单的所有商品的费用分配不一样  但是放一起做cms校验  所以每个订单所有的商品校验一次
@@ -1086,6 +1071,20 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
                 watsonsPreRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
             }
+            //        进行cms合同号取值
+            watsonsPreRequestOrderDTOList.stream().forEach(watsonsPreRequestOrderDTO -> {
+                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+                    AgreementLine agreementLine = agreementLineRepository.selectByPrimaryKey(watsonsShoppingCartDTO.getAgreementLineId());
+                    //attributeVarchar1是cms合同号
+                    if(ObjectUtils.isEmpty(agreementLine)){
+                        logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的协议行!");
+                    }
+                    if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
+                        logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的CMS合同号!");
+                    }
+                    watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
+                }
+            });
             // handleCheck()
             return watsonsPreRequestOrderDTOList;
         }
