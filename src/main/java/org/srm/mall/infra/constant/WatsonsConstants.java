@@ -31,6 +31,11 @@ public interface WatsonsConstants {
         /**
          * CMS合同号
          */
-        public static final String PC_NUM = "pcNum";
+        public static final String CONTRACT_NUM = "contractNum";
+
+        /**
+         * 最大订货量
+         */
+        public static final String LAST_PURCHASE_QUANTITY = "lastPurchaseQuantity";
     }
 }
