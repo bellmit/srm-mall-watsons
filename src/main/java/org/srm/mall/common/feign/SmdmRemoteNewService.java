@@ -42,4 +42,12 @@ public interface SmdmRemoteNewService {
     @RequestMapping(method = RequestMethod.GET, path = "/{organizationId}/item-categories/queryLevelPathByItemId")
     ResponseEntity<String> queryLevelPathByItemId(@PathVariable Long organizationId, @RequestParam("itemId") Long itemId);
 
+    /**
+     * 根据一级品类id查询编码、名称
+     * @param organizationId
+     * @param categoryId
+     * @return
+     */
+    @RequestMapping(method = RequestMethod.GET, path = "/{organizationId}/item-categories/{categoryId}")
+    ResponseEntity<String> queryItemById(@PathVariable Long organizationId, @Encrypt @PathVariable Long categoryId);
 }
