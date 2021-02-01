@@ -21,19 +21,19 @@ public class WatsonsPriceLibMatchServiceImpl extends PriceLibMatchServiceImpl {
 
     private static final Logger logger = LoggerFactory.getLogger(WatsonsPriceLibMatchServiceImpl.class);
 
-//
-//    @Override
-//    protected void handExpandField(PriceLibMatch priceLibMatch, Map<String, PriceLibLnDTO> priceLibLnDTOMap) {
-//        super.handExpandField(priceLibMatch, priceLibLnDTOMap);
-//        if (priceLibLnDTOMap.containsKey(WatsonsConstants.PriceExpandField.PC_NUM)) {
-//            String pcNum = priceLibMatch.getAttributeVarchar1();
-//            try {
-//                pcNum = priceLibLnDTOMap.get(WatsonsConstants.PriceExpandField.PC_NUM).getDimensionValue();
-//            } catch (Exception e) {
-//                logger.error("error is {}", ExceptionUtils.getMessage(e));
-//            }
-//            priceLibMatch.setAttributeVarchar1(pcNum);
-//        }
-//    }
+
+    @Override
+    protected void handExpandField(PriceLibMatch priceLibMatch, Map<String, PriceLibLnDTO> priceLibLnDTOMap) {
+        super.handExpandField(priceLibMatch, priceLibLnDTOMap);
+        if (priceLibLnDTOMap.containsKey(WatsonsConstants.PriceExpandField.PC_NUM)) {
+            String pcNum = priceLibMatch.getAttributeVarchar1();
+            try {
+                pcNum = priceLibLnDTOMap.get(WatsonsConstants.PriceExpandField.PC_NUM).getDimensionValue();
+            } catch (Exception e) {
+                logger.error("error is {}", ExceptionUtils.getMessage(e));
+            }
+            priceLibMatch.setAttributeVarchar1(pcNum);
+        }
+    }
 
 }
