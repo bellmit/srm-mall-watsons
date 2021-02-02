@@ -38,10 +38,10 @@ public class PcOccupyDTO {
     private Long tenantId;
 
     @ApiModelProperty(value = "来源单据ID" )
-    private Long suorceId;
+    private Long sourceId;
 
     @ApiModelProperty(value = "来源单据类型" )
-    private String suorceType;
+    private String sourceType;
 
     @ApiModelProperty(value = "合同ID", required = true)
     @NotNull
@@ -134,25 +134,24 @@ public class PcOccupyDTO {
     /**
      * @return 来源单据ID
      */
-    public Long getSuorceId() {
-        return suorceId;
+    public Long getSourceId() {
+        return sourceId;
     }
 
-    public void setSuorceId(Long suorceId) {
-        this.suorceId = suorceId;
+    public void setSourceId(Long sourceId) {
+        this.sourceId = sourceId;
     }
 
     /**
      * @return 来源单据类型
      */
-    public String getSuorceType() {
-        return suorceType;
+    public String getSourceType() {
+        return sourceType;
     }
 
-    public void setSuorceType(String suorceType) {
-        this.suorceType = suorceType;
+    public void setSourceType(String sourceType) {
+        this.sourceType = sourceType;
     }
-
     /**
      * @return 合同ID
      */
@@ -182,4 +181,5 @@ public class PcOccupyDTO {
     public void setOperationType(String operationType) {
         this.operationType = operationType;
     }
+
 }
