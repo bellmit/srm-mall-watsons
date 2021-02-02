@@ -54,6 +54,7 @@ public class WatsonsPriceLibMatchServiceImpl extends PriceLibMatchServiceImpl {
     protected void convertData(AgreementLine agreementLine, PriceLibMatch priceLibMatch) {
         super.convertData(agreementLine, priceLibMatch);
         // 协议自动升级处理
+        agreementLine.setAttributeVarchar1(priceLibMatch.getAttributeVarchar1());
         agreementLine.setPurchaseQuantityLimit(priceLibMatch.getAttributeDecimal1());
     }
 
