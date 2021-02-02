@@ -58,7 +58,6 @@ public class AllocationInfo extends AuditDomain {
     public static final String FIELD_ADDRESS_REGION = "addressRegion";
     public static final String FIELD_FULL_ADDRESS = "fullAddress";
     public static final String FIELD_LAST_REGION_ID = "lastRegionId";
-
     public static final String FIELD_CE_NUMBER = "ceNumber";
     public static final String FIELD_CE_DISCRIPTION = "ceDiscription";
 
@@ -86,12 +85,10 @@ public class AllocationInfo extends AuditDomain {
     @NotNull
     @Encrypt
     private Long cartId;
-
     @ApiModelProperty(value = "送货方式", required = true)
     @LovValue(lovCode = "SCUX.WATSONS.DELIVERY_METHOD", meaningField = "deliveryTypeMeaning")
     @NotBlank
     private String deliveryType;
-
     @ApiModelProperty(value = "地址id", required = true)
     @NotNull
     @Encrypt
@@ -151,7 +148,6 @@ public class AllocationInfo extends AuditDomain {
     private String ceNumber;
     @ApiModelProperty(value = "ce描述", required = true)
     private String ceDiscription;
-
 
 //
 // 非数据库字段

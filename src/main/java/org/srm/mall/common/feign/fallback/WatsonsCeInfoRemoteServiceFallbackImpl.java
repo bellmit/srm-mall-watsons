@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.srm.mall.common.feign.WatsonsCeInfoRemoteService;
 import org.srm.mall.common.feign.WatsonsProjectCostRemoteService;
+import org.srm.mall.other.api.dto.CheckCeInfoDTO;
 import org.srm.mall.other.domain.entity.ProjectCost;
 
 import java.math.BigDecimal;
@@ -33,8 +34,8 @@ public class WatsonsCeInfoRemoteServiceFallbackImpl implements FallbackFactory<W
             }
 
             @Override
-            public ResponseEntity<String> checkCeInfo(Long tenantId, int ceId, BigDecimal changeAmount) {
-                LOGGER.error("check CE info error :{}", ceId);
+            public ResponseEntity<String> checkCeInfo(Long tenantId, CheckCeInfoDTO checkCeInfoDTO) {
+                LOGGER.error("check CE info error :{}", checkCeInfoDTO);
                 return null;
             }
         };
