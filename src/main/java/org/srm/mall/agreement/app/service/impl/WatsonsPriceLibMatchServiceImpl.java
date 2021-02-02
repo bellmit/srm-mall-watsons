@@ -61,8 +61,8 @@ public class WatsonsPriceLibMatchServiceImpl extends PriceLibMatchServiceImpl {
     public AgreementLine generateAgreementLineFromPriceLibray(Long tenantId, List<AgreementUnit> agreementUnits, AgreementLine agreementLine, PriceLibMatch priceLibMatch) {
         AgreementLine line = super.generateAgreementLineFromPriceLibray(tenantId, agreementUnits, agreementLine, priceLibMatch);
         // 协议自动创建和界面创建转换
-        agreementLine.setAttributeVarchar1(priceLibMatch.getAttributeVarchar1());
-        agreementLine.setPurchaseQuantityLimit(priceLibMatch.getAttributeDecimal1());
+        line.setAttributeVarchar1(priceLibMatch.getAttributeVarchar1());
+        line.setPurchaseQuantityLimit(priceLibMatch.getAttributeDecimal1());
         return line;
     }
 }
