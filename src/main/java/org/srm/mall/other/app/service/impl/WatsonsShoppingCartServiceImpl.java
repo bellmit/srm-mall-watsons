@@ -250,8 +250,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 if(!ObjectUtils.isEmpty(watsonsShoppingCartDTO.getCmsNumber())){
                     PcOccupyDTO pcOccupyDTO = new PcOccupyDTO();
                     pcOccupyDTO.setTenantId(watsonsShoppingCartDTO.getTenantId());
-                    pcOccupyDTO.setSuorceId(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getAllocationId());
-                    pcOccupyDTO.setSuorceType(WatsonsConstants.smalSourceType.SMAL_PRE);
+                    pcOccupyDTO.setSourceId(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getAllocationId());
+                    pcOccupyDTO.setSourceType(WatsonsConstants.smalSourceType.SMAL_PRE);
                     //传商品的含税价
                     BigDecimal includeTaxPrice = new BigDecimal(0);
                     ProductDTO productDTO = productService.selectByProduct(watsonsShoppingCartDTO.getProductId(), tenantId, watsonsShoppingCartDTO.getCompanyId(), watsonsShoppingCartDTO.getPurchaseType(), watsonsShoppingCartDTO.getSecondRegionId(), watsonsShoppingCartDTO.getLevelPath());
