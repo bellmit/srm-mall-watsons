@@ -135,36 +135,7 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
             throw new CommonException(message);
         }
         OmsResultDTO omsResultDTO = ResponseUtils.getResponse(result, OmsResultDTO.class);
-        if (!omsResultDTO.getHasErrorFlag()) {
-            PurchaseRequestVO purchaseRequestVO = new PurchaseRequestVO();
-            purchaseRequestVO.setErrorNum(omsResultDTO.getFailedNum());
-            purchaseRequestVO.setHasErrorFlag(omsResultDTO.getHasErrorFlag() ? 1 : 0);
-            purchaseRequestVO.setSuccessNum(omsResultDTO.getSuccessNum());
-            purchaseRequestVO.setNeedPaymentAmount(omsResultDTO.getNeedPaymentAmount());
-            purchaseRequestVO.setLotNum(batchNumMap.entrySet().iterator().next().getValue());
-            purchaseRequestVO.setOrderJson(omsResultDTO.getOrderJson());
-
-            //设置回传协同参数
-            AdaptorCommonDTO<List<OmsOrderDto>> ret = JSONObject.parseObject(omsResultDTO.getOrderJson(),new com.alibaba.fastjson.TypeReference<AdaptorCommonDTO<List<OmsOrderDto>>>(){});
-            List<OmsOrderDto> retOrderDtoList = ret.getKey();
-            List<PrHeaderCreateDTO> prHeaderCreateDTOS = new ArrayList<>();
-            for(OmsOrderDto omsOrderDto : retOrderDtoList){
-                PrHeaderCreateDTO prHeaderCreateDTO = new PrHeaderCreateDTO();
-                prHeaderCreateDTO.setMallOrderNum(omsOrderDto.getOrder().getOrderCode());
-                List<PrLineCreateDTO> prLineCreateDTOList = new ArrayList<>();
-                for(OmsOrderEntry omsOrderEntry : omsOrderDto.getOrderEntryList()){
-                    PrLineCreateDTO prLineCreateDTO = new PrLineCreateDTO();
-                    prLineCreateDTO.setBudgetInfoList(omsOrderEntry.getBudgetInfoList());
-                    prLineCreateDTOList.add(prLineCreateDTO);
-                }
-                prHeaderCreateDTO.setPrLineCreateDTOList(prLineCreateDTOList);
-                prHeaderCreateDTOS.add(prHeaderCreateDTO);
-            }
-            purchaseRequestVO.setPrHeaderList(prHeaderCreateDTOS);
-            return purchaseRequestVO;
-        } else {
-            throw new CommonException(ScecConstants.ErrorCode.PRE_REQUEST_EC_ORDER_FAILED);
-        }
+        return self().returnVOBuilder(omsResultDTO,batchNumMap.entrySet().iterator().next().getValue());
     }
 
     @Override
