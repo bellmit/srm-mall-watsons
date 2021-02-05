@@ -83,7 +83,7 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
                             //费用承担部门
                             omsOrderEntry.setAttributeBigint7(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getCostDepartmentId());
                             //仓转店收货仓
-                            omsOrderEntry.setAttributeBigint5(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getReceiveWarehouseId());
+                            omsOrderEntry.setAttributeVarchar8(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getReceiveWarehouseCode());
                             //费用项目
                             omsOrderEntry.setAttributeVarchar5(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getProjectCostCode());
                             //费用项目子分类
