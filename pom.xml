@@ -10,7 +10,7 @@
 		<version>test-SNAPSHOT</version>
 	</parent>
 	<artifactId>srm-mall-watsons</artifactId>
-    <version>test-SNAPSHOT</version>
+    <version>1.11.2.RELEASE</version>
 	<dependencies>
 		<!--添加标准服务依赖,本示例中即为srm-iam-->
 		<dependency>
