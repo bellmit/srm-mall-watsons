@@ -6,7 +6,7 @@
     <version>test-SNAPSHOT</version>
   </parent>
   <artifactId>srm-mall-watsons</artifactId>
-  <version>1.11.3.RELEASE</version>
+  <version>1.11.4.RELEASE</version>
   <dependencies>
     <dependency>
       <groupId>org.srm</groupId>
