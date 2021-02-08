@@ -120,4 +120,20 @@
         AND
             hio.source_code != 'SYSTEM'
     </select>
+    <select id="checkAddressByInvOrganization" resultType="java.lang.Integer">
+        SELECT
+        COUNT(1)
+        FROM
+        smal_address sa
+        WHERE
+        <if test="tenantId != null and tenantId != ''">
+            sa.tenant_id = #{tenantId}
+        </if>
+        AND
+        sa.address_type = 'RECEIVER'
+        AND
+        <if test="organizationId != null and organizationId != ''">
+            sa.inv_organization_id = #{organizationId}
+        </if>
+    </select>
 </mapper>
