@@ -509,8 +509,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 return watsonsAddressDTOS;
             }else{
                 WhLovResultDTO infoDTO = allocationInfoRepository.selectInvInfoByInvId(watsonsOrganizationId, organizationId);
-                logger.error(infoDTO.getInventoryCode()+ infoDTO.getInventoryName()+"的相关地址信息不存在，请手工补充收货地址!");
-                throw new CommonException(infoDTO.getInventoryCode()+ infoDTO.getInventoryName()+"的相关地址信息不存在，请手工补充收货地址!");
+                logger.error(infoDTO.getInventoryCode()+"-"+infoDTO.getInventoryName()+"的相关地址信息不存在，请手工补充收货地址!");
+                throw new CommonException(infoDTO.getInventoryCode()+"-"+infoDTO.getInventoryName()+"的相关地址信息不存在，请手工补充收货地址!");
             }
         }
 
@@ -555,8 +555,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     return watsonsAddressDTOS;
                 }else {
                     AddressDTO infoDTO = allocationInfoRepository.selectIdByCode(organizationId, watsonsOrganizationCode);
-                    logger.error(infoDTO.getInvOrganizationCode()+ infoDTO.getInvOrganizationName()+"的相关地址信息不存在，请手工补充收货地址!");
-                    throw new CommonException(infoDTO.getInvOrganizationCode()+ infoDTO.getInvOrganizationName()+"的相关地址信息不存在，请手工补充收货地址!");
+                    logger.error(infoDTO.getInvOrganizationCode()+"-"+infoDTO.getInvOrganizationName()+"的相关地址信息不存在，请手工补充收货地址!");
+                    throw new CommonException(infoDTO.getInvOrganizationCode()+"-"+infoDTO.getInvOrganizationName()+"的相关地址信息不存在，请手工补充收货地址!");
                 }
             }else {
                 logger.warn("该库存组织code没有找到库存组织id!");
