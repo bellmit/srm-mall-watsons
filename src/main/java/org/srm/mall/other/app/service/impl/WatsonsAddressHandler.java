@@ -59,6 +59,7 @@ public class WatsonsAddressHandler implements IJobHandler {
         Date date = getSelectParamDate(tool);
         //查询屈臣氏的租户id
         Long tenantId = watsonsAddressRepository.selectTenantId(WatsonsConstants.TENANT_NUMBER);
+        //查经度 纬度  供货组织id  保证表里的时间要大于上次更新时间
         List<WatsonsAddressDTO> addressList = watsonsAddressRepository.selectUpdateAddressInfo(tenantId, date);
         if (CollectionUtils.isEmpty(addressList)){
             return ReturnT.SUCCESS;
@@ -130,13 +131,15 @@ public class WatsonsAddressHandler implements IJobHandler {
 
     private void selectInvOrgAddress(Long tenantId, List<WatsonsAddressDTO> list){
         List<Long> invOrganizationIdList = list.stream().map(WatsonsAddressDTO::getInvOrganizationId).collect(Collectors.toList());
+        //查供货组织id和地址和公司id 外部来源非system
         List<WatsonsAddressDTO> resultList = watsonsAddressRepository.selectInvorgAddress(invOrganizationIdList, tenantId);
         CompanyDTO companyDTO = companyRepository.selectByCompanyName("屈臣氏");
+        //加上了公司是否存在校验
         resultList = resultList.stream().filter(s -> !StringUtils.isEmpty(s.getAddress()) && companyDTO != null && !ObjectUtils.isEmpty(companyDTO.getCompanyId())).collect(Collectors.toList());
         if (CollectionUtils.isEmpty(resultList)){
             return;
         }
-        //公司id使用‘屈臣氏’公司的公司id
+        //公司id使用‘屈臣氏’公司的库存组织id为key
         Map<Long, WatsonsAddressDTO> map = resultList.stream().collect(Collectors.toMap(WatsonsAddressDTO::getInvOrganizationId, Function.identity(), (k1, k2) -> k1));
         for (WatsonsAddressDTO address : list){
             WatsonsAddressDTO watsonsAddressDTO = map.get(address.getInvOrganizationId());
