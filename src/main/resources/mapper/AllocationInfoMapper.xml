@@ -136,4 +136,20 @@
             sa.inv_organization_id = #{organizationId}
         </if>
     </select>
+    <select id="selectInvInfoByInvId" resultType="org.srm.mall.other.api.dto.WhLovResultDTO">
+        SELECT
+            hio.organization_id inventoryId,
+            hio.organization_name inventoryName,
+            hio.organization_code inventoryCode
+        FROM
+            hpfm_inv_organization hio
+        WHERE
+            hio.organization_id = #{watsonsOrganizationId}
+        AND
+            hio.enabled_flag = 1
+        AND
+            hio.tenant_id = #{organizationId}
+        AND
+            hio.source_code != 'SYSTEM'
+    </select>
 </mapper>

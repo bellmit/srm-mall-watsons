@@ -37,9 +37,9 @@ public class AllocationInfoRepositoryImpl extends BaseRepositoryImpl<AllocationI
     @Override
     public Page<OrganizationInfoDTO> selectAllocationShopOrganization(OrganizationInfoDTO organizationInfoDTO, PageRequest pageRequest) {
         List<OrganizationInfoDTO> organizationInfoDTOS = allocationInfoMapper.selectAllocationShopOrganization(organizationInfoDTO);
-        for (OrganizationInfoDTO infoDTO : organizationInfoDTOS) {
-            checkAddressByInvOrganization(infoDTO);
-        }
+//        for (OrganizationInfoDTO infoDTO : organizationInfoDTOS) {
+//            checkAddressByInvOrganization(infoDTO);
+//        }
         return PageHelper.doPageAndSort(pageRequest, () -> organizationInfoDTOS);
     }
 
@@ -76,6 +76,11 @@ public class AllocationInfoRepositoryImpl extends BaseRepositoryImpl<AllocationI
     @Override
     public WhLovResultDTO selectInvNameByInvCode(String inventoryCode, Long organizationId) {
         return allocationInfoMapper.selectInvNameByInvCode(inventoryCode,organizationId);
+    }
+
+    @Override
+    public WhLovResultDTO selectInvInfoByInvId(Long watsonsOrganizationId, Long organizationId) {
+        return allocationInfoMapper.selectInvInfoByInvId(watsonsOrganizationId,organizationId);
     }
 
 
