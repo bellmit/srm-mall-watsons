@@ -508,6 +508,10 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     watsonsAddressDTO.setAddressRegion(regionRes);
                 }
                 return watsonsAddressDTOS;
+            }else{
+                WhLovResultDTO infoDTO = allocationInfoRepository.selectInvInfoByInvId(watsonsOrganizationId, organizationId);
+                logger.error(infoDTO.getInventoryCode()+"-"+infoDTO.getInventoryName()+"的相关地址信息不存在，请手工补充收货地址!");
+                throw new CommonException(infoDTO.getInventoryCode()+"-"+infoDTO.getInventoryName()+"的相关地址信息不存在，请手工补充收货地址!");
             }
         }
 
@@ -550,11 +554,17 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                         watsonsAddressDTO.setAddressRegion(regionRes);
                     }
                     return watsonsAddressDTOS;
+                }else {
+                    AddressDTO infoDTO = allocationInfoRepository.selectIdByCode(organizationId, watsonsOrganizationCode);
+                    logger.error(infoDTO.getInvOrganizationCode()+"-"+infoDTO.getInvOrganizationName()+"的相关地址信息不存在，请手工补充收货地址!");
+                    throw new CommonException(infoDTO.getInvOrganizationCode()+"-"+infoDTO.getInvOrganizationName()+"的相关地址信息不存在，请手工补充收货地址!");
                 }
+            }else {
+                logger.warn("该库存组织code没有找到库存组织id!");
+                throw new CommonException("在查询地址区域和详细地址时用到的库存组织编码表中没有对应的库存组织id!该编码为"+watsonsOrganizationCode);
             }
         }
         return null;
-
     }
 
     @Override
