@@ -520,6 +520,12 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             throw new CommonException("根据店铺code查询仓转店信息为空! 店铺号为:" + storeId);
         }
         WhLovResultDTO res = allocationInfoRepository.selectInvNameByInvCode(response.getContent().get(0).getInventoryCode(),organizationId);
+//        //检查该库存组织是否有对应地址
+//        OrganizationInfoDTO infoDTO = new OrganizationInfoDTO();
+//        infoDTO.setOrganizationId(Long.valueOf(res.getInventoryId()));
+//        //organizationId为租户id
+//        infoDTO.setTenantId(organizationId);
+//        allocationInfoRepository.checkAddressByInvOrganization(infoDTO);
         response.getContent().get(0).setInventoryName(res.getInventoryName());
         return new Page<>(response.getContent(),new PageInfo(page,size),response.getTotalElements());
     }
