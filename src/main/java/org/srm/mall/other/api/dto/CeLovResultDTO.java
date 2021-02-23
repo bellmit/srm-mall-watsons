@@ -23,25 +23,25 @@ public class CeLovResultDTO extends BaseDto {
     private String ceNumber;
 
     /**
-     * 项目名称
+     * ce项目名称
      */
 
     private String projectName;
 
     /**
-     * ce描述
+     * ce项目描述
      */
 
     private String description;
 
     /**
-     * ce明细名称
+     * ce项目明细
      */
 
     private String itemName;
 
     /**
-     * 市场名称
+     * 市场
      */
     private String marketName;
 
@@ -52,10 +52,14 @@ public class CeLovResultDTO extends BaseDto {
     private BigDecimal amountBalance;
 
     /**
-     * 店铺号
+     * 店铺,写字楼,仓库
      */
-
     private String storeNo;
+
+    /**
+     * 页面ceNo显示拼接
+     */
+    private String ceView;
 
 
     public int getCeId() {
@@ -123,4 +127,11 @@ public class CeLovResultDTO extends BaseDto {
     }
 
 
+    public String getCeView() {
+        return ceView;
+    }
+
+    public void setCeView(String ceView) {
+        this.ceView = ceView;
+    }
 }

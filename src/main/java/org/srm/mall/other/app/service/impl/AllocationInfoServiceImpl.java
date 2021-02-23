@@ -496,6 +496,9 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         }
         logger.info("select CE info success :{}", storeNo);
         CeLovResult ceLovResult = ResponseUtils.getResponse(ceInfo, new TypeReference<CeLovResult>() {});
+        for (CeLovResultDTO ceLovResultDTO : ceLovResult.getList()) {
+            ceLovResultDTO.setCeView(ceLovResultDTO.getCeNumber()+"("+ceLovResultDTO.getItemName()+")");
+        }
         return new Page<>(ceLovResult.getList(),new PageInfo(page,size),ceLovResult.getTotal());
     }
 
