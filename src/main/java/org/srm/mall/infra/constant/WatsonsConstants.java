@@ -38,25 +38,6 @@ public interface WatsonsConstants {
          */
         public static final String LAST_PURCHASE_QUANTITY = "lastPurchaseQuantity";
     }
-    public final class ValueType {
-        private ValueType() {
-        }
-
-        /**
-         * 字符串
-         */
-        public static final String STRING = "String";
-
-        /**
-         * 字符串
-         */
-        public static final String INT = "Int";
-
-        /**
-         * 其他 预定义的维度使用
-         */
-        public static final String OTHER = "OTHER";
-    }
 
 
     public static class operationTypeCode{
@@ -78,6 +59,25 @@ public interface WatsonsConstants {
          * 扣减-用于后续财务模块使用
          */
         public static final String SPCM_DEDUCT = "DEDUCT";
+    }
+    public final class ValueType {
+        private ValueType() {
+        }
+
+        /**
+         * 字符串
+         */
+        public static final String STRING = "String";
+
+        /**
+         * 字符串
+         */
+        public static final String INT = "Int";
+
+        /**
+         * 其他 预定义的维度使用
+         */
+        public static final String OTHER = "OTHER";
     }
 
     public static class smalSourceType{

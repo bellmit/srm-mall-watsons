@@ -1,6 +1,7 @@
 package org.srm.mall.agreement.app.service.impl;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.hzero.core.base.BaseConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -56,6 +57,8 @@ public class WatsonsPriceLibMatchServiceImpl extends PriceLibMatchServiceImpl {
         // 协议自动升级处理
         agreementLine.setAttributeVarchar1(priceLibMatch.getAttributeVarchar1());
         agreementLine.setPurchaseQuantityLimit(priceLibMatch.getAttributeDecimal1());
+        // 二开设置为所有组织
+        agreementLine.setAllUnitFlag(BaseConstants.Flag.YES);
     }
 
     @Override
@@ -64,6 +67,9 @@ public class WatsonsPriceLibMatchServiceImpl extends PriceLibMatchServiceImpl {
         // 协议自动创建和界面创建转换
         line.setAttributeVarchar1(priceLibMatch.getAttributeVarchar1());
         line.setPurchaseQuantityLimit(priceLibMatch.getAttributeDecimal1());
+        // 二开设置为所有组织
+        line.setAllUnitFlag(BaseConstants.Flag.YES);
+        line.setAgreementUnits(null);
         return line;
     }
 }
