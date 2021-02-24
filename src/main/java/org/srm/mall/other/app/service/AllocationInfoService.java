@@ -71,7 +71,7 @@ public interface AllocationInfoService {
      * @param storeNo
      * @return
      */
-    Page<CeLovResultDTO> selectCeInfoLov(Long organizationId, String storeNo, Integer size, Integer page);
+    Page<CeLovResultDTO> selectCeInfoLov(Long organizationId, String storeNo, Integer size, Integer page, String ceNumber, String description, String projectName);
 
     /**
      * 查询店铺对应的仓转店信息

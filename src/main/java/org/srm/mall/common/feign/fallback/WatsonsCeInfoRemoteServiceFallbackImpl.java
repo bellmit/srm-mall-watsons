@@ -28,8 +28,8 @@ public class WatsonsCeInfoRemoteServiceFallbackImpl implements FallbackFactory<W
         return new WatsonsCeInfoRemoteService() {
 
             @Override
-            public ResponseEntity<String> queryCeInfo(Long tenantId, String storeNo, Integer size, Integer page) {
-                LOGGER.error("query CE info error :{}", storeNo);
+            public ResponseEntity<String> queryCeInfo(Long tenantId, String storeNo, Integer size, Integer page, String ceNumber, String description, String projectName) {
+                LOGGER.error("query CE info error :{}", storeNo,ceNumber,projectName,description);
                 return null;
             }
 

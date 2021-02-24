@@ -105,8 +105,8 @@ public class CostAllocationInfoController extends BaseController {
     @ApiOperation(value = "屈臣氏CE信息值集接口")
     @Permission(level = ResourceLevel.ORGANIZATION)
     @GetMapping("/cost-ce-lov")
-    public ResponseEntity<Page<CeLovResultDTO>> selectCeInfoLov(@PathVariable("organizationId") Long organizationId, @RequestParam("storeNo")String storeNo, @RequestParam("size") Integer size, @RequestParam("page") Integer page) {
-        return Results.success(allocationInfoService.selectCeInfoLov(organizationId, storeNo,size,page));
+    public ResponseEntity<Page<CeLovResultDTO>> selectCeInfoLov(@PathVariable("organizationId") Long organizationId, @RequestParam("storeNo")String storeNo, @RequestParam("size") Integer size, @RequestParam("page") Integer page, String ceNumber, String description, String projectName) {
+        return Results.success(allocationInfoService.selectCeInfoLov(organizationId, storeNo,size,page,ceNumber,description,projectName));
     }
 
     @ApiOperation(value = "屈臣氏仓转店收货仓值集")
