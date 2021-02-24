@@ -258,7 +258,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     if(!ObjectUtils.isEmpty(productDTO.getSellPrice())){
                         BigDecimal quantity = BigDecimal.valueOf(watsonsShoppingCartDTO.getQuantity());
                         BigDecimal includeTaxPriceParam = productDTO.getSellPrice().multiply(quantity);
-                        includeTaxPrice = includeTaxPriceParam;
+                        includeTaxPrice = includeTaxPrice.add(includeTaxPriceParam);
                     }
                     if(productDTO.getLadderEnableFlag().equals(1L)){
                         Integer quantityInteger= watsonsShoppingCartDTO.getQuantity();
@@ -266,7 +266,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                         for (ProductPoolLadder productPoolLadder : productDTO.getProductLadderPrices()) {
                             if(quantity.compareTo(productPoolLadder.getLadderFrom()) > -1 && quantity.compareTo(productPoolLadder.getLadderTo()) < 1){
                                 BigDecimal includeTaxPriceParam = productPoolLadder.getTaxPrice().multiply(quantity);
-                                includeTaxPrice = includeTaxPriceParam;
+                                includeTaxPrice = includeTaxPrice.add(includeTaxPriceParam);
                             }
                         }
                     }
