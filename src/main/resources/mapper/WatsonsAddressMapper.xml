@@ -10,7 +10,7 @@
         from hpfm_inv_organization h
         where
         h.tenant_id = #{tenantId}
-        and #{updatedDate} > h.attribute15
+        and h.attribute15 > #{updatedDate}
     </select>
 
     <select id="selectTenantId" resultType="java.lang.Long">
