@@ -22,7 +22,7 @@ import java.math.BigDecimal;
 public interface WatsonsCeInfoRemoteService {
 
     @GetMapping("/{organizationId}/execute-exp/generic/scux-common1")
-    ResponseEntity<String> queryCeInfo(@PathVariable("organizationId") Long tenantId, @RequestParam("storeNo")String storeNo, @RequestParam("size") Integer size, @RequestParam("page") Integer page);
+    ResponseEntity<String> queryCeInfo(@PathVariable("organizationId") Long tenantId, @RequestParam("storeNo")String storeNo, @RequestParam("size") Integer size, @RequestParam("page") Integer page, @RequestParam(value = "ceNumber",required = false) String ceNumber, @RequestParam(value = "description",required = false) String description, @RequestParam(value = "projectName",required = false) String projectName);
 
     @PostMapping("/{organizationId}/execute-exp/generic/scux-common1")
     ResponseEntity<String> checkCeInfo(@PathVariable("organizationId") Long tenantId, @RequestBody CheckCeInfoDTO checkCeInfoDTO);

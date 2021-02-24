@@ -488,10 +488,10 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     }
 
     @Override
-    public Page<CeLovResultDTO> selectCeInfoLov(Long organizationId, String storeNo, Integer size, Integer page) {
-        ResponseEntity<String> ceInfo = watsonsCeInfoRemoteService.queryCeInfo(organizationId, storeNo, size, page+1);
+    public Page<CeLovResultDTO> selectCeInfoLov(Long organizationId, String storeNo, Integer size, Integer page, String ceNumber, String description, String projectName) {
+        ResponseEntity<String> ceInfo = watsonsCeInfoRemoteService.queryCeInfo(organizationId, storeNo, size, page+1,ceNumber,description,projectName);
         if (ResponseUtils.isFailed(ceInfo)) {
-            logger.error("select CE info failed :{}", storeNo);
+            logger.error("select CE info failed! 店铺号为"+ storeNo +"ce号为:"+ceNumber+"项目描述为:"+description+"项目名称为:"+projectName);
             throw new CommonException("根据店铺id查询ce编号信息失败! 店铺号为:" + storeNo);
         }
         logger.info("select CE info success :{}", storeNo);
