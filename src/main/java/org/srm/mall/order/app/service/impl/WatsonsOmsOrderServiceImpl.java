@@ -17,7 +17,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 import org.srm.mall.common.constant.ScecConstants;
+import org.srm.mall.common.feign.SmdmRemoteNewService;
 import org.srm.mall.common.feign.SmodrRemoteService;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.order.api.dto.*;
@@ -30,6 +32,7 @@ import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.srm.mall.platform.api.dto.PrHeaderCreateDTO;
 import org.srm.mall.platform.api.dto.PrLineCreateDTO;
+import org.srm.mall.product.api.dto.QueryItemCodeDTO;
 import org.srm.mall.region.domain.entity.Address;
 import org.srm.mall.region.domain.entity.MallRegion;
 import org.srm.mall.region.domain.repository.MallRegionRepository;
@@ -50,6 +53,8 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
     private SmodrRemoteService smodrRemoteService;
     @Autowired
     private MallRegionRepository mallRegionRepository;
+    @Autowired
+    private SmdmRemoteNewService smdmRemoteNewService;
 
     @Override
     @Transactional
@@ -67,6 +72,18 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
                 batchNumMap.put(Optional.ofNullable(preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId()),batchNum);
             }
             OmsOrderDto omsOrderDto = self().omsOrderDtoBuilder(tenantId, preRequestOrderDTO, batchNum);
+            //一级品类id
+            omsOrderDto.getOrder().setAttributeBigint10(preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId());
+            //feign调用mdm查询一级品类信息
+            ResponseEntity<String> responseEntity = smdmRemoteNewService.queryItemById(tenantId,preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId());
+            if(!ObjectUtils.isEmpty(responseEntity)){
+                QueryItemCodeDTO queryItemCodeDTO = ResponseUtils.getResponse(responseEntity, new com.fasterxml.jackson.core.type.TypeReference<QueryItemCodeDTO>() {
+                });
+                //一级品类code
+                omsOrderDto.getOrder().setAttributeVarchar10(queryItemCodeDTO.getCategoryCode());
+                //一级品类编码
+                omsOrderDto.getOrder().setAttributeVarchar11(queryItemCodeDTO.getCategoryName());
+            }
             //设置个性化字段
             List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList = preRequestOrderDTO.getWatsonsShoppingCartDTOList();
             if(Objects.nonNull(watsonsShoppingCartDTOList)){
@@ -84,7 +101,7 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
                             //费用承担部门
                             omsOrderEntry.setAttributeBigint7(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getCostDepartmentId());
                             //仓转店收货仓
-                            omsOrderEntry.setAttributeBigint5(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getReceiveWarehouseId());
+                            omsOrderEntry.setAttributeVarchar8(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getReceiveWarehouseCode());
                             //费用项目
                             omsOrderEntry.setAttributeVarchar5(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getProjectCostCode());
                             //费用项目子分类
@@ -119,36 +136,7 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
             throw new CommonException(message);
         }
         OmsResultDTO omsResultDTO = ResponseUtils.getResponse(result, OmsResultDTO.class);
-        if (!omsResultDTO.getHasErrorFlag()) {
-            PurchaseRequestVO purchaseRequestVO = new PurchaseRequestVO();
-            purchaseRequestVO.setErrorNum(omsResultDTO.getFailedNum());
-            purchaseRequestVO.setHasErrorFlag(omsResultDTO.getHasErrorFlag() ? 1 : 0);
-            purchaseRequestVO.setSuccessNum(omsResultDTO.getSuccessNum());
-            purchaseRequestVO.setNeedPaymentAmount(omsResultDTO.getNeedPaymentAmount());
-            purchaseRequestVO.setLotNum(batchNumMap.entrySet().iterator().next().getValue());
-            purchaseRequestVO.setOrderJson(omsResultDTO.getOrderJson());
-
-            //设置回传协同参数
-            AdaptorCommonDTO<List<OmsOrderDto>> ret = JSONObject.parseObject(omsResultDTO.getOrderJson(),new com.alibaba.fastjson.TypeReference<AdaptorCommonDTO<List<OmsOrderDto>>>(){});
-            List<OmsOrderDto> retOrderDtoList = ret.getKey();
-            List<PrHeaderCreateDTO> prHeaderCreateDTOS = new ArrayList<>();
-            for(OmsOrderDto omsOrderDto : retOrderDtoList){
-                PrHeaderCreateDTO prHeaderCreateDTO = new PrHeaderCreateDTO();
-                prHeaderCreateDTO.setMallOrderNum(omsOrderDto.getOrder().getOrderCode());
-                List<PrLineCreateDTO> prLineCreateDTOList = new ArrayList<>();
-                for(OmsOrderEntry omsOrderEntry : omsOrderDto.getOrderEntryList()){
-                    PrLineCreateDTO prLineCreateDTO = new PrLineCreateDTO();
-                    prLineCreateDTO.setBudgetInfoList(omsOrderEntry.getBudgetInfoList());
-                    prLineCreateDTOList.add(prLineCreateDTO);
-                }
-                prHeaderCreateDTO.setPrLineCreateDTOList(prLineCreateDTOList);
-                prHeaderCreateDTOS.add(prHeaderCreateDTO);
-            }
-            purchaseRequestVO.setPrHeaderList(prHeaderCreateDTOS);
-            return purchaseRequestVO;
-        } else {
-            throw new CommonException(ScecConstants.ErrorCode.PRE_REQUEST_EC_ORDER_FAILED);
-        }
+        return self().returnVOBuilder(omsResultDTO,batchNumMap.entrySet().iterator().next().getValue());
     }
 
     @Override

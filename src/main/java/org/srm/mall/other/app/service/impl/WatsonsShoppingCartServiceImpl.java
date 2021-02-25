@@ -7,6 +7,7 @@ import io.choerodon.core.exception.CommonException;
 import io.choerodon.core.oauth.CustomUserDetails;
 import io.choerodon.core.oauth.DetailsHelper;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.servicecomb.pack.omega.context.annotations.SagaStart;
 import org.hzero.core.base.BaseConstants;
 import org.hzero.core.message.MessageAccessor;
 import org.hzero.core.util.ResponseUtils;
@@ -18,6 +19,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,6 +33,7 @@ import org.srm.boot.common.CustomizeSettingCode;
 import org.srm.boot.common.cache.impl.AbstractKeyGenerator;
 import org.srm.boot.platform.configcenter.CnfHelper;
 import org.srm.boot.platform.customizesetting.CustomizeSettingHelper;
+import org.srm.boot.saga.utils.SagaClient;
 import org.srm.common.convert.bean.BeanConvertor;
 import org.srm.mall.agreement.app.service.PostageService;
 import org.srm.mall.agreement.app.service.ProductPoolService;
@@ -41,10 +44,12 @@ import org.srm.mall.agreement.domain.repository.AgreementLineRepository;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.SmdmRemoteNewService;
 import org.srm.mall.common.feign.SmdmRemoteService;
+import org.srm.mall.common.feign.SpcmRemoteNewService;
 import org.srm.mall.common.feign.WatsonsCeInfoRemoteService;
 import org.srm.mall.common.task.MallOrderAsyncTask;
 import org.srm.mall.common.utils.snapshot.SnapshotUtil;
 import org.srm.mall.common.utils.snapshot.SnapshotUtilErrorBean;
+import org.srm.mall.context.dto.ProductDTO;
 import org.srm.mall.context.entity.ItemCategory;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.order.api.dto.PreRequestOrderDTO;
@@ -67,6 +72,7 @@ import org.srm.mall.platform.domain.repository.EcCompanyAssignRepository;
 import org.srm.mall.platform.domain.repository.EcPlatformRepository;
 import org.srm.mall.product.api.dto.ItemCategoryDTO;
 import org.srm.mall.product.api.dto.ItemCategorySearchDTO;
+import org.srm.mall.product.api.dto.LadderPriceResultDTO;
 import org.srm.mall.product.api.dto.PriceResultDTO;
 import org.srm.mall.product.app.service.ProductStockService;
 import org.srm.mall.product.domain.entity.ScecProductCategory;
@@ -77,6 +83,7 @@ import org.srm.mall.region.api.dto.RegionDTO;
 import org.srm.mall.region.domain.entity.Address;
 import org.srm.mall.region.domain.entity.Region;
 import org.srm.mall.region.domain.repository.AddressRepository;
+import org.srm.mq.service.producer.MessageProducer;
 import org.srm.web.annotation.Tenant;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -179,6 +186,16 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Autowired
     private WatsonsCeInfoRemoteService watsonsCeInfoRemoteService;
 
+    @Autowired
+    private MessageProducer messageProducer;
+
+    @Autowired
+    @Lazy
+    private ProductService productService;
+
+    @Autowired
+    private SpcmRemoteNewService spcmRemoteNewService;
+
 
     @Override
     public List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart) {
@@ -204,6 +221,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     }
 
     @Override
+    @SagaStart
     @Transactional(rollbackFor = Exception.class)
     public PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
 //        //进行ceNo和discription存表
@@ -220,28 +238,91 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 //                }
 //            }
 //        }
-
-        //CE NO和CMS合同号的校验顺序，先CMS，后CE NO
-        //进行cms合同号取值
-//        preRequestOrderDTOList.stream().forEach(watsonsPreRequestOrderDTO -> {
+//
+//        //进行cms合同号校验
+//        for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
+//            //拆单完后的每个订单的所有商品的费用分配不一样  但是放一起做cms校验  所以每个订单所有的商品校验一次
+//            List<PcOccupyDTO> pcOccupyDTOS = new ArrayList<>();
+//            //取到该订单所有商品
 //            for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
-//                AgreementLine agreementLine = agreementLineRepository.selectByPrimaryKey(watsonsShoppingCartDTO.getAgreementLineId());
-//                //attributeVarchar1是cms合同号
-//                if(ObjectUtils.isEmpty(agreementLine)){
-//                    throw new CommonException(watsonsShoppingCartDTO.getProductName()+"没有查询到协议行,无法生成采购申请!");
+//                //每个订单下面装的购物车是entry.getValue   entry为经过拆单后的每个经过所有费用分配行拆分后商品
+//                if(!ObjectUtils.isEmpty(watsonsShoppingCartDTO.getCmsNumber())){
+//                    PcOccupyDTO pcOccupyDTO = new PcOccupyDTO();
+//                    pcOccupyDTO.setTenantId(watsonsShoppingCartDTO.getTenantId());
+//                    pcOccupyDTO.setSourceId(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getAllocationId());
+//                    pcOccupyDTO.setSourceType(WatsonsConstants.smalSourceType.SMAL_PRE);
+//                    //传商品的含税价
+//                    BigDecimal includeTaxPrice = new BigDecimal(0);
+//                    ProductDTO productDTO = productService.selectByProduct(watsonsShoppingCartDTO.getProductId(), tenantId, watsonsShoppingCartDTO.getCompanyId(), watsonsShoppingCartDTO.getPurchaseType(), watsonsShoppingCartDTO.getSecondRegionId(), watsonsShoppingCartDTO.getLevelPath());
+//                    if(!ObjectUtils.isEmpty(productDTO.getSellPrice())){
+//                        BigDecimal quantity = BigDecimal.valueOf(watsonsShoppingCartDTO.getQuantity());
+//                        BigDecimal includeTaxPriceParam = productDTO.getSellPrice().multiply(quantity);
+//                        includeTaxPrice = includeTaxPriceParam;
+//                    }
+//                    if(productDTO.getLadderEnableFlag().equals(1L)){
+//                        Integer quantityInteger= watsonsShoppingCartDTO.getQuantity();
+//                        BigDecimal quantity = BigDecimal.valueOf(quantityInteger);
+//                        for (ProductPoolLadder productPoolLadder : productDTO.getProductLadderPrices()) {
+//                            if(quantity.compareTo(productPoolLadder.getLadderFrom()) > -1 && quantity.compareTo(productPoolLadder.getLadderTo()) < 1){
+//                                BigDecimal includeTaxPriceParam = productPoolLadder.getTaxPrice().multiply(quantity);
+//                                includeTaxPrice = includeTaxPriceParam;
+//                            }
+//                        }
+//                    }
+//                    pcOccupyDTO.setOccupyAmount(includeTaxPrice);
+//                    pcOccupyDTO.setOperationType(WatsonsConstants.operationTypeCode.SPCM_OCCUPY);
+//                    pcOccupyDTO.setPcNum(watsonsShoppingCartDTO.getCmsNumber());
+//                    pcOccupyDTO.setVersion(1L);
+//                    pcOccupyDTOS.add(pcOccupyDTO);
 //                }
-//                if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
-//                    throw new CommonException(watsonsShoppingCartDTO.getProductName()+"没有CMS合同号,无法生成采购申请!");
-//                }
-//                watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
 //            }
-//        });
-        //进行cms合同号校验
-
-        //进行ceNo校验
+//            if(!CollectionUtils.isEmpty(pcOccupyDTOS)){
+//                String sagaKey = SagaClient.getSagaKey();
+//                ResponseEntity<String> cmsOccupyResult = spcmRemoteNewService.occupy(sagaKey, tenantId, pcOccupyDTOS);
+//                if (ResponseUtils.isFailed(cmsOccupyResult)) {
+//                    logger.error("occupy CMS price error! param pcOccupyDTOS: {}", pcOccupyDTOS);
+//                    throw new CommonException("CMS金额预占出现异常!");
+//                }
+//                ItfBaseBO itfBaseBO  = ResponseUtils.getResponse(cmsOccupyResult, new TypeReference<ItfBaseBO>() {
+//                });
+//                if(itfBaseBO.getErrorFlag() == 1 && !ObjectUtils.isEmpty(itfBaseBO.getErrorMessage())){
+//                    logger.error("occupy CMS price error! param pcOccupyDTOS: {}", pcOccupyDTOS);
+//                    throw new CommonException("预占CMS合同号报错,错误原因:",itfBaseBO.getErrorMessage());
+//                }
+//                logger.info("occupy CMS price success! param pcOccupyDTOS: {}", pcOccupyDTOS);
+//            }
+//        }
+//
+//
+////        进行ceNo校验
 //        for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
 //            if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
-//                ResponseEntity<String> checkCeInfoRes = watsonsCeInfoRemoteService.checkCeInfo(tenantId, watsonsPreRequestOrderDTO.getCeId(), watsonsPreRequestOrderDTO.getTotalAmount());
+//                CheckCeInfoDTO checkCeInfoDTO = new CheckCeInfoDTO();
+//                checkCeInfoDTO.setCeId(watsonsPreRequestOrderDTO.getCeId());
+//                //取含税价格  每个订单检验一次
+//                BigDecimal includeTaxPriceTotal = new BigDecimal(0);
+//                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+//                    ProductDTO productDTO = productService.selectByProduct(watsonsShoppingCartDTO.getProductId(), tenantId, watsonsShoppingCartDTO.getCompanyId(), watsonsShoppingCartDTO.getPurchaseType(), watsonsShoppingCartDTO.getSecondRegionId(), watsonsShoppingCartDTO.getLevelPath());
+//                    if(!ObjectUtils.isEmpty(productDTO.getSellPrice())){
+//                        BigDecimal quantity = BigDecimal.valueOf(watsonsShoppingCartDTO.getQuantity());
+//                        BigDecimal includeTaxPriceParam = productDTO.getSellPrice().multiply(quantity);
+//                        //加上这个商品的价格
+//                        includeTaxPriceTotal = includeTaxPriceTotal.add(includeTaxPriceParam);
+//                    }
+//                    if(productDTO.getLadderEnableFlag().equals(1L)){
+//                       Integer quantityInteger= watsonsShoppingCartDTO.getQuantity();
+//                        BigDecimal quantity = BigDecimal.valueOf(quantityInteger);
+//                        for (ProductPoolLadder productPoolLadder : productDTO.getProductLadderPrices()) {
+//                            if(quantity.compareTo(productPoolLadder.getLadderFrom()) > -1 && quantity.compareTo(productPoolLadder.getLadderTo()) < 1){
+//                                BigDecimal includeTaxPriceParam = productPoolLadder.getTaxPrice().multiply(quantity);
+//                                includeTaxPriceTotal = includeTaxPriceTotal.add(includeTaxPriceParam);
+//                            }
+//                        }
+//                    }
+//                }
+//                checkCeInfoDTO.setChangeAmount(includeTaxPriceTotal);
+//                checkCeInfoDTO.setItemName(watsonsPreRequestOrderDTO.getItemName());
+//                ResponseEntity<String> checkCeInfoRes = watsonsCeInfoRemoteService.checkCeInfo(tenantId,checkCeInfoDTO);
 //                if(ResponseUtils.isFailed(checkCeInfoRes)){
 //                    String message = null;
 //                    try {
@@ -251,12 +332,11 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 //                        message = checkCeInfoRes.getBody();
 //                    }
 //                    logger.error("check CE info for order total amount error! {}",watsonsPreRequestOrderDTO.getCeId());
-//                    throw new CommonException("CE号"+watsonsPreRequestOrderDTO.getCeNumber()+"检验报错,"+message);
+//                    throw new CommonException("检验CE号"+watsonsPreRequestOrderDTO.getCeNumber()+"报错,"+message);
 //                }
 //                logger.info("check CE info for order total amount success! {}" ,watsonsPreRequestOrderDTO.getCeId());
 //            }
 //        }
-
 
         preRequestOrderDTOList.stream().forEach(preRequestOrderDTO -> {
                     if (ObjectUtils.nullSafeEquals(preRequestOrderDTO.getPriceHiddenFlag(), 1)) {
@@ -286,13 +366,10 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                             preRequestOrderDTO.setPurPrice(price.add(preRequestOrderDTO.getFreight()));
                         }
                     }
-
                     snapshotUtil.compare(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, preRequestOrderDTO.getPreRequestOrderNumber()), preRequestOrderDTO.getPreRequestOrderNumber(), preRequestOrderDTO, new SnapshotUtilErrorBean());
                 }
         );
-
         PreRequestOrderResponseDTO preRequestOrderResponseDTO = new PreRequestOrderResponseDTO();
-
         //过滤出cansubmit的预采申请
         List<PreRequestOrderDTO> canSubmitList = preRequestOrderDTOList.stream().filter(item -> ScecConstants.ConstantNumber.INT_1 == item.getMinPurchaseFlag()).collect(Collectors.toList());
         if (CollectionUtils.isEmpty(canSubmitList)) {
@@ -372,6 +449,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             BeanUtils.copyProperties(result, preRequestOrderResponseDTO);
             //回调协同
             mallOrderAsyncTask.synCallBackBudgetMallOrderNum(tenantId, result.getPrHeaderList(), budgetSwitch);
+            //根据业务规则判断是否自动创建协议
+            List<String> list = preRequestOrderDTOList.stream().map(PreRequestOrderDTO::getPreRequestOrderNumber).collect(Collectors.toList());
+            messageProducer.sendMessageAfterTransactionCommit(tenantId, ScecConstants.EventCode.SMAL_OMS_ORDER, null, "ORDER_CONFIRM", list);
         } else {
             //创建预采购订单失败
             throw new CommonException(ScecConstants.ErrorCode.PRE_REQUEST_ORDER_FAILED);
@@ -526,177 +606,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 }
             }
         }
-    }
-
-    @Override
-    public ShoppingCart create(ShoppingCart shoppingCart) {
-        List<BudgetInfo> budgetInfoList = new ArrayList<>();
-        if (!ObjectUtils.isEmpty(shoppingCart.getUpdateOrganizationFlag()) && shoppingCart.getUpdateOrganizationFlag() == 1) {
-            //    更新购物车组织时，将原购物车数据删除，添加新的购物车数据 重走并单规则, 需要更新预算的cartId
-            List<ShoppingCart> shoppingCarts = new ArrayList<>(1);
-            shoppingCarts.add(shoppingCart);
-            //判断是否有预算数据，若有，需要将预算表cartId更新为最新的cartId
-            budgetInfoList = budgetInfoRepository.select(BudgetInfo.FIELD_CART_ID, shoppingCart.getCartId());
-            this.deleteShoppingCart(shoppingCarts);
-            shoppingCart.setCartId(null);
-        }
-
-        //如果是JD需要设置供应商公司ID
-        if (!ScecConstants.SourceType.CATALOGUE.equalsIgnoreCase(shoppingCart.getProductSource())) {
-            EcCompanyAssign ecCompanyAssign = ecCompanyAssignRepository.selectByEcCompanyId(shoppingCart.getCompanyId(), shoppingCart.getTenantId(), shoppingCart.getProductSource());
-            Assert.notNull(ecCompanyAssign, ScecConstants.ErrorCode.NO_PERMISSION_TO_BUY);
-            EcClient ecClient = ecClientRepository.selectByPrimaryKey(ecCompanyAssign.getEcClientId());
-            Assert.notNull(ecClient, ScecConstants.ErrorCode.EC_CLINET_NOT_EXISTS);
-            shoppingCart.setSupplierCompanyId(ecClient.getEcCompanyId());
-        }
-
-        //1.判断商品是否存在购物车
-        List<ShoppingCart> shoppingCarts = shoppingCartRepository.selectByCondition(Condition.builder(ShoppingCart.class)
-                .andWhere(Sqls.custom().andEqualTo(ShoppingCart.FIELD_OWNER_ID, shoppingCart.getOwnerId())
-                        .andEqualTo(ShoppingCart.FIELD_SUPPLIER_COMPANY_ID, shoppingCart.getSupplierCompanyId())
-                        .andEqualTo(ShoppingCart.FIELD_INV_ORGANIZATION_ID, shoppingCart.getInvOrganizationId())
-                        .andEqualTo(ShoppingCart.FIELD_PUR_ORGANIZATION_ID, shoppingCart.getPurOrganizationId())
-                        .andEqualTo(ShoppingCart.FIELD_ADDRESS_ID, shoppingCart.getAddressId())
-                        .andEqualTo(ShoppingCart.FIELD_PRODUCT_SOURCE, shoppingCart.getProductSource())
-                        .andEqualTo(ShoppingCart.FIELD_PRODUCT_ID, shoppingCart.getProductId())
-                        .andEqualTo(ShoppingCart.FIELD_PURCHASE_TYPE, shoppingCart.getPurchaseType())
-                        .andEqualTo(ShoppingCart.FIELD_SKU_TYPE, shoppingCart.getSkuType() == null ? 0 : shoppingCart.getSkuType())
-                        .andEqualTo(ShoppingCart.FIELD_MAIN_SKU_ID, shoppingCart.getMainSkuId())
-                        .andEqualTo(ShoppingCart.FIELD_SERVICE_CATEGORYCODE, shoppingCart.getServiceCategoryCode())
-                        .andEqualTo(ShoppingCart.FIELD_QT_HEADER_NO, shoppingCart.getQtHeaderNo())
-                )
-                .build());
-        Long maxQuantity;
-        EcPlatform ecPlatform = new EcPlatform();
-        ecPlatform.setEcPlatformCode(shoppingCart.getProductSource());
-        EcPlatform puchaseQuantity = ecPlatformRepository.selectOne(ecPlatform);
-        if (ObjectUtils.isEmpty(puchaseQuantity) || puchaseQuantity.getPurchaseQuantity() == null) {
-            maxQuantity = ScecConstants.ConstantNumber.LONG_99999;
-        } else {
-            maxQuantity = puchaseQuantity.getPurchaseQuantity();
-        }
-
-        //校验加购商品是否上架
-        Long regionId = addressRepository.querySecondRegionId(shoppingCart.getAddressId());
-        if (ObjectUtils.isEmpty(regionId)) {
-            throw new CommonException("地址不合法，请检查你的地址");
-        }
-        shoppingCart.setSecondRegionId(regionId);
-        //  取价格服务获取最新价格
-//         查询价格服务 查询最新价格
-        ProductPool productPool = null;
-        if (!punchoutService.isPuhchout(shoppingCart.getProductSource())) {
-            List<ProductPool> productPools = productPoolService.queryProductPools(Collections.singletonList(shoppingCart.getProductId()), shoppingCart.getTenantId(), shoppingCart.getCompanyId(), regionId, shoppingCart.getLevelPath(), Boolean.TRUE, shoppingCart.getAddressId());
-            if (ObjectUtils.isEmpty(productPools) || ScecConstants.ShelfStatus.SHELF != productPools.get(0).getShelfFlag()) {
-                throw new CommonException("该商品未找到，请确认是否上架！");
-            }
-            productPool = productPools.get(0);
-            if (productPool.getSupplierCompanyId() != null) {
-                shoppingCart.setSupplierCompanyId(productPool.getSupplierCompanyId());
-            }
-            shoppingCart.setLatestPrice(productPool.getSellPrice());
-            shoppingCart.setMinPackageQuantity(shoppingCart.getMinPackageQuantity() == null ? BigDecimal.ONE : productPool.getMinPackageQuantity());
-            shoppingCart.setMinPurchaseQuantity(shoppingCart.getMinPurchaseQuantity() == null ? BigDecimal.ONE : productPool.getMinPurchaseQuantity());
-            //判断该商品对应的目录该用户是否有权限
-            if (!ObjectUtils.isEmpty(productPool.getCatalogId())) {
-                Integer count = comCategoryCatalogMapRepository.checkCatalog(shoppingCart.getOwnerId(), productPool.getCatalogId(), shoppingCart.getTenantId());
-                if (count > 0) {
-                    throw new CommonException(ScecConstants.ErrorCode.CATALOG_PERMISSION_NOT_PASS);
-                }
-            }
-        }
-        //已存在购物车修改操作
-        if (CollectionUtils.isNotEmpty(shoppingCarts)) {
-            ShoppingCart existShoppingCart = shoppingCarts.get(0);
-            //更新 单价和数量 [订单回退时逻辑]
-            if (!existShoppingCart.getCartId().equals(shoppingCart.getCartId())) {
-                existShoppingCart.setQuantity(shoppingCart.getQuantity() + existShoppingCart.getQuantity());
-                //更新punchout 总额
-                if (punchoutService.isPuhchout(shoppingCart.getProductSource())) {
-                    existShoppingCart.setTotalAmount(shoppingCart.getTotalAmount().add(existShoppingCart.getTotalAmount()));
-                    existShoppingCart.setNakedTotalAmount(shoppingCart.getNakedTotalAmount().add(existShoppingCart.getNakedTotalAmount()));
-                }
-            } else {
-                existShoppingCart.setQuantity(shoppingCart.getQuantity());
-            }
-            if (!punchoutService.isPuhchout(shoppingCart.getProductSource())) {
-                if (productPool.getLadderEnableFlag() != null && productPool.getLadderEnableFlag() == 1) {
-                    //更新最新价格
-                    handLadderPrice(shoppingCart, productPool);
-                }
-            }
-            existShoppingCart.setUnitPrice(shoppingCart.getLatestPrice());
-            existShoppingCart.setRemark(shoppingCart.getRemark());
-            //目录化商品 需要更新是否满足最小采购量
-            if (ScecConstants.SourceType.CATALOGUE.equalsIgnoreCase(shoppingCart.getProductSource())) {
-                BigDecimal minPurchaseQuantity = shoppingCart.getMinPurchaseQuantity();
-                if (minPurchaseQuantity != null && (minPurchaseQuantity.compareTo(new BigDecimal(1))) < 0) {
-                    shoppingCart.setErrorMessage(MessageAccessor.getMessage(ScecConstants.ErrorCode.EC_PRODUCT_MINIMUM_PURCHASE_ERROR).desc() + shoppingCart.getMinPurchaseQuantity().stripTrailingZeros().toPlainString());
-                }
-                if (BigDecimal.valueOf(shoppingCart.getQuantity()).compareTo(minPurchaseQuantity) < 0) {
-                    shoppingCart.setPurchaseFlag(BaseConstants.Flag.YES);
-                    shoppingCart.setQuantity(minPurchaseQuantity.longValue());
-                }
-                //判断数量是否满足是最小包装量的整数倍
-                BigDecimal number = new BigDecimal(shoppingCart.getQuantity()).divide(shoppingCart.getMinPackageQuantity(), 10, BigDecimal.ROUND_HALF_UP);
-                if (new BigDecimal(number.intValue()).compareTo(number) != 0) {
-                    //不满足，判断最小包装量是否大于当前数量，大于则直接设置，小于则乘2，直到大于当前数量
-                    BigDecimal result = shoppingCart.getMinPackageQuantity();
-                    while (result.compareTo(new BigDecimal(shoppingCart.getQuantity())) < 0) {
-                        result = result.multiply(new BigDecimal(2));
-                    }
-                    shoppingCart.setQuantity(result.longValue());
-                }
-            } else {
-//                ProductDTO productDTO = productSkuRepository.selectByProduct(shoppingCart.getProductId(), shoppingCart.getTenantId(), shoppingCart.getCompanyId());
-                BigDecimal lowestBuy = shoppingCart.getMinPurchaseQuantity();
-                if (lowestBuy != null && (lowestBuy.longValue() > shoppingCart.getQuantity())) {
-                    shoppingCart.setQuantity(lowestBuy.longValue());
-                }
-                //非目录化商品购物车数量需要做200上限
-//                Long maxQuan = existShoppingCart.getQuantity() > maxQuantity ? maxQuantity : existShoppingCart.getQuantity();
-                existShoppingCart.setQuantity(existShoppingCart.getQuantity() > maxQuantity ? maxQuantity : existShoppingCart.getQuantity());
-                //checkMaxQuantity(existShoppingCart);
-            }
-            shoppingCart.setCartId(existShoppingCart.getCartId());
-            shoppingCartRepository.updateOptional(existShoppingCart, ShoppingCart.FIELD_QUANTITY, ShoppingCart.FIELD_UNIT_PRICE, ShoppingCart.FIELD_REMARK);
-        } else {
-            //购物车没有已存在的商品做新增操作
-            // 订单回退时带有购物车ID,但不使用,下次下单使用相同ID无法创建采购申请
-            shoppingCart.setCartId(null);
-            //非目录化商品购物车数量需要做200上限
-            if (!"CATA".equalsIgnoreCase(shoppingCart.getProductSource()) && !punchoutService.isPuhchout(shoppingCart.getProductSource())) {
-//                ProductDTO productDTO = productSkuRepository.selectByProduct(shoppingCart.getProductId(), shoppingCart.getTenantId(), shoppingCart.getCompanyId());
-                BigDecimal lowestBuy = productPool.getMinPurchaseQuantity();
-                if (lowestBuy != null && lowestBuy.longValue() > shoppingCart.getQuantity()) {
-                    shoppingCart.setQuantity(lowestBuy.longValue());
-                }
-                shoppingCart.setQuantity(shoppingCart.getQuantity() > maxQuantity ? maxQuantity : shoppingCart.getQuantity());
-            }
-            //判断数量是否满足是最小包装量的整数倍
-            BigDecimal number = new BigDecimal(shoppingCart.getQuantity()).divide(shoppingCart.getMinPackageQuantity(), 10, BigDecimal.ROUND_HALF_UP);
-            if (new BigDecimal(number.intValue()).compareTo(number) != 0) {
-                //不满足，判断最小包装量是否大于当前数量，大于则直接设置，小于则乘2，直到大于当前数量
-                BigDecimal result = shoppingCart.getMinPackageQuantity();
-                while (result.compareTo(new BigDecimal(shoppingCart.getQuantity())) < 0) {
-                    result = result.multiply(new BigDecimal(2));
-                }
-                shoppingCart.setQuantity(result.longValue());
-            }
-            shoppingCartRepository.insertSelective(shoppingCart);
-            if (!ObjectUtils.isEmpty(shoppingCart.getUpdateOrganizationFlag()) && shoppingCart.getUpdateOrganizationFlag() == 1) {
-                //判断是否有预算数据，若有，需要将预算表cartId更新为最新的cartId
-                if (!CollectionUtils.isEmpty(budgetInfoList)) {
-                    for (BudgetInfo budgetInfo : budgetInfoList) {
-                        budgetInfo.setCartId(shoppingCart.getCartId());
-                        budgetInfoRepository.updateByPrimaryKeySelective(budgetInfo);
-                    }
-                }
-            }
-        }
-        //设置 小计金额
-        shoppingCart.setTotalPrice(shoppingCart.getLatestPrice().multiply(BigDecimal.valueOf(shoppingCart.getQuantity())));
-        return shoppingCart;
     }
 
     /**
@@ -990,6 +899,20 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
                 watsonsPreRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
             }
+            //进行cms合同号取值
+//            watsonsPreRequestOrderDTOList.stream().forEach(watsonsPreRequestOrderDTO -> {
+//                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+//                    AgreementLine agreementLine = agreementLineRepository.selectByPrimaryKey(watsonsShoppingCartDTO.getAgreementLineId());
+//                    //attributeVarchar1是cms合同号
+//                    if(ObjectUtils.isEmpty(agreementLine)){
+//                        logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的协议行!");
+//                    }
+//                    if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
+//                        logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的CMS合同号!");
+//                    }
+//                    watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
+//                }
+//            });
             // handleCheck()
             return watsonsPreRequestOrderDTOList;
         }

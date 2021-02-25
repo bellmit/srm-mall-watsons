@@ -25,13 +25,9 @@ import org.srm.mall.common.feign.SagmRemoteService;
 import org.srm.mall.common.feign.SmdmRemoteNewService;
 import org.srm.mall.common.feign.*;
 import org.srm.mall.infra.constant.WatsonsConstants;
-import org.srm.mall.other.api.dto.AllocationInfoDTO;
-import org.srm.mall.other.api.dto.WhLovResultDTO;
-import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
-import org.srm.mall.other.api.dto.WatsonStoreInventoryRelationDTO;
+import org.srm.mall.other.api.dto.*;
 import org.srm.mall.other.api.dto.WhLovResultDTO;
 import org.srm.mall.other.domain.entity.CeLovResult;
-import org.srm.mall.other.api.dto.CeLovResultDTO;
 import org.srm.mall.other.app.service.AllocationInfoService;
 import org.srm.mall.other.app.service.ShoppingCartService;
 import org.srm.mall.other.domain.entity.AllocationInfo;
@@ -45,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.srm.mall.product.api.dto.ItemCategoryDTO;
 import org.srm.mall.product.api.dto.PriceParamDTO;
 import org.srm.mall.product.api.dto.PriceResultDTO;
+import org.srm.mall.product.api.dto.ProductSaleCheckDTO;
 import org.srm.mall.region.domain.entity.Address;
 import org.srm.mall.region.domain.repository.AddressRepository;
 
@@ -53,6 +50,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.validation.constraints.NotBlank;
 
 /**
  * 屈臣氏费用分配表应用服务默认实现
@@ -115,7 +113,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         }
         for (AllocationInfo allocationInfo : allocationInfoList) {
             //查询对应的地址
-            handleReceiverAddress(allocationInfo, tenantId);
+//            handleReceiverAddress(allocationInfo, tenantId);
 
             //校验对应的地址商品是否可售,等待价格服务提供接口
             saleAndStockCheck(tenantId, allocationInfo, watsonsShoppingCart);
@@ -139,11 +137,37 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
      * @param watsonsShoppingCart
      */
     private void saleAndStockCheck(Long tenantId, AllocationInfo allocationInfo, WatsonsShoppingCart watsonsShoppingCart) {
+        String provinceId = null;
+        String cityId = null;
+        String countyId = null;
         // 校验可售
         PriceParamDTO priceParamDTO = new PriceParamDTO(tenantId, addressRepository.querySecondRegionId(allocationInfo.getAddressId()), null, watsonsShoppingCart.getProductId());
         priceParamDTO.setAddressId(allocationInfo.getAddressId());
         priceParamDTO.getSkuParamDTOS().get(0).setQuantity(BigDecimal.ONE);
         priceParamDTO.setUnitLevelPath(watsonsShoppingCart.getLevelPath());
+        WatsonsRegionDTO watsonsRegionDTO = allocationInfoRepository.selectRegionInfoByRegionId(allocationInfo.getLastRegionId());
+        if(ObjectUtils.isEmpty(watsonsRegionDTO.getLevelPath())){
+            throw new CommonException(allocationInfo.getCostShopName()+"的地址的区域信息不存在,无法校验库存和可售信息!");
+        }
+        String levelPath = watsonsRegionDTO.getLevelPath();
+        String[] splitRes = levelPath.split("\\.");
+        if(splitRes.length < 3){
+            throw new CommonException(allocationInfo.getCostShopName()+"选择的地址区域不满足省市区三级或以上,无法校验库存和可售信息!");
+        }
+        WatsonsRegionDTO province = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[0]);
+        WatsonsRegionDTO city = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[1]);
+        WatsonsRegionDTO region = allocationInfoRepository.selectRegionInfoByRegionCode(splitRes[2]);
+        provinceId = province.getRegionId().toString();
+        cityId = city.getRegionId().toString();
+        countyId = region.getRegionId().toString();
+        priceParamDTO.setRegionId(Long.valueOf(cityId));
+
+        ProductSaleCheckDTO productSaleCheckDTO = new ProductSaleCheckDTO();
+        productSaleCheckDTO.setProvinceId(provinceId);
+        productSaleCheckDTO.setCityId(cityId);
+        productSaleCheckDTO.setCountyId(countyId);
+        priceParamDTO.setEcProductCheckDto(productSaleCheckDTO);
+
         ResponseEntity<String> result = sagmRemoteService.selectPrice(tenantId, ScecConstants.SagmSourceCode.SHOPPING_CART, priceParamDTO);
         List<PriceResultDTO> priceResultDTOS = ResponseUtils.getResponse(result, new TypeReference<List<PriceResultDTO>>() {
         });
@@ -312,6 +336,9 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             logger.info("query itemCategory info By itemCategoryId success! param itemCategoryId: {}", itemCategoryId);
             ItemCategoryDTO itemCategoryResultOne = ResponseUtils.getResponse(itemCategoryInfoRes, new TypeReference<ItemCategoryDTO>() {
             });
+            if(ObjectUtils.isEmpty(itemCategoryResultOne) || ObjectUtils.isEmpty(itemCategoryResultOne.getLevelPath())){
+                throw new CommonException("根据物料品类id查询物料品类信息为空!");
+            }
             String levelPath = itemCategoryResultOne.getLevelPath();
             return getProjectCosts(organizationId, projectCost, pageRequest, itemCategoryResultOne, levelPath, "当前物料品类已经是一级品类,无法查询费用项目!");
         }
@@ -326,6 +353,9 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             logger.info("query LevelPath By ItemId success, param itemId: {}", itemId);
             ItemCategoryDTO itemCategoryResultOne = ResponseUtils.getResponse(levelPathByItemId, new TypeReference<ItemCategoryDTO>() {
             });
+            if(ObjectUtils.isEmpty(itemCategoryResultOne) || ObjectUtils.isEmpty(itemCategoryResultOne.getLevelPath())){
+                throw new CommonException("根据物料id查询物料品类信息为空!");
+            }
             String levelPath = itemCategoryResultOne.getLevelPath();
             return getProjectCosts(organizationId, projectCost, pageRequest, itemCategoryResultOne, levelPath, "当前物料品类已经是一级品类, 无法查询费用项目!");
         }
@@ -340,7 +370,9 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             logger.info("query itemCategory info By itemCategoryId success! param itemCategoryId: {}", itemCategoryId);
             ItemCategoryDTO itemCategoryResultOne = ResponseUtils.getResponse(itemCategoryInfoRes, new TypeReference<ItemCategoryDTO>() {
             });
-
+            if(ObjectUtils.isEmpty(itemCategoryResultOne) || ObjectUtils.isEmpty(itemCategoryResultOne.getLevelPath())){
+                throw new CommonException("根据物料品类id查询物料品类信息为空!");
+            }
             String levelPath = itemCategoryResultOne.getLevelPath();
 
             if (!StringUtils.isEmpty(levelPath)) {
@@ -368,8 +400,10 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                     logger.info("query LevelPath By ItemId success, param itemId: {}", itemId);
                     ItemCategoryDTO itemCategoryResultTwo = ResponseUtils.getResponse(levelPathByItemId, new TypeReference<ItemCategoryDTO>() {
                     });
+                    if(ObjectUtils.isEmpty(itemCategoryResultTwo)  || ObjectUtils.isEmpty(itemCategoryResultTwo.getLevelPath())){
+                        throw new CommonException("根据物料id查询物料品类信息为空!");
+                    }
                     String levelPathNew = itemCategoryResultTwo.getLevelPath();
-
                     if (!StringUtils.isEmpty(levelPathNew)) {
                         String[] splitResNew = levelPathNew.split("\\|");
                         if (splitResNew.length > 3) {

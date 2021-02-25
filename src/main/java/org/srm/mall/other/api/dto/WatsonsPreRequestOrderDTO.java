@@ -17,19 +17,17 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
 
     public static final String WATSONS_SHOPPINGCART_DTO_LIST  = "body.watsonsShoppingCartDTOList.allocationInfoList";
 
-    @ApiModelProperty(value = "物料品类id/采购品类id")
-    @Encrypt
-    private Long itemCategoryId;
-
     @ApiModelProperty(value = "CE编码")
     private String ceNumber;
 
     @ApiModelProperty(value = "CE编码描述")
     private String discription;
 
+    @ApiModelProperty(value = "CE明细名称")
+    private String itemName;
 
     @ApiModelProperty(value = "CEid")
-    private int ceId;
+    private Integer ceId;
 
     @ApiModelProperty(value = "分组名称key检查")
     private String keyForView;
@@ -37,7 +35,7 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
     @ApiModelProperty(value = "联系电话")
     private String mobile;
 
-    @ApiModelProperty(value = "用于预算分配返回的shoppingCartDTO")
+    @ApiModelProperty(value = "用于费用分配返回的shoppingCartDTO")
     @Compare
     @IsList
     private List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList;
@@ -45,6 +43,16 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
 
     @ApiModelProperty(value = "拆单完成后每个单子的费用承担店铺的code")
     private String storeNo;
+
+
+
+    public String getItemName() {
+        return itemName;
+    }
+
+    public void setItemName(String itemName) {
+        this.itemName = itemName;
+    }
 
 
     public String getStoreNo() {
@@ -62,13 +70,6 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
         this.discription = discription;
     }
 
-    public int getCeId() {
-        return ceId;
-    }
-
-    public void setCeId(int ceId) {
-        this.ceId = ceId;
-    }
 
     public String getMobile() {
         return mobile;
@@ -84,14 +85,6 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
 
     public void setKeyForView(String keyForView) {
         this.keyForView = keyForView;
-    }
-
-    public Long getItemCategoryId() {
-        return itemCategoryId;
-    }
-
-    public void setItemCategoryId(Long itemCategoryId) {
-        this.itemCategoryId = itemCategoryId;
     }
 
     public String getCeNumber() {
@@ -110,4 +103,11 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
         this.watsonsShoppingCartDTOList = watsonsShoppingCartDTOList;
     }
 
+    public Integer getCeId() {
+        return ceId;
+    }
+
+    public void setCeId(Integer ceId) {
+        this.ceId = ceId;
+    }
 }
