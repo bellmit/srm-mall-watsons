@@ -323,6 +323,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 }
                 checkCeInfoDTO.setChangeAmount(includeTaxPriceTotal);
                 checkCeInfoDTO.setItemName(watsonsPreRequestOrderDTO.getItemName());
+                checkCeInfoDTO.setTranscationId(watsonsPreRequestOrderDTO.getPreRequestOrderNumber());
                 ResponseEntity<String> checkCeInfoRes = watsonsCeInfoRemoteService.checkCeInfo(tenantId,checkCeInfoDTO);
                 if(ResponseUtils.isFailed(checkCeInfoRes)){
                     String message = null;
