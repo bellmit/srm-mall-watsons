@@ -23,6 +23,11 @@ public class CheckCeInfoDTO {
      */
     private String itemName;
 
+    /**
+     *  唯一单据
+     */
+    private String transcationId;
+
 
     public String getItemName() {
         return itemName;
@@ -49,4 +54,11 @@ public class CheckCeInfoDTO {
         this.changeAmount = changeAmount;
     }
 
+    public String getTranscationId() {
+        return transcationId;
+    }
+
+    public void setTranscationId(String transcationId) {
+        this.transcationId = transcationId;
+    }
 }
