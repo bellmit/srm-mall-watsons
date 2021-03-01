@@ -2,9 +2,10 @@ package org.srm.mall.agreement.infra.mapper;
 
 import io.choerodon.mybatis.common.BaseMapper;
 import org.apache.ibatis.annotations.Param;
+import org.srm.mall.agreement.domain.entity.AgreementDetail;
 import org.srm.mall.agreement.domain.entity.WatsonsAgreementDetail;
 import org.srm.mall.common.enums.WatsonsAuthDimensionEnum;
-import org.srm.mall.agreement.domain.entity.AgreementDetail;
+
 import org.srm.mall.agreement.domain.entity.WatsonsAuthorityList;
 import org.srm.mall.agreement.domain.entity.WatsonsPriceLibScope;
 
