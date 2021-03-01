@@ -22,6 +22,11 @@ public interface WatsonsConstants {
          * 门店地址所在区域商品不可售或无货
          */
         public static final String INV_ORGANIZATION_REGION_OOS = "inv.organization.region.oos";
+
+        /**
+         *
+         */
+        public static final String ERROR_PRODUCT_STOCK_UNDERSTOCK = "product.stock.deduction.error";
     }
 
     final class PriceExpandField {

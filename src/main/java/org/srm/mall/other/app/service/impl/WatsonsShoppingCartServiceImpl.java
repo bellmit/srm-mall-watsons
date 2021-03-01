@@ -429,8 +429,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 if (ScecConstants.SourceType.CATALOGUE.equals(shoppingCart.getProductSource())) {
                     ResponseEntity<String> response = smpcRemoteService.stockDeduction(tenantId, String.valueOf(shoppingCart.getProductId()), shoppingCart.getProductId(), BigDecimal.valueOf(shoppingCart.getQuantity()));
                     if (ResponseUtils.isFailed(response)){
-                        // TODO 修改异常描述 ERROR_PRODUCT_STOCK_UNDERSTOCK
-                        throw new CommonException(BaseConstants.ErrorCode.DATA_INVALID);
+                        throw new CommonException(WatsonsConstants.ErrorCode.ERROR_PRODUCT_STOCK_UNDERSTOCK);
                     }
 //                    productStockService.productStockConsumption(null, shoppingCart.getProductId(), shoppingCart.getQuantity().longValue(), true);
                 }
