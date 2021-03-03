@@ -121,10 +121,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Autowired
     private PunchoutService punchoutService;
 
-
-    @Autowired
-    private CatalogPriceLimitService catalogPriceLimitService;
-
     @Autowired
     private MallOrderCenterService mallOrderCenterService;
 
