@@ -262,13 +262,12 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     BigDecimal includeTaxPrice = new BigDecimal(0);
                     ProductDTO productDTO = productService.selectByProduct(watsonsShoppingCartDTO.getProductId(), tenantId, watsonsShoppingCartDTO.getCompanyId(), watsonsShoppingCartDTO.getPurchaseType(), watsonsShoppingCartDTO.getSecondRegionId(), watsonsShoppingCartDTO.getLevelPath());
                     if(!ObjectUtils.isEmpty(productDTO.getSellPrice())){
-                        BigDecimal quantity = BigDecimal.valueOf(watsonsShoppingCartDTO.getQuantity());
+                        BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();
                         BigDecimal includeTaxPriceParam = productDTO.getSellPrice().multiply(quantity);
                         includeTaxPrice = includeTaxPrice.add(includeTaxPriceParam);
                     }
                     if(productDTO.getLadderEnableFlag().equals(1L)){
-                        Integer quantityInteger= watsonsShoppingCartDTO.getQuantity();
-                        BigDecimal quantity = BigDecimal.valueOf(quantityInteger);
+                        BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();;
                         for (ProductPoolLadder productPoolLadder : productDTO.getProductLadderPrices()) {
                             if(quantity.compareTo(productPoolLadder.getLadderFrom()) > -1 && quantity.compareTo(productPoolLadder.getLadderTo()) < 1){
                                 BigDecimal includeTaxPriceParam = productPoolLadder.getTaxPrice().multiply(quantity);
@@ -311,14 +310,13 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
                     ProductDTO productDTO = productService.selectByProduct(watsonsShoppingCartDTO.getProductId(), tenantId, watsonsShoppingCartDTO.getCompanyId(), watsonsShoppingCartDTO.getPurchaseType(), watsonsShoppingCartDTO.getSecondRegionId(), watsonsShoppingCartDTO.getLevelPath());
                     if(!ObjectUtils.isEmpty(productDTO.getSellPrice())){
-                        BigDecimal quantity = BigDecimal.valueOf(watsonsShoppingCartDTO.getQuantity());
+                        BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();
                         BigDecimal includeTaxPriceParam = productDTO.getSellPrice().multiply(quantity);
                         //加上这个商品的价格
                         includeTaxPriceTotal = includeTaxPriceTotal.add(includeTaxPriceParam);
                     }
                     if(productDTO.getLadderEnableFlag().equals(1L)){
-                       Integer quantityInteger= watsonsShoppingCartDTO.getQuantity();
-                        BigDecimal quantity = BigDecimal.valueOf(quantityInteger);
+                        BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();
                         for (ProductPoolLadder productPoolLadder : productDTO.getProductLadderPrices()) {
                             if(quantity.compareTo(productPoolLadder.getLadderFrom()) > -1 && quantity.compareTo(productPoolLadder.getLadderTo()) < 1){
                                 BigDecimal includeTaxPriceParam = productPoolLadder.getTaxPrice().multiply(quantity);
@@ -363,7 +361,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                                 shoppingCartDTO.setLatestPrice(priceResultDTO.getSellPrice());
                                 shoppingCartDTO.setUnitPrice(priceResultDTO.getSellPrice());
                                 shoppingCartDTO.setPurLastPrice(priceResultDTO.getPurchasePrice());
-                                shoppingCartDTO.setTotalPrice(shoppingCartDTO.getLatestPrice().multiply(BigDecimal.valueOf(shoppingCartDTO.getQuantity())));
+                                shoppingCartDTO.setTotalPrice(shoppingCartDTO.getLatestPrice().multiply(shoppingCartDTO.getQuantity()));
                             }
                         }
 
@@ -427,7 +425,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             // 目录化商品库存扣减
             for (ShoppingCartDTO shoppingCart : re) {
                 if (ScecConstants.SourceType.CATALOGUE.equals(shoppingCart.getProductSource())) {
-                    ResponseEntity<String> response = smpcRemoteService.stockDeduction(tenantId, String.valueOf(shoppingCart.getProductId()), shoppingCart.getProductId(), BigDecimal.valueOf(shoppingCart.getQuantity()));
+                    ResponseEntity<String> response = smpcRemoteService.stockDeduction(tenantId, String.valueOf(shoppingCart.getProductId()), shoppingCart.getProductId(), shoppingCart.getQuantity());
                     if (ResponseUtils.isFailed(response)){
                         throw new CommonException(WatsonsConstants.ErrorCode.ERROR_PRODUCT_STOCK_UNDERSTOCK);
                     }
@@ -437,11 +435,11 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 List<ShoppingCart> shoppingCarts = shoppingCartRepository.selectByIds(shoppingCart.getCartId().toString());
                 if(CollectionUtils.isNotEmpty(shoppingCarts)){
                     ShoppingCart currentShoppingCart = shoppingCarts.get(0);
-                    if(currentShoppingCart.getQuantity()-shoppingCart.getQuantity()<=0L){
+                    if(currentShoppingCart.getQuantity().subtract(shoppingCart.getQuantity()).compareTo(BigDecimal.ZERO) <= 0){
                         //删除购物车对象
                         shoppingCartRepository.deleteByPrimaryKey(shoppingCart.getCartId());
                     }else {
-                        currentShoppingCart.setQuantity(currentShoppingCart.getQuantity()-shoppingCart.getQuantity());
+                        currentShoppingCart.setQuantity(currentShoppingCart.getQuantity().subtract(shoppingCart.getQuantity()));
                         shoppingCartRepository.updateOptional(currentShoppingCart,ShoppingCart.FIELD_QUANTITY);
                     }
                 }
@@ -641,7 +639,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         // 计算阶梯价
         boolean hasFlag = true;
         for (ProductPoolLadder productPoolLadder : productPoolLadders) {
-            BigDecimal quantity = new BigDecimal(shoppingCart.getQuantity());
+            BigDecimal quantity = shoppingCart.getQuantity();
             if (productPoolLadder.getLadderFrom().compareTo(quantity) <= 0 && (ObjectUtils.isEmpty(productPoolLadder.getLadderTo()) || productPoolLadder.getLadderTo().compareTo(quantity) > 0)) {
                 shoppingCart.setLatestPrice(productPoolLadder.getTaxPrice());
                 shoppingCart.setUnitPrice(productPoolLadder.getTaxPrice());
@@ -735,7 +733,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 throw new CommonException(ScecConstants.ErrorCode.PRODUCT_CANNOT_SELL);
             }
             //判断是否满足最小包装量
-            BigDecimal number = new BigDecimal(shoppingCartDTO.getQuantity()).divide(shoppingCartDTO.getMinPackageQuantity(), 10, BigDecimal.ROUND_HALF_UP);
+            BigDecimal number = shoppingCartDTO.getQuantity().divide(shoppingCartDTO.getMinPackageQuantity(), 10, BigDecimal.ROUND_HALF_UP);
             if (new BigDecimal(number.intValue()).compareTo(number) != 0) {
                 throw new CommonException("不满足最小包装量" + shoppingCartDTO.getMinPackageQuantity() + "的整数倍");
             }
@@ -836,7 +834,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
                 watsonsPreRequestOrderDTO.setShoppingCartDTOList(shoppingCartDTO4Freight);
                 watsonsPreRequestOrderDTO.setDistinguishId(++distinguishId);
-                watsonsPreRequestOrderDTO.setCount(entry.getValue().stream().mapToLong(WatsonsShoppingCartDTO::getQuantity).sum());
+                watsonsPreRequestOrderDTO.setCount(entry.getValue().stream().map(WatsonsShoppingCartDTO::getQuantity).reduce(BigDecimal.ZERO, BigDecimal::add));
                 WatsonsShoppingCartDTO watsonsShoppingCartDTO = entry.getValue().get(0);
                 watsonsPreRequestOrderDTO.setAddress(watsonsShoppingCartDTO.getAddress());
                 boolean checkHideSupplier = hideSupplier && ScecConstants.SourceType.CATALOGUE.equals(watsonsShoppingCartDTO.getProductSource());
@@ -988,9 +986,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 for (AllocationInfo allocationInfo : allocationInfoList) {
                     WatsonsShoppingCartDTO newWatsonsShoppingCartDTO = new WatsonsShoppingCartDTO();
                     BeanUtils.copyProperties(watsonsShoppingCartDTO, newWatsonsShoppingCartDTO);
-                    newWatsonsShoppingCartDTO.setQuantity(allocationInfo.getQuantity().intValue());
+                    newWatsonsShoppingCartDTO.setQuantity(new BigDecimal(allocationInfo.getQuantity()));
                     newWatsonsShoppingCartDTO.setAllocationInfoList(Collections.singletonList(allocationInfo));
-                    newWatsonsShoppingCartDTO.setTotalPrice(ObjectUtils.isEmpty(allocationInfo.getPrice()) ? BigDecimal.ZERO : allocationInfo.getPrice().multiply(BigDecimal.valueOf(newWatsonsShoppingCartDTO.getQuantity())));
+                    newWatsonsShoppingCartDTO.setTotalPrice(ObjectUtils.isEmpty(allocationInfo.getPrice()) ? BigDecimal.ZERO : allocationInfo.getPrice().multiply(newWatsonsShoppingCartDTO.getQuantity()));
                     splitCosttInfoList.add(newWatsonsShoppingCartDTO);
                 }
                 it.remove();
@@ -1037,7 +1035,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         if (shoppingCartDTO.getLatestPrice().compareTo(priceResultDTO.getSellPrice()) != 0) {
             throw new CommonException(ScecConstants.ErrorCode.ERROR_INCONSISTENT_PRODUCT_PRICE);
         }
-        BigDecimal totalPrice = ObjectUtils.isEmpty(priceResultDTO.getSellPrice()) ? BigDecimal.ZERO : (priceResultDTO.getSellPrice().multiply(BigDecimal.valueOf(shoppingCartDTO.getQuantity())));
+        BigDecimal totalPrice = ObjectUtils.isEmpty(priceResultDTO.getSellPrice()) ? BigDecimal.ZERO : (priceResultDTO.getSellPrice().multiply(shoppingCartDTO.getQuantity()));
         //punchout 不计算价格
         if (punchoutService.isPuhchout(shoppingCartDTO.getProductSource())) {
             return;
@@ -1056,7 +1054,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
      */
     private void convertParam(ShoppingCartDTO shoppingCartDTO, PriceResultDTO priceResultDTO) {
         shoppingCartDTO.setPurLastPrice(priceResultDTO.getPurchasePrice());
-        BigDecimal proxyTotalPrice = ObjectUtils.isEmpty(shoppingCartDTO.getPurLastPrice()) ? BigDecimal.ZERO : (shoppingCartDTO.getPurLastPrice().multiply(BigDecimal.valueOf(shoppingCartDTO.getQuantity())));
+        BigDecimal proxyTotalPrice = ObjectUtils.isEmpty(shoppingCartDTO.getPurLastPrice()) ? BigDecimal.ZERO : (shoppingCartDTO.getPurLastPrice().multiply(shoppingCartDTO.getQuantity()));
         shoppingCartDTO.setPurTotalPrice(proxyTotalPrice);
         shoppingCartDTO.setShowSupplierCompanyId(priceResultDTO.getShowSupplierCompanyId());
         shoppingCartDTO.setShowSupplierName(priceResultDTO.getShowSupplierName());
@@ -1107,7 +1105,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
     }
 
-    private void splitShoppingCartByBudgetConfig(String configResult, PurReqMergeRule purReqMergeRule, List<ShoppingCartDTO> shoppingCartDTOList) {
+    public void splitShoppingCartByBudgetConfig(String configResult, PurReqMergeRule purReqMergeRule, List<ShoppingCartDTO> shoppingCartDTOList) {
         //预算拆单：同一个商品会有多个预算，此时需要将这个商品根据预算维度拆分，拆成多个不同的采购申请单,但是不同的商品不能按照预算不同进行拆分
         List<ShoppingCartDTO> splitBudgetInfoList = new ArrayList<>();
         if (ScecConstants.ConstantNumber.STRING_1.equals(configResult)) {
@@ -1122,9 +1120,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     for (BudgetInfo budgetInfo : budgetInfoList) {
                         ShoppingCartDTO newShoppingCart = new ShoppingCartDTO();
                         BeanUtils.copyProperties(shoppingCartDTO, newShoppingCart);
-                        newShoppingCart.setQuantity(budgetInfo.getQuantity().intValue());
+                        newShoppingCart.setQuantity(budgetInfo.getQuantity());
                         newShoppingCart.setBudgetInfoList(Collections.singletonList(budgetInfo));
-                        newShoppingCart.setTotalPrice(ObjectUtils.isEmpty(newShoppingCart.getLatestPrice()) ? BigDecimal.ZERO : (newShoppingCart.getLatestPrice().multiply(BigDecimal.valueOf(newShoppingCart.getQuantity()))));
+                        newShoppingCart.setTotalPrice(ObjectUtils.isEmpty(newShoppingCart.getLatestPrice()) ? BigDecimal.ZERO : (newShoppingCart.getLatestPrice().multiply(newShoppingCart.getQuantity())));
                         splitBudgetInfoList.add(newShoppingCart);
                     }
                     it.remove();
