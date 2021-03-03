@@ -5,9 +5,9 @@ import lombok.Data;
 import org.hzero.core.base.BaseConstants;
 import org.hzero.starter.keyencrypt.core.Encrypt;
 import org.springframework.util.ObjectUtils;
-import org.srm.mall.agreement.domain.entity.AgreementDetail;
-import org.srm.mall.agreement.domain.entity.AgreementLine;
 import org.srm.mall.common.feign.dto.agreement.Agreement;
+import org.srm.mall.common.feign.dto.agreemnet.AgreementDetail;
+import org.srm.mall.common.feign.dto.agreemnet.AgreementLine;
 import org.srm.mall.product.domain.entity.spuPublish.SkuPublish;
 
 import java.math.BigDecimal;

@@ -13,8 +13,8 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.hzero.core.base.BaseConstants;
 import org.hzero.starter.keyencrypt.core.Encrypt;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.srm.mall.agreement.domain.entity.AgreementLine;
-import org.srm.mall.agreement.domain.entity.Postage;
+import org.srm.mall.common.feign.dto.agreemnet.AgreementLine;
+import org.srm.mall.common.feign.dto.postage.Postage;
 
 import java.util.Calendar;
 import java.util.Date;

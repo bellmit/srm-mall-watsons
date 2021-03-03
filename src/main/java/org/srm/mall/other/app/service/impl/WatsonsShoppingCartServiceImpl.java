@@ -35,15 +35,12 @@ import org.srm.boot.platform.configcenter.CnfHelper;
 import org.srm.boot.platform.customizesetting.CustomizeSettingHelper;
 import org.srm.boot.saga.utils.SagaClient;
 import org.srm.common.convert.bean.BeanConvertor;
-import org.srm.mall.agreement.app.service.PostageService;
-import org.srm.mall.agreement.app.service.ProductPoolService;
-import org.srm.mall.agreement.domain.entity.AgreementLine;
-import org.srm.mall.agreement.domain.entity.ProductPool;
-import org.srm.mall.agreement.domain.entity.ProductPoolLadder;
-import org.srm.mall.agreement.domain.repository.AgreementLineRepository;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.*;
+import org.srm.mall.common.feign.dto.agreemnet.AgreementLine;
 import org.srm.mall.common.feign.dto.product.Category;
+import org.srm.mall.common.feign.dto.product.ProductPool;
+import org.srm.mall.common.feign.dto.product.ProductPoolLadder;
 import org.srm.mall.common.feign.dto.product.SkuCenterQueryDTO;
 import org.srm.mall.common.task.MallOrderAsyncTask;
 import org.srm.mall.common.utils.snapshot.SnapshotUtil;
@@ -75,8 +72,6 @@ import org.srm.mall.product.api.dto.LadderPriceResultDTO;
 import org.srm.mall.product.api.dto.PriceResultDTO;
 import org.srm.mall.product.app.service.ProductStockService;
 import org.srm.mall.product.domain.entity.ScecProductCategory;
-import org.srm.mall.product.domain.repository.ComCategoryCatalogMapRepository;
-import org.srm.mall.product.infra.mapper.ScecProductCategoryMapper;
 import org.srm.mall.region.api.dto.AddressDTO;
 import org.srm.mall.region.api.dto.RegionDTO;
 import org.srm.mall.region.domain.entity.Address;
@@ -127,25 +122,10 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     private PunchoutService punchoutService;
 
     @Autowired
-    private ProductPoolService productPoolService;
-
-    @Autowired
-    private ComCategoryCatalogMapRepository comCategoryCatalogMapRepository;
-
-    @Autowired
-    private ScecProductCategoryMapper scecProductCategoryMapper;
-
-    @Autowired
-    private CatalogPriceLimitService catalogPriceLimitService;
-
-    @Autowired
     private MallOrderCenterService mallOrderCenterService;
 
     @Autowired
     private BudgetInfoService budgetInfoService;
-
-    @Autowired
-    private PostageService postageService;
 
     @Autowired
     private SnapshotUtil snapshotUtil;
@@ -180,8 +160,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Autowired
     private SmdmRemoteNewService smdmRemoteNewService;
 
-    @Autowired
-    private AgreementLineRepository agreementLineRepository;
 
     @Autowired
     private WatsonsCeInfoRemoteService watsonsCeInfoRemoteService;
@@ -202,6 +180,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Autowired
     private SagmRemoteService sagmRemoteService;
 
+    @Autowired
+    private WatsonsSagmRemoteService watsonsSagmRemoteService;
 
     @Override
     public List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart) {
@@ -267,7 +247,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                         includeTaxPrice = includeTaxPrice.add(includeTaxPriceParam);
                     }
                     if(productDTO.getLadderEnableFlag().equals(1L)){
-                        BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();;
+                        BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();
                         for (ProductPoolLadder productPoolLadder : productDTO.getProductLadderPrices()) {
                             if(quantity.compareTo(productPoolLadder.getLadderFrom()) > -1 && quantity.compareTo(productPoolLadder.getLadderTo()) < 1){
                                 BigDecimal includeTaxPriceParam = productPoolLadder.getTaxPrice().multiply(quantity);
@@ -316,7 +296,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                         includeTaxPriceTotal = includeTaxPriceTotal.add(includeTaxPriceParam);
                     }
                     if(productDTO.getLadderEnableFlag().equals(1L)){
-                        BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();
+                       BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();
                         for (ProductPoolLadder productPoolLadder : productDTO.getProductLadderPrices()) {
                             if(quantity.compareTo(productPoolLadder.getLadderFrom()) > -1 && quantity.compareTo(productPoolLadder.getLadderTo()) < 1){
                                 BigDecimal includeTaxPriceParam = productPoolLadder.getTaxPrice().multiply(quantity);
@@ -929,15 +909,22 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             //        进行cms合同号取值
             watsonsPreRequestOrderDTOList.stream().forEach(watsonsPreRequestOrderDTO -> {
                 for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
-                    AgreementLine agreementLine = agreementLineRepository.selectByPrimaryKey(watsonsShoppingCartDTO.getAgreementLineId());
-                    //attributeVarchar1是cms合同号
-                    if(ObjectUtils.isEmpty(agreementLine)){
-                        logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的协议行!");
+                    logger.info("开始调用协议中心查询cms号码");
+                    ResponseEntity<String> stringResponseEntity = watsonsSagmRemoteService.queryAgreementLineById(tenantId,watsonsShoppingCartDTO.getAgreementLineId());
+                    if(ResponseUtils.isFailed(stringResponseEntity)){
+                        logger.error("调用协议中心查询cms合同号异常!");
+                    }else {
+                        AgreementLine agreementLine = ResponseUtils.getResponse(stringResponseEntity, new TypeReference<AgreementLine>() {
+                        });
+                        //attributeVarchar1是cms合同号
+                        if(ObjectUtils.isEmpty(agreementLine)){
+                            logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的协议行!");
+                        }
+                        if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
+                            logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的CMS合同号!");
+                        }
+                        watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
                     }
-                    if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
-                        logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的CMS合同号!");
-                    }
-                    watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
                 }
             });
             // handleCheck()
