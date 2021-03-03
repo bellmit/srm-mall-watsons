@@ -184,6 +184,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Autowired
     private SagmRemoteService sagmRemoteService;
 
+    @Autowired
+    private WatsonsSagmRemoteService watsonsSagmRemoteService;
 
     @Override
     public List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart) {
@@ -915,15 +917,22 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             //        进行cms合同号取值
             watsonsPreRequestOrderDTOList.stream().forEach(watsonsPreRequestOrderDTO -> {
                 for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
-                    AgreementLine agreementLine = agreementLineRepository.selectByPrimaryKey(watsonsShoppingCartDTO.getAgreementLineId());
-                    //attributeVarchar1是cms合同号
-                    if(ObjectUtils.isEmpty(agreementLine)){
-                        logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的协议行!");
+                    logger.info("开始调用协议中心查询cms号码");
+                    ResponseEntity<String> stringResponseEntity = watsonsSagmRemoteService.queryAgreementLineById(tenantId,watsonsShoppingCartDTO.getAgreementLineId());
+                    if(ResponseUtils.isFailed(stringResponseEntity)){
+                        logger.error("调用协议中心查询cms合同号异常!");
+                    }else {
+                        AgreementLine agreementLine = ResponseUtils.getResponse(stringResponseEntity, new TypeReference<AgreementLine>() {
+                        });
+                        //attributeVarchar1是cms合同号
+                        if(ObjectUtils.isEmpty(agreementLine)){
+                            logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的协议行!");
+                        }
+                        if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
+                            logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的CMS合同号!");
+                        }
+                        watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
                     }
-                    if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
-                        logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的CMS合同号!");
-                    }
-                    watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
                 }
             });
             // handleCheck()
