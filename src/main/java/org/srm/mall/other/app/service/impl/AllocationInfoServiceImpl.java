@@ -228,7 +228,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                 quantity = quantity.add(new BigDecimal(allocationInfo.getQuantity()));
                 allocationInfo.setDeliveryTypeMeaning(watsonsShoppingCart.getAllocationInfoList().get(0).getDeliveryTypeMeaning());
             }
-            watsonsShoppingCart.setQuantity(quantity.longValue());
+            watsonsShoppingCart.setQuantity(quantity);
             shoppingCartService.create(watsonsShoppingCart);
         }
         watsonsShoppingCart.setAllocationInfoList(allocationInfoList);
@@ -271,7 +271,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             //在该商品下    遍历所有费用分配信息
             for (AllocationInfo allocationInfo : allocationInfoDTO.getAllocationInfoList()) {
                 //每个商品，在该费用分配下的数量
-                BigDecimal quantity = new BigDecimal(watsonsShoppingCart.getQuantity()).multiply(allocationInfo.getPercent()).divide(new BigDecimal(100), 5, BigDecimal.ROUND_HALF_UP);
+                BigDecimal quantity = watsonsShoppingCart.getQuantity().multiply(allocationInfo.getPercent()).divide(new BigDecimal(100), 5, BigDecimal.ROUND_HALF_UP);
                 //判断数量是否有小数，若有小数则抛异常
                 if (new BigDecimal(quantity.intValue()).compareTo(quantity) != 0) {
                     throw new CommonException("商品：" + watsonsShoppingCart.getProductName() + "的百分比:" + allocationInfo.getPercent() + "数量计算为小数");
