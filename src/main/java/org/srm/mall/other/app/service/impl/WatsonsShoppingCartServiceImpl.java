@@ -38,10 +38,7 @@ import org.srm.common.convert.bean.BeanConvertor;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.*;
 import org.srm.mall.common.feign.dto.agreemnet.AgreementLine;
-import org.srm.mall.common.feign.dto.product.Category;
-import org.srm.mall.common.feign.dto.product.ProductPool;
-import org.srm.mall.common.feign.dto.product.ProductPoolLadder;
-import org.srm.mall.common.feign.dto.product.SkuCenterQueryDTO;
+import org.srm.mall.common.feign.dto.product.*;
 import org.srm.mall.common.task.MallOrderAsyncTask;
 import org.srm.mall.common.utils.snapshot.SnapshotUtil;
 import org.srm.mall.common.utils.snapshot.SnapshotUtilErrorBean;
@@ -675,9 +672,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         //获取名片分类的categoryId
         SkuCenterQueryDTO skuCenterQueryDTO = new SkuCenterQueryDTO();
         skuCenterQueryDTO.setCategoryCodeList(Collections.singletonList(BUSINESS_CARD_CATEGORY_CODE));
-        List<Category> categories = ResponseUtils.getResponse(smpcRemoteService.queryCategoryInfo(tenantId, skuCenterQueryDTO), new TypeReference<List<Category>>() {
+        SkuCenterResultDTO<List<Category>> response = ResponseUtils.getResponse(smpcRemoteService.queryCategoryInfo(tenantId, skuCenterQueryDTO), new TypeReference<SkuCenterResultDTO<List<Category>>>() {
         });
-//        ScecProductCategory businessCardCategory = scecProductCategoryMapper.getCategoryByCode(BUSINESS_CARD_CATEGORY_CODE);
+        List<Category> categories = response.isSuccess() ? response.getResult() : null;
         Long businessCardCategoryId = -1L;
         if (!CollectionUtils.isEmpty(categories)) {
 //            businessCardCategoryId = businessCardCategory.getId();
