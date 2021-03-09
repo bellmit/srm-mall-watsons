@@ -20,6 +20,7 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.*;
+import org.srm.mall.common.feign.*;
 import org.srm.mall.common.feign.WatsonsProjectCostRemoteService;
 import org.srm.mall.common.feign.SagmRemoteService;
 import org.srm.mall.common.feign.SmdmRemoteNewService;
@@ -28,6 +29,9 @@ import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.other.api.dto.*;
 import org.srm.mall.other.api.dto.WhLovResultDTO;
 import org.srm.mall.other.domain.entity.CeLovResult;
+import org.srm.mall.other.api.dto.CeLovResultDTO;
+import org.srm.mall.other.api.dto.WhLovResultDTO;
+import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.app.service.AllocationInfoService;
 import org.srm.mall.other.app.service.ShoppingCartService;
 import org.srm.mall.other.domain.entity.AllocationInfo;
@@ -224,7 +228,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                 quantity = quantity.add(new BigDecimal(allocationInfo.getQuantity()));
                 allocationInfo.setDeliveryTypeMeaning(watsonsShoppingCart.getAllocationInfoList().get(0).getDeliveryTypeMeaning());
             }
-            watsonsShoppingCart.setQuantity(quantity.longValue());
+            watsonsShoppingCart.setQuantity(quantity);
             shoppingCartService.create(watsonsShoppingCart);
         }
         watsonsShoppingCart.setAllocationInfoList(allocationInfoList);
@@ -267,7 +271,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             //在该商品下    遍历所有费用分配信息
             for (AllocationInfo allocationInfo : allocationInfoDTO.getAllocationInfoList()) {
                 //每个商品，在该费用分配下的数量
-                BigDecimal quantity = new BigDecimal(watsonsShoppingCart.getQuantity()).multiply(allocationInfo.getPercent()).divide(new BigDecimal(100), 5, BigDecimal.ROUND_HALF_UP);
+                BigDecimal quantity = watsonsShoppingCart.getQuantity().multiply(allocationInfo.getPercent()).divide(new BigDecimal(100), 5, BigDecimal.ROUND_HALF_UP);
                 //判断数量是否有小数，若有小数则抛异常
                 if (new BigDecimal(quantity.intValue()).compareTo(quantity) != 0) {
                     throw new CommonException("商品：" + watsonsShoppingCart.getProductName() + "的百分比:" + allocationInfo.getPercent() + "数量计算为小数");
@@ -488,14 +492,17 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     }
 
     @Override
-    public Page<CeLovResultDTO> selectCeInfoLov(Long organizationId, String storeNo, Integer size, Integer page) {
-        ResponseEntity<String> ceInfo = watsonsCeInfoRemoteService.queryCeInfo(organizationId, storeNo, size, page+1);
+    public Page<CeLovResultDTO> selectCeInfoLov(Long organizationId, String storeNo, Integer size, Integer page, String ceNumber, String description, String projectName) {
+        ResponseEntity<String> ceInfo = watsonsCeInfoRemoteService.queryCeInfo(organizationId, storeNo, size, page+1,ceNumber,description,projectName);
         if (ResponseUtils.isFailed(ceInfo)) {
-            logger.error("select CE info failed :{}", storeNo);
+            logger.error("select CE info failed! 店铺号为"+ storeNo +"ce号为:"+ceNumber+"项目描述为:"+description+"项目名称为:"+projectName);
             throw new CommonException("根据店铺id查询ce编号信息失败! 店铺号为:" + storeNo);
         }
         logger.info("select CE info success :{}", storeNo);
         CeLovResult ceLovResult = ResponseUtils.getResponse(ceInfo, new TypeReference<CeLovResult>() {});
+        for (CeLovResultDTO ceLovResultDTO : ceLovResult.getList()) {
+            ceLovResultDTO.setCeView(ceLovResultDTO.getCeNumber()+"("+ceLovResultDTO.getItemName()+")");
+        }
         return new Page<>(ceLovResult.getList(),new PageInfo(page,size),ceLovResult.getTotal());
     }
 
@@ -513,6 +520,12 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             throw new CommonException("根据店铺code查询仓转店信息为空! 店铺号为:" + storeId);
         }
         WhLovResultDTO res = allocationInfoRepository.selectInvNameByInvCode(response.getContent().get(0).getInventoryCode(),organizationId);
+//        //检查该库存组织是否有对应地址
+//        OrganizationInfoDTO infoDTO = new OrganizationInfoDTO();
+//        infoDTO.setOrganizationId(Long.valueOf(res.getInventoryId()));
+//        //organizationId为租户id
+//        infoDTO.setTenantId(organizationId);
+//        allocationInfoRepository.checkAddressByInvOrganization(infoDTO);
         response.getContent().get(0).setInventoryName(res.getInventoryName());
         return new Page<>(response.getContent(),new PageInfo(page,size),response.getTotalElements());
     }
