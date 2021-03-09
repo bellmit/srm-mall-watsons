@@ -72,8 +72,11 @@ import org.srm.mall.product.domain.entity.ScecProductCategory;
 import org.srm.mall.region.api.dto.AddressDTO;
 import org.srm.mall.region.api.dto.RegionDTO;
 import org.srm.mall.region.domain.entity.Address;
+import org.srm.mall.region.domain.entity.MallRegion;
 import org.srm.mall.region.domain.entity.Region;
 import org.srm.mall.region.domain.repository.AddressRepository;
+import org.srm.mall.region.domain.repository.MallRegionRepository;
+import org.srm.mall.region.domain.repository.RegionRepository;
 import org.srm.mq.service.producer.MessageProducer;
 import org.srm.web.annotation.Tenant;
 import java.math.BigDecimal;
@@ -179,6 +182,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     @Autowired
     private WatsonsSagmRemoteService watsonsSagmRemoteService;
+
+    @Autowired
+    private MallRegionRepository mallRegionRepository;
 
     @Override
     public List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart) {
@@ -762,8 +768,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             validateShoppingExistCar(re);
         }
         boolean hideSupplier = mallOrderCenterService.checkHideField(tenantId, shoppingCartDTOList.get(0).getCompanyId(), ScecConstants.HideField.SUPPLIER);
-
-
         if (CollectionUtils.isNotEmpty(shoppingCartDTOList)) {
 
             List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList = new ArrayList<>();
@@ -826,6 +830,10 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 watsonsPreRequestOrderDTO.setProxySupplierCompanyName(watsonsShoppingCartDTO.getProxySupplierCompanyName());
                 watsonsPreRequestOrderDTO.setShowSupplierCompanyId(watsonsShoppingCartDTO.getShowSupplierCompanyId());
                 watsonsPreRequestOrderDTO.setShowSupplierName(checkHideSupplier ? ScecConstants.HideField.HIDE_SUPPLIER_NAME_CODE : watsonsShoppingCartDTO.getShowSupplierName());
+                String addressRegion = watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getAddressRegion();
+                String fullAddress = watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getFullAddress();
+                //一个拆好的订单的所有商品行的详细地址+地址区域要一样  所以这里可以取任意一个
+                watsonsPreRequestOrderDTO.setReceiverAddress(addressRegion+fullAddress);
                 // 订单总价(不含运费)
                 BigDecimal price = entry.getValue().stream().map(WatsonsShoppingCartDTO::getTotalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -880,7 +888,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     //  如果是销售协议 运费需要用采购协议价来计算
                     watsonsPreRequestOrderDTO.setPurPrice(freightPrice.add(watsonsPreRequestOrderDTO.getFreight()));
                 }
-
                 //校验账户余额
 //                checkBalance(entry.getValue().get(0).getCompanyId(),preRequestOrderDTO);
                 // 获取缓存中电商支付信息
@@ -893,12 +900,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 watsonsPreRequestOrderDTO.setMobile(watsonsShoppingCartDTO.getMobile());
                 CustomUserDetails userDetails = DetailsHelper.getUserDetails();
                 watsonsPreRequestOrderDTO.setReceiverContactName(userDetails.getRealName());
-
-
-                String addressRegion = watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getAddressRegion();
-                String fullAddress = watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getFullAddress();
-                //一个拆好的订单的所有商品行的详细地址+地址区域要一样  所以这里可以取任意一个
-                watsonsPreRequestOrderDTO.setReceiverAddress(addressRegion+fullAddress);
                 watsonsPreRequestOrderDTO.setStoreNo(watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopCode());
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
                 watsonsPreRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
@@ -932,9 +933,28 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     /**
      * 处理订单运费
      */
-    private void orderFreight(Long tenantId,WatsonsPreRequestOrderDTO preRequestOrderDTO){
+    private void orderFreight(Long tenantId,WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO){
         PreRequestOrderDTO freightOrderDTO = null;
-        List<PreRequestOrderDTO> preRequestOrderDTOS = ResponseUtils.getResponse(sagmRemoteService.freightCalculate(tenantId, Collections.singletonList(preRequestOrderDTO)), new TypeReference<List<PreRequestOrderDTO>>() {});
+        PreRequestOrderDTO calculateFreightPreRequestOrderDTO = new PreRequestOrderDTO();
+        BeanUtils.copyProperties(watsonsPreRequestOrderDTO,calculateFreightPreRequestOrderDTO);
+        //addressId为空  regionId传二级地址区域查询运费
+        calculateFreightPreRequestOrderDTO.getShoppingCartDTOList().forEach(watsonsShoppingCartDTO -> {watsonsShoppingCartDTO.setAddressId(null);});
+        Long lastRegionId = watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList().get(0).getAllocationInfoList().get(0).getLastRegionId();
+        //根据lastRegionId查出二级区域id  传给协议查运费
+        //每个preRequestOrderDTO中的收货地址一样 所以该preRequestOrder中所有的shoppingCartList的lastRegionId一样
+        MallRegion mallRegion = mallRegionRepository.selectByPrimaryKey(lastRegionId);
+        if(ObjectUtils.isEmpty(mallRegion)){
+            throw new CommonException("没有查到地址区域信息,无法计算运费!");
+        }
+        String levelPath = mallRegion.getLevelPath();
+        String[] split = levelPath.split("\\.");
+        if(split.length<2){
+            logger.error("商品行的地址非三级以上地址，不能查询运费!");
+            throw new CommonException("订单中有商品行的地址不完整，无法查询运费!");
+        }
+        Long secondRegionId = Long.valueOf(split[1]);
+        calculateFreightPreRequestOrderDTO.getShoppingCartDTOList().forEach(shoppingCartDTO -> {shoppingCartDTO.setRegionId(secondRegionId);});
+        List<PreRequestOrderDTO> preRequestOrderDTOS = ResponseUtils.getResponse(sagmRemoteService.freightCalculate(tenantId, Collections.singletonList(calculateFreightPreRequestOrderDTO)), new TypeReference<List<PreRequestOrderDTO>>() {});
         if(CollectionUtils.isNotEmpty(preRequestOrderDTOS)) {
             freightOrderDTO = preRequestOrderDTOS.get(0);
         }
@@ -942,20 +962,20 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             throw new CommonException(BaseConstants.ErrorCode.ERROR_NET);
         }
         //设置运费
-        preRequestOrderDTO.setFreight(freightOrderDTO.getFreight());
+        watsonsPreRequestOrderDTO.setFreight(freightOrderDTO.getFreight());
         Map<Long,ShoppingCartDTO> freightShoppingCartMap = freightOrderDTO.getShoppingCartDTOList().stream().collect(Collectors.toMap(ShoppingCartDTO::getCartId, Function.identity()));
-        for(ShoppingCartDTO shoppingCartDTO : preRequestOrderDTO.getShoppingCartDTOList()){
-            ShoppingCartDTO freightShoppingCartDTO = freightShoppingCartMap.get(shoppingCartDTO.getCartId());
+        for(WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()){
+            ShoppingCartDTO freightShoppingCartDTO = freightShoppingCartMap.get(watsonsShoppingCartDTO.getCartId());
             //运费计价方式
-            shoppingCartDTO.setFreightPricingMethod(freightShoppingCartDTO.getFreightPricingMethod());
+            watsonsShoppingCartDTO.setFreightPricingMethod(freightShoppingCartDTO.getFreightPricingMethod());
             //运费税率
-            shoppingCartDTO.setFreightTaxId(freightShoppingCartDTO.getFreightTaxId());
-            shoppingCartDTO.setFreightTaxCode(freightShoppingCartDTO.getFreightTaxCode());
-            shoppingCartDTO.setFreightTaxRate(freightShoppingCartDTO.getFreightTaxRate());
+            watsonsShoppingCartDTO.setFreightTaxId(freightShoppingCartDTO.getFreightTaxId());
+            watsonsShoppingCartDTO.setFreightTaxCode(freightShoppingCartDTO.getFreightTaxCode());
+            watsonsShoppingCartDTO.setFreightTaxRate(freightShoppingCartDTO.getFreightTaxRate());
             //运费物料
-            shoppingCartDTO.setFreightItemId(freightShoppingCartDTO.getFreightItemId());
-            shoppingCartDTO.setFreightItemCode(freightShoppingCartDTO.getFreightItemCode());
-            shoppingCartDTO.setFreightItemName(freightShoppingCartDTO.getFreightItemName());
+            watsonsShoppingCartDTO.setFreightItemId(freightShoppingCartDTO.getFreightItemId());
+            watsonsShoppingCartDTO.setFreightItemCode(freightShoppingCartDTO.getFreightItemCode());
+            watsonsShoppingCartDTO.setFreightItemName(freightShoppingCartDTO.getFreightItemName());
         }
     }
 
