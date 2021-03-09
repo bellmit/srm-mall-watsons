@@ -8,7 +8,8 @@ import org.apache.http.impl.client.HttpClients;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.srm.autoconfigure.catalogue.EnableSrmMall;
+import org.srm.autoconfigure.mall.EnableSrmMall;
+
 
 /**
  * SRM目录化商城
