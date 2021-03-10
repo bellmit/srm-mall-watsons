@@ -834,6 +834,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 String fullAddress = watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getFullAddress();
                 //一个拆好的订单的所有商品行的详细地址+地址区域要一样  所以这里可以取任意一个
                 watsonsPreRequestOrderDTO.setReceiverAddress(addressRegion+fullAddress);
+                watsonsPreRequestOrderDTO.setWatsonsShoppingCartDTOList(watsonsShoppingCartDTOList4Trans);
                 // 订单总价(不含运费)
                 BigDecimal price = entry.getValue().stream().map(WatsonsShoppingCartDTO::getTotalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -896,7 +897,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     BeanConvertor.convert(paymentInfo, watsonsPreRequestOrderDTO);
                 }
                 watsonsPreRequestOrderDTO.setPreRequestOrderNumber(UUID.randomUUID().toString());
-                watsonsPreRequestOrderDTO.setWatsonsShoppingCartDTOList(watsonsShoppingCartDTOList4Trans);
                 watsonsPreRequestOrderDTO.setMobile(watsonsShoppingCartDTO.getMobile());
                 CustomUserDetails userDetails = DetailsHelper.getUserDetails();
                 watsonsPreRequestOrderDTO.setReceiverContactName(userDetails.getRealName());
