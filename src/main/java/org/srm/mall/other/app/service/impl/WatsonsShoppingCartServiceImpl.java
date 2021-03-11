@@ -920,8 +920,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                         }
                         if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
                             logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的CMS合同号!");
+                        }else {
+                            watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
                         }
-                        watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
                     }
                 }
             });
