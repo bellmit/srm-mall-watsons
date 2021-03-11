@@ -954,8 +954,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             logger.error("商品行的地址非三级以上地址，不能查询运费!");
             throw new CommonException("订单中有商品行的地址不完整，无法查询运费!");
         }
-        Long secondRegionId = Long.valueOf(split[1]);
-        calculateFreightPreRequestOrderDTO.getShoppingCartDTOList().forEach(shoppingCartDTO -> {shoppingCartDTO.setRegionId(secondRegionId);});
+        Long secondRegionCode = Long.valueOf(split[1]);
+        List<MallRegion> mallRegions = mallRegionRepository.selectByCondition(Condition.builder(MallRegion.class).andWhere(Sqls.custom().andEqualTo(MallRegion.FIELD_REGION_CODE, secondRegionCode).andEqualTo(MallRegion.FIELD_ENABLED_FLAG,1)).build());
+        calculateFreightPreRequestOrderDTO.getShoppingCartDTOList().forEach(shoppingCartDTO -> {shoppingCartDTO.setRegionId(mallRegions.get(0).getRegionId());});
         List<PreRequestOrderDTO> preRequestOrderDTOS = ResponseUtils.getResponse(sagmRemoteService.freightCalculate(tenantId, Collections.singletonList(calculateFreightPreRequestOrderDTO)), new TypeReference<List<PreRequestOrderDTO>>() {});
         if(CollectionUtils.isNotEmpty(preRequestOrderDTOS)) {
             freightOrderDTO = preRequestOrderDTOS.get(0);
