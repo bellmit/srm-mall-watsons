@@ -98,7 +98,7 @@ public class CostAllocationInfoController extends BaseController {
     @ApiOperation(value = "屈臣氏费用项目值集接口")
     @Permission(level = ResourceLevel.ORGANIZATION)
     @GetMapping("/cost-allocation-project-lov")
-    public ResponseEntity<List<ProjectCost>> selectAllocationProjectLov(@PathVariable("organizationId") Long organizationId, Long itemCategoryId, Long itemId, @RequestParam("size") Integer size, @RequestParam("page") Integer page) {
+    public ResponseEntity<List<ProjectCost>> selectAllocationProjectLov(@PathVariable("organizationId") Long organizationId, @Encrypt Long itemCategoryId, @Encrypt Long itemId, @RequestParam("size") Integer size, @RequestParam("page") Integer page) {
         return Results.success(allocationInfoService.selectAllocationProjectLov(organizationId, itemCategoryId,itemId,size,page));
     }
 
