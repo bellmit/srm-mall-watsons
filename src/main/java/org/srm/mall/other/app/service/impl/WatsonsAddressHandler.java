@@ -63,6 +63,7 @@ public class WatsonsAddressHandler implements IJobHandler {
         if (CollectionUtils.isEmpty(addressList)){
             return ReturnT.SUCCESS;
         }
+        tool.info("共有" + addressList.size() + "条待更新数据");
         List<WatsonsAddressDTO> successList = new ArrayList<>();
         List<WatsonsAddressDTO> errorList = new ArrayList<>();
         //查询详细地址和公司id
