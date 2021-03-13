@@ -7,6 +7,7 @@ import io.choerodon.core.exception.CommonException;
 import io.choerodon.core.oauth.DetailsHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.hzero.boot.platform.code.builder.CodeRuleBuilder;
 import org.hzero.core.base.BaseConstants;
 import org.hzero.core.util.ResponseUtils;
@@ -170,7 +171,7 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
         omsOrderAddress.setStreetName((regionCode.size() == 4) ? mallRegionMap.get(regionCode.get(3)).getRegionName() : null);
         omsOrderAddress.setAddress(allocationInfo.getFullAddress());
         omsOrderAddress.setFullAddress(allocationInfo.getAddressRegion()+allocationInfo.getFullAddress());
-        omsOrderAddress.setContactName(DetailsHelper.getUserDetails().getRealName());
+        omsOrderAddress.setContactName(StringUtils.defaultIfBlank(watsonsPreRequestOrderDTO.getReceiverContactName(),DetailsHelper.getUserDetails().getRealName()));
         omsOrderAddress.setMobilePhone(watsonsPreRequestOrderDTO.getMobile());
         omsOrderAddress.setCompanyId(omsOrder.getPurchaseCompanyId());
         omsOrderAddress.setCompanyName(omsOrder.getPurchaseCompanyName());

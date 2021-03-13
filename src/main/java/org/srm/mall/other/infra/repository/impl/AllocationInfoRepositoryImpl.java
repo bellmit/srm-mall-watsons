@@ -1,9 +1,12 @@
 package org.srm.mall.other.infra.repository.impl;
 
 import io.choerodon.core.domain.Page;
+import io.choerodon.core.exception.CommonException;
 import io.choerodon.mybatis.pagehelper.PageHelper;
 import io.choerodon.mybatis.pagehelper.domain.PageRequest;
 import org.hzero.mybatis.base.impl.BaseRepositoryImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.api.dto.WatsonsRegionDTO;
@@ -29,9 +32,25 @@ public class AllocationInfoRepositoryImpl extends BaseRepositoryImpl<AllocationI
     @Autowired
     private AllocationInfoMapper allocationInfoMapper;
 
+    private Logger logger = LoggerFactory.getLogger(AllocationInfoRepositoryImpl.class);
+
     @Override
     public Page<OrganizationInfoDTO> selectAllocationShopOrganization(OrganizationInfoDTO organizationInfoDTO, PageRequest pageRequest) {
-        return PageHelper.doPageAndSort(pageRequest, () -> allocationInfoMapper.selectAllocationShopOrganization(organizationInfoDTO));
+        List<OrganizationInfoDTO> organizationInfoDTOS = allocationInfoMapper.selectAllocationShopOrganization(organizationInfoDTO);
+//        for (OrganizationInfoDTO infoDTO : organizationInfoDTOS) {
+//            checkAddressByInvOrganization(infoDTO);
+//        }
+        return PageHelper.doPageAndSort(pageRequest, () -> organizationInfoDTOS);
+    }
+
+    @Override
+    public Void checkAddressByInvOrganization(OrganizationInfoDTO infoDTO) {
+        Integer count = allocationInfoMapper.checkAddressByInvOrganization(infoDTO);
+        if(count == 0){
+            logger.error(infoDTO.getOrganizationCode()+ infoDTO.getOrganizationName()+"的相关地址信息不存在，请手工补充收货地址!");
+            throw new CommonException(infoDTO.getOrganizationCode()+ infoDTO.getOrganizationName()+"的相关地址信息不存在，请手工补充收货地址!");
+        }
+        return null;
     }
 
     @Override
@@ -54,10 +73,14 @@ public class AllocationInfoRepositoryImpl extends BaseRepositoryImpl<AllocationI
         return allocationInfoMapper.selectRegionInfoByRegionCode(regionCode);
 
     }
-
     @Override
     public WhLovResultDTO selectInvNameByInvCode(String inventoryCode, Long organizationId) {
         return allocationInfoMapper.selectInvNameByInvCode(inventoryCode,organizationId);
+    }
+
+    @Override
+    public WhLovResultDTO selectInvInfoByInvId(Long watsonsOrganizationId, Long organizationId) {
+        return allocationInfoMapper.selectInvInfoByInvId(watsonsOrganizationId,organizationId);
     }
 
 

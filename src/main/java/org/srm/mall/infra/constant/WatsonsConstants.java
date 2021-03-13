@@ -22,6 +22,11 @@ public interface WatsonsConstants {
          * 门店地址所在区域商品不可售或无货
          */
         public static final String INV_ORGANIZATION_REGION_OOS = "inv.organization.region.oos";
+
+        /**
+         *
+         */
+        public static final String ERROR_PRODUCT_STOCK_UNDERSTOCK = "product.stock.deduction.error";
     }
 
     final class PriceExpandField {
@@ -31,7 +36,12 @@ public interface WatsonsConstants {
         /**
          * CMS合同号
          */
-        public static final String PC_NUM = "pcNum";
+        public static final String CONTRACT_NUM = "contractNum";
+
+        /**
+         * 最大订货量
+         */
+        public static final String LAST_PURCHASE_QUANTITY = "lastPurchaseQuantity";
     }
 
 
@@ -54,6 +64,25 @@ public interface WatsonsConstants {
          * 扣减-用于后续财务模块使用
          */
         public static final String SPCM_DEDUCT = "DEDUCT";
+    }
+    public final class ValueType {
+        private ValueType() {
+        }
+
+        /**
+         * 字符串
+         */
+        public static final String STRING = "String";
+
+        /**
+         * 字符串
+         */
+        public static final String INT = "Int";
+
+        /**
+         * 其他 预定义的维度使用
+         */
+        public static final String OTHER = "OTHER";
     }
 
     public static class smalSourceType{
