@@ -251,11 +251,27 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     }
                     if(productDTO.getLadderEnableFlag().equals(1L)){
                         BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();
-                        for (ProductPoolLadder productPoolLadder : productDTO.getProductLadderPrices()) {
-                            if(quantity.compareTo(productPoolLadder.getLadderFrom()) > -1 && quantity.compareTo(productPoolLadder.getLadderTo()) < 1){
-                                BigDecimal includeTaxPriceParam = productPoolLadder.getTaxPrice().multiply(quantity);
+                        if(!CollectionUtils.isEmpty(productDTO.getLadderPriceList())) {
+                            List<LadderPriceResultDTO> productPoolLadders = productDTO.getLadderPriceList().stream().map(LadderPriceResultDTO::new)
+                                    .sorted(Comparator.comparing(LadderPriceResultDTO::getLadderFrom)).collect(Collectors.toList());
+                            // 计算阶梯价
+                            boolean hasFlag = true;
+                            for (LadderPriceResultDTO productPoolLadder : productPoolLadders) {
+                                if (productPoolLadder.getLadderFrom().compareTo(quantity) <= 0 && (ObjectUtils.isEmpty(productPoolLadder.getLadderTo()) || productPoolLadder.getLadderTo().compareTo(quantity) > 0)) {
+                                    BigDecimal includeTaxPriceParam = productPoolLadder.getSalePrice().multiply(quantity);
+                                    includeTaxPrice = includeTaxPrice.add(includeTaxPriceParam);
+                                    hasFlag = false;
+                                    break;
+                                }
+                            }
+                            if (hasFlag) {
+//                        超出范围取最后一个阶梯的
+                                LadderPriceResultDTO productPoolLadder = productPoolLadders.get(productPoolLadders.size() - 1);
+                                BigDecimal includeTaxPriceParam = productPoolLadder.getSalePrice().multiply(quantity);
                                 includeTaxPrice = includeTaxPrice.add(includeTaxPriceParam);
                             }
+                        }else {
+                            logger.warn("该商品没有未含税阶梯价!商品编码为:"+productDTO.getProductNum());
                         }
                     }
                     pcOccupyDTO.setOccupyAmount(includeTaxPrice);
