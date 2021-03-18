@@ -71,6 +71,11 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
                 batchNum = codeRuleBuilder.generateCode(ScecConstants.RuleCode.S2FUL_ORDER_BATCH_CODE, null);
                 batchNumMap.put(Optional.ofNullable(preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId()),batchNum);
             }
+            //覆盖标准对象
+            Map<Long,WatsonsShoppingCartDTO> shoppingCartDTOMap = preRequestOrderDTO.getWatsonsShoppingCartDTOList().stream().collect(Collectors.toMap(ShoppingCartDTO::getCartId,Function.identity()));
+            for(ShoppingCartDTO shoppingCartDTO : preRequestOrderDTO.getShoppingCartDTOList()){
+                shoppingCartDTO = shoppingCartDTOMap.get(shoppingCartDTO.getCartId());
+            }
             OmsOrderDto omsOrderDto = self().omsOrderDtoBuilder(tenantId, preRequestOrderDTO, batchNum);
             //一级品类id
             omsOrderDto.getOrder().setAttributeBigint10(preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId());
