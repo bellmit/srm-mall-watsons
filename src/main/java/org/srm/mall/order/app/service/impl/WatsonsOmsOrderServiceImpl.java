@@ -13,6 +13,7 @@ import org.hzero.core.base.BaseConstants;
 import org.hzero.core.util.ResponseUtils;
 import org.hzero.mybatis.domian.Condition;
 import org.hzero.mybatis.util.Sqls;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -74,7 +75,10 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
             //覆盖标准对象
             Map<Long,WatsonsShoppingCartDTO> shoppingCartDTOMap = preRequestOrderDTO.getWatsonsShoppingCartDTOList().stream().collect(Collectors.toMap(ShoppingCartDTO::getCartId,Function.identity()));
             for(int i = 0;i < preRequestOrderDTO.getShoppingCartDTOList().size();i++){
-                preRequestOrderDTO.getShoppingCartDTOList().set(i,shoppingCartDTOMap.get(preRequestOrderDTO.getShoppingCartDTOList().get(i).getCartId()));
+                WatsonsShoppingCartDTO watsonsShoppingCartDTO = shoppingCartDTOMap.get(preRequestOrderDTO.getShoppingCartDTOList().get(i).getCartId());
+                ShoppingCartDTO shoppingCartDTO = new ShoppingCartDTO();
+                BeanUtils.copyProperties(watsonsShoppingCartDTO,shoppingCartDTO);
+                preRequestOrderDTO.getShoppingCartDTOList().set(i,shoppingCartDTO);
             }
             OmsOrderDto omsOrderDto = self().omsOrderDtoBuilder(tenantId, preRequestOrderDTO, batchNum);
             //一级品类id
