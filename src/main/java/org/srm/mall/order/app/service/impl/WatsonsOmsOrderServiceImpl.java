@@ -73,8 +73,8 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
             }
             //覆盖标准对象
             Map<Long,WatsonsShoppingCartDTO> shoppingCartDTOMap = preRequestOrderDTO.getWatsonsShoppingCartDTOList().stream().collect(Collectors.toMap(ShoppingCartDTO::getCartId,Function.identity()));
-            for(ShoppingCartDTO shoppingCartDTO : preRequestOrderDTO.getShoppingCartDTOList()){
-                shoppingCartDTO = shoppingCartDTOMap.get(shoppingCartDTO.getCartId());
+            for(int i = 0;i < preRequestOrderDTO.getShoppingCartDTOList().size();i++){
+                preRequestOrderDTO.getShoppingCartDTOList().set(i,shoppingCartDTOMap.get(preRequestOrderDTO.getShoppingCartDTOList().get(i).getCartId()));
             }
             OmsOrderDto omsOrderDto = self().omsOrderDtoBuilder(tenantId, preRequestOrderDTO, batchNum);
             //一级品类id
