@@ -18,7 +18,7 @@ import java.util.List;
  *
  * @author jianhao.zhang01@hand-china.com 2021/01/07 17:38
  */
-@FeignClient(value = "srm-purchase-cooperation", fallbackFactory = WatsonsWflCheckRemoteServiceFallbackImpl.class, path = "/v1")
+@FeignClient(value = "srm-purchase-cooperation", fallback = WatsonsWflCheckRemoteServiceFallbackImpl.class, path = "/v1")
 public interface WatsonsWflCheckRemoteService {
 
     @PostMapping("/{organizationId}/watsons-approver-rule/wfl-start-check")
