@@ -39,10 +39,13 @@ import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.*;
 import org.srm.mall.common.feign.dto.agreemnet.AgreementLine;
 import org.srm.mall.common.feign.dto.product.*;
+import org.srm.mall.common.feign.dto.wflCheck.WatsonsWflCheckDTO;
+import org.srm.mall.common.feign.dto.wflCheck.WatsonsWflCheckResultVO;
 import org.srm.mall.common.task.MallOrderAsyncTask;
 import org.srm.mall.common.utils.snapshot.SnapshotUtil;
 import org.srm.mall.common.utils.snapshot.SnapshotUtilErrorBean;
 import org.srm.mall.context.dto.ProductDTO;
+import org.srm.mall.context.entity.Item;
 import org.srm.mall.context.entity.ItemCategory;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.order.api.dto.PreRequestOrderDTO;
@@ -185,6 +188,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     @Autowired
     private MallRegionRepository mallRegionRepository;
+
+    @Autowired
+    private WatsonsWflCheckRemoteService watsonsWflCheckRemoteService;
 
     @Override
     public List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart) {
@@ -445,6 +451,24 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             }
             //遍历每个可以提交的预采申请订单结束
         }
+
+        //一个商品多个店铺   一个商品一个一级分类
+        //校验wfl工作流
+        List<WatsonsPreRequestOrderDTO> watsonsCheckSubmitList = preRequestOrderDTOList.stream().filter(item -> ScecConstants.ConstantNumber.INT_1 == item.getMinPurchaseFlag()).collect(Collectors.toList());
+        List<WatsonsWflCheckDTO> watsonsWflCheckDTOS = buildWflCheckParams(tenantId, watsonsCheckSubmitList);
+        ResponseEntity<String> watsonsWflCheckResultVOResponseEntity = watsonsWflCheckRemoteService.wflStartCheck(tenantId, watsonsWflCheckDTOS);
+        if(ResponseUtils.isFailed(watsonsWflCheckResultVOResponseEntity)){
+            logger.error("协同异常:校验wfl工作流时出现网络错误");
+            throw new CommonException("协同异常:校验wfl工作流时出现网络错误");
+        }else {
+            logger.info("check wfl flow success");
+            WatsonsWflCheckResultVO response = ResponseUtils.getResponse(watsonsWflCheckResultVOResponseEntity, new TypeReference<WatsonsWflCheckResultVO>() {
+            });
+            if(response.getErrorFlag().equals(BaseConstants.Flag.YES)){
+                logger.error(response.getErrorMessage());
+                throw new CommonException(response.getErrorMessage());
+            }
+        }
         PurchaseRequestVO result;
         if (ScecConstants.enableOrderCenterFlag(tenantId)) {
             List<WatsonsPreRequestOrderDTO> watsonsCanSubmitList = preRequestOrderDTOList.stream().filter(item -> ScecConstants.ConstantNumber.INT_1 == item.getMinPurchaseFlag()).collect(Collectors.toList());
@@ -473,6 +497,68 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         return preRequestOrderResponseDTO;
     }
+
+    private ItemCategoryDTO queryItemCategoryInfoById(Long tenantId, Long itemCategoryId){
+        if(ObjectUtils.isEmpty(itemCategoryId)){
+            throw new CommonException("没有拿到商品的物料品类信息，无法校验工作流!");
+        }
+        ResponseEntity<String> resString = smdmRemoteNewService.queryById(tenantId, itemCategoryId.toString());
+        if(ResponseUtils.isFailed(resString)){
+            logger.error("主数据中心异常：查询商品物料品类信息失败，无法校验工作流!");
+            throw new CommonException("主数据中心异常：查询商品物料品类信息失败，无法校验工作流!");
+        }else {
+            logger.info("query item category info success!");
+            ItemCategoryDTO response = ResponseUtils.getResponse(resString, new TypeReference<ItemCategoryDTO>() {
+            });
+            return response;
+        }
+    }
+
+    private Integer checkLevelOfItemCategory(Long tenantId, Long itemCategoryId) {
+        if(ObjectUtils.isEmpty(itemCategoryId)) {
+            throw new CommonException("没有拿到商品的物料品类信息，无法校验工作流! ");
+        }
+        ResponseEntity<String> stringResponseEntity = smdmRemoteNewService.queryById(tenantId, itemCategoryId.toString());
+        if(ResponseUtils.isFailed(stringResponseEntity)){
+            logger.error("主数据中心异常：查询商品物料品类信息失败，无法校验工作流!");
+            throw new CommonException("主数据中心异常：查询商品物料品类信息失败，无法校验工作流!");
+        }else {
+            logger.info("query item category info success!");
+            ItemCategoryDTO response = ResponseUtils.getResponse(stringResponseEntity, new TypeReference<ItemCategoryDTO>() {
+            });
+            return response.getLevelPath().split("\\|").length;
+        }
+    }
+
+    private List<WatsonsWflCheckDTO> buildWflCheckParams(Long tenantId, List<WatsonsPreRequestOrderDTO> canSubmitList) {
+        List<WatsonsWflCheckDTO> watsonsWflCheckDTOS = new ArrayList<>();
+        for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : canSubmitList) {
+            for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+                Long firstItemCategoryId = null;
+                Integer level = null;
+                Long id = watsonsShoppingCartDTO.getItemCategoryId();
+                level = checkLevelOfItemCategory(tenantId, id);
+                while (level > 2){
+                    Integer levelRes = checkLevelOfItemCategory(tenantId, id);
+                    level = levelRes;
+                    ItemCategoryDTO itemCategoryDTO = queryItemCategoryInfoById(tenantId, id);
+                    id = itemCategoryDTO.getParentCategoryId();
+                }
+                firstItemCategoryId = id;
+                WatsonsWflCheckDTO watsonsWflCheckDTO = new WatsonsWflCheckDTO();
+                if(ObjectUtils.isEmpty(firstItemCategoryId)) {
+                   logger.error("未映射该商品的一级品类{}",JSONObject.toJSON(watsonsShoppingCartDTO));
+                    throw new CommonException("未映射该商品的一级品类{}",JSONObject.toJSON(watsonsShoppingCartDTO));
+                }
+                watsonsWflCheckDTO.setCategoryId(firstItemCategoryId);
+                List<String> costShopCodes = watsonsShoppingCartDTO.getAllocationInfoList().stream().map(AllocationInfo::getCostShopCode).collect(Collectors.toList());
+                watsonsWflCheckDTO.setStoreIdList(costShopCodes);
+                watsonsWflCheckDTOS.add(watsonsWflCheckDTO);
+            }
+        }
+        return watsonsWflCheckDTOS;
+    }
+
 
     @Override
     public List<WatsonsAddressDTO> checkAddress(Long organizationId, Long watsonsOrganizationId, String watsonsOrganizationCode) {
