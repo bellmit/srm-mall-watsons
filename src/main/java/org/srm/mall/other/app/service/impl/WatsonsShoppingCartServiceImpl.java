@@ -498,48 +498,53 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         return preRequestOrderResponseDTO;
     }
 
+    private ItemCategoryDTO queryItemCategoryInfoById(Long tenantId, Long itemCategoryId){
+        if(ObjectUtils.isEmpty(itemCategoryId)){
+            throw new CommonException("没有拿到商品的物料品类信息，无法校验工作流!");
+        }
+        ResponseEntity<String> resString = smdmRemoteNewService.queryById(tenantId, itemCategoryId.toString());
+        if(ResponseUtils.isFailed(resString)){
+            logger.error("主数据中心异常：查询商品物料品类信息失败，无法校验工作流!");
+            throw new CommonException("主数据中心异常：查询商品物料品类信息失败，无法校验工作流!");
+        }else {
+            logger.info("query item category info success!");
+            ItemCategoryDTO response = ResponseUtils.getResponse(resString, new TypeReference<ItemCategoryDTO>() {
+            });
+            return response;
+        }
+    }
+
+    private Integer checkLevelOfItemCategory(Long tenantId, Long itemCategoryId) {
+        if(ObjectUtils.isEmpty(itemCategoryId)) {
+            throw new CommonException("没有拿到商品的物料品类信息，无法校验工作流! ");
+        }
+        ResponseEntity<String> stringResponseEntity = smdmRemoteNewService.queryById(tenantId, itemCategoryId.toString());
+        if(ResponseUtils.isFailed(stringResponseEntity)){
+            logger.error("主数据中心异常：查询商品物料品类信息失败，无法校验工作流!");
+            throw new CommonException("主数据中心异常：查询商品物料品类信息失败，无法校验工作流!");
+        }else {
+            logger.info("query item category info success!");
+            ItemCategoryDTO response = ResponseUtils.getResponse(stringResponseEntity, new TypeReference<ItemCategoryDTO>() {
+            });
+            return response.getLevelPath().split("\\|").length;
+        }
+    }
+
     private List<WatsonsWflCheckDTO> buildWflCheckParams(Long tenantId, List<WatsonsPreRequestOrderDTO> canSubmitList) {
         List<WatsonsWflCheckDTO> watsonsWflCheckDTOS = new ArrayList<>();
         for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : canSubmitList) {
             for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
                 Long firstItemCategoryId = null;
-                if(ObjectUtils.isEmpty(watsonsShoppingCartDTO.getItemCategoryId())){
-                    throw new CommonException("没有拿到商品的物料品类信息，无法校验工作流! {}",JSONObject.toJSON(watsonsShoppingCartDTO));
+                Integer level = null;
+                Long id = watsonsShoppingCartDTO.getItemCategoryId();
+                level = checkLevelOfItemCategory(tenantId, id);
+                while (level > 2){
+                    Integer levelRes = checkLevelOfItemCategory(tenantId, id);
+                    level = levelRes;
+                    ItemCategoryDTO itemCategoryDTO = queryItemCategoryInfoById(tenantId, id);
+                    id = itemCategoryDTO.getParentCategoryId();
                 }
-                //三级物料品类反查一级物料品类
-                Long thirdItemCategoryId = watsonsShoppingCartDTO.getItemCategoryId();
-                ResponseEntity<String> thirdString = smdmRemoteNewService.queryById(tenantId, thirdItemCategoryId.toString());
-                if(ResponseUtils.isFailed(thirdString)){
-                    logger.error("主数据中心异常：查询三级物料品类信息失败，无法校验工作流!");
-                    throw new CommonException("主数据中心异常：查询三级物料品类信息失败，无法校验工作流!");
-                }else {
-                    logger.info("query third item category id success!");
-                    ItemCategoryDTO third = ResponseUtils.getResponse(thirdString, new TypeReference<ItemCategoryDTO>() {});
-                    if(ObjectUtils.isEmpty(third.getCategoryId())){
-                        logger.error("未映射该商品的三级品类{}",JSONObject.toJSON(watsonsShoppingCartDTO));
-                        throw new CommonException("未映射该商品的三级品类{}",JSONObject.toJSON(watsonsShoppingCartDTO));
-                    }else {
-                        ResponseEntity<String> secondString = smdmRemoteNewService.queryById(tenantId, third.getParentCategoryId().toString());
-                        if(ResponseUtils.isFailed(secondString)){
-                            logger.error("主数据中心异常：查询二级物料品类信息失败，无法校验工作流!");
-                            throw new CommonException("主数据中心异常：查询二级物料品类信息失败，无法校验工作流!");
-                        }else {
-                            logger.info("query second item category id success!");
-                            ItemCategoryDTO second = ResponseUtils.getResponse(secondString, new TypeReference<ItemCategoryDTO>() {});
-                            if(ObjectUtils.isEmpty(second.getCategoryId())){
-                                logger.error("未映射该商品的二级品类{}",JSONObject.toJSON(watsonsShoppingCartDTO));
-                                throw new CommonException("未映射该商品的二级品类{}",JSONObject.toJSON(watsonsShoppingCartDTO));
-                            }
-                            if(ObjectUtils.isEmpty(second.getParentCategoryId())){
-                                logger.error("未映射该商品的一级品类{}",JSONObject.toJSON(watsonsShoppingCartDTO));
-                                throw new CommonException("未映射该商品的一级品类{}",JSONObject.toJSON(watsonsShoppingCartDTO));
-                            }else {
-                                logger.info("query first item category id success!");
-                                firstItemCategoryId = second.getParentCategoryId();
-                            }
-                        }
-                    }
-                }
+                firstItemCategoryId = id;
                 WatsonsWflCheckDTO watsonsWflCheckDTO = new WatsonsWflCheckDTO();
                 if(ObjectUtils.isEmpty(firstItemCategoryId)) {
                    logger.error("未映射该商品的一级品类{}",JSONObject.toJSON(watsonsShoppingCartDTO));
@@ -553,6 +558,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         return watsonsWflCheckDTOS;
     }
+
 
     @Override
     public List<WatsonsAddressDTO> checkAddress(Long organizationId, Long watsonsOrganizationId, String watsonsOrganizationCode) {
