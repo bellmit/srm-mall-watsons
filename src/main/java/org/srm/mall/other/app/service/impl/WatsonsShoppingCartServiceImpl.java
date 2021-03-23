@@ -205,28 +205,32 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     BeanUtils.copyProperties(s, watsonsShoppingCart);
                     watsonsShoppingCart.setAllocationInfoList(map.get(s.getCartId()));
                     String deliveryType = checkDeliveryType(s.getItemCode(), erpForWatsons, organizationId);
-                    if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_1)) {
-                        watsonsShoppingCart.setDeliveryType("DIRECT_DELIVERY");
-                        watsonsShoppingCart.setDeliveryTypeMeaning("直送");
+                    if(!ObjectUtils.isEmpty(deliveryType)) {
+                        if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_1)) {
+                            watsonsShoppingCart.setDeliveryType("DIRECT_DELIVERY");
+                            watsonsShoppingCart.setDeliveryTypeMeaning("直送");
+                        }
+                        if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_0)) {
+                            watsonsShoppingCart.setDeliveryType("WAREHOUSE_SHOP");
+                            watsonsShoppingCart.setDeliveryTypeMeaning("仓转店");
+                        }
                     }
-                    if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_0)) {
-                        watsonsShoppingCart.setDeliveryType("WAREHOUSE_SHOP");
-                        watsonsShoppingCart.setDeliveryTypeMeaning("仓转店");
-                    }
-                    return watsonsShoppingCart;
+                        return watsonsShoppingCart;
                 }).collect(Collectors.toList());
             }
            return shoppingCartDTOList.stream().map(shoppingCartDTO  ->  {
                 WatsonsShoppingCartDTO watsonsShoppingCartDTO = new WatsonsShoppingCartDTO();
                 BeanUtils.copyProperties(shoppingCartDTO, watsonsShoppingCartDTO);
                 String deliveryType = checkDeliveryType(watsonsShoppingCartDTO.getItemCode(), erpForWatsons, organizationId);
-                if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_1)) {
-                    watsonsShoppingCartDTO.setDeliveryType("DIRECT_DELIVERY");
-                    watsonsShoppingCartDTO.setDeliveryTypeMeaning("直送");
-                }
-                if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_0)) {
-                    watsonsShoppingCartDTO.setDeliveryType("WAREHOUSE_SHOP");
-                    watsonsShoppingCartDTO.setDeliveryTypeMeaning("仓转店");
+                if(!ObjectUtils.isEmpty(deliveryType)) {
+                    if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_1)) {
+                        watsonsShoppingCartDTO.setDeliveryType("DIRECT_DELIVERY");
+                        watsonsShoppingCartDTO.setDeliveryTypeMeaning("直送");
+                    }
+                    if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_0)) {
+                        watsonsShoppingCartDTO.setDeliveryType("WAREHOUSE_SHOP");
+                        watsonsShoppingCartDTO.setDeliveryTypeMeaning("仓转店");
+                    }
                 }
                return watsonsShoppingCartDTO;
            }).collect(Collectors.toList());
