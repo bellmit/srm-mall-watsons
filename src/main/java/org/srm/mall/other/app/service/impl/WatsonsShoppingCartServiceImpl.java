@@ -216,7 +216,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     return watsonsShoppingCart;
                 }).collect(Collectors.toList());
             }
-           return shoppingCartDTOList.stream().map(shoppingCartDTO -> {
+           return shoppingCartDTOList.stream().map(shoppingCartDTO  ->  {
                 WatsonsShoppingCartDTO watsonsShoppingCartDTO = new WatsonsShoppingCartDTO();
                 BeanUtils.copyProperties(shoppingCartDTO, watsonsShoppingCartDTO);
                 String deliveryType = checkDeliveryType(watsonsShoppingCartDTO.getItemCode(), erpForWatsons, organizationId);
@@ -228,7 +228,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     watsonsShoppingCartDTO.setDeliveryType("WAREHOUSE_SHOP");
                     watsonsShoppingCartDTO.setDeliveryTypeMeaning("仓转店");
                 }
-            });
+               return watsonsShoppingCartDTO;
+           }).collect(Collectors.toList());
         }
         return shoppingCartDTOList;
     }
