@@ -204,7 +204,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     WatsonsShoppingCartDTO watsonsShoppingCart = new WatsonsShoppingCartDTO();
                     BeanUtils.copyProperties(s, watsonsShoppingCart);
                     watsonsShoppingCart.setAllocationInfoList(map.get(s.getCartId()));
-                    String deliveryType = checkDeliveryType(s.getItemCode(), erpForWatsons, organizationId);
+                    String itemCode = checkItemCodeByItemId(s.getItemId(),organizationId,erpForWatsons);
+                    String deliveryType = checkDeliveryType(itemCode, erpForWatsons, organizationId);
                     if(!ObjectUtils.isEmpty(deliveryType)) {
                         if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_1)) {
                             watsonsShoppingCart.setDeliveryType("DIRECT_DELIVERY");
@@ -221,7 +222,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
            return shoppingCartDTOList.stream().map(shoppingCartDTO  ->  {
                 WatsonsShoppingCartDTO watsonsShoppingCartDTO = new WatsonsShoppingCartDTO();
                 BeanUtils.copyProperties(shoppingCartDTO, watsonsShoppingCartDTO);
-                String deliveryType = checkDeliveryType(watsonsShoppingCartDTO.getItemCode(), erpForWatsons, organizationId);
+               String itemCode = checkItemCodeByItemId(shoppingCartDTO.getItemId(),organizationId,erpForWatsons);
+               String deliveryType = checkDeliveryType(itemCode, erpForWatsons, organizationId);
                 if(!ObjectUtils.isEmpty(deliveryType)) {
                     if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_1)) {
                         watsonsShoppingCartDTO.setDeliveryType("DIRECT_DELIVERY");
@@ -238,9 +240,14 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         return shoppingCartDTOList;
     }
 
+    private String checkItemCodeByItemId(Long itemId, Long tenantId, String sourceCode) {
+        return allocationInfoRepository.checkItemCodeByItemId(itemId,tenantId,sourceCode);
+    }
+
     private String checkDeliveryType(String itemCode, String sourceCode, Long tenantId) {
          return allocationInfoRepository.checkDeliveryType(itemCode,sourceCode,tenantId);
     }
+
 
     @Override
     @SagaStart
