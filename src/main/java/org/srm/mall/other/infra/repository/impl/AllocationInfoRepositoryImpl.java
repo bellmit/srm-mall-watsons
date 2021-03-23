@@ -60,6 +60,11 @@ public class AllocationInfoRepositoryImpl extends BaseRepositoryImpl<AllocationI
     }
 
     @Override
+    public String checkItemCodeByItemId(Long itemId, Long tenantId, String sourceCode) {
+        return allocationInfoMapper.checkItemCodeByItemId(itemId,tenantId,sourceCode);
+    }
+
+    @Override
     public Integer selectHasProjectSubcategoryId(Long projectCostId, Long tenantId) {
         return allocationInfoMapper.selectHasProjectSubcategoryId(projectCostId,tenantId);
     }

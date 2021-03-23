@@ -37,4 +37,7 @@ public interface AllocationInfoMapper extends BaseMapper<AllocationInfo> {
     WhLovResultDTO selectInvInfoByInvId(Long watsonsOrganizationId, Long organizationId);
 
     String checkDeliveryType(String itemCode, String sourceCode, Long tenantId);
+
+    String checkItemCodeByItemId(Long itemId, Long tenantId, String sourceCode);
+
 }

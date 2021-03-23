@@ -41,4 +41,6 @@ public interface AllocationInfoRepository extends BaseRepository<AllocationInfo>
     Void checkAddressByInvOrganization(OrganizationInfoDTO infoDTO);
 
     String checkDeliveryType(String itemCode, String sourceCode, Long tenantId);
+
+    String checkItemCodeByItemId(Long itemId, Long tenantId, String sourceCode);
 }
