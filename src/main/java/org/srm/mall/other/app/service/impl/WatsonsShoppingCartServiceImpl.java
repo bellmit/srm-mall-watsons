@@ -192,6 +192,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Autowired
     private WatsonsWflCheckRemoteService watsonsWflCheckRemoteService;
 
+    private static final String erpForWatsons = "SRM";
+
     @Override
     public List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart) {
         //加入了取费用分配的过程
@@ -199,8 +201,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         if (!CollectionUtils.isEmpty(shoppingCartDTOList)) {
             List<AllocationInfo> allocationInfoList = allocationInfoRepository.selectByCondition(Condition.builder(AllocationInfo.class).andWhere(Sqls.custom()
                     .andIn(AllocationInfo.FIELD_CART_ID, shoppingCartDTOList.stream().map(ShoppingCartDTO::getCartId).collect(Collectors.toList()))).build());
-            if (!CollectionUtils.isEmpty(allocationInfoList)){
-                for (AllocationInfo allocationInfo : allocationInfoList){
+            if (!CollectionUtils.isEmpty(allocationInfoList)) {
+                for (AllocationInfo allocationInfo : allocationInfoList) {
                     allocationInfo.setTotalAmount(allocationInfo.getPrice().multiply(new BigDecimal(allocationInfo.getQuantity())));
                 }
                 Map<Long, List<AllocationInfo>> map = allocationInfoList.stream().collect(Collectors.groupingBy(AllocationInfo::getCartId));
@@ -208,11 +210,38 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     WatsonsShoppingCartDTO watsonsShoppingCart = new WatsonsShoppingCartDTO();
                     BeanUtils.copyProperties(s, watsonsShoppingCart);
                     watsonsShoppingCart.setAllocationInfoList(map.get(s.getCartId()));
+                    String deliveryType = checkDeliveryType(s.getItemCode(), erpForWatsons, organizationId);
+                    if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_1)) {
+                        watsonsShoppingCart.setDeliveryType("DIRECT_DELIVERY");
+                        watsonsShoppingCart.setDeliveryTypeMeaning("直送");
+                    }
+                    if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_0)) {
+                        watsonsShoppingCart.setDeliveryType("WAREHOUSE_SHOP");
+                        watsonsShoppingCart.setDeliveryTypeMeaning("仓转店");
+                    }
                     return watsonsShoppingCart;
                 }).collect(Collectors.toList());
             }
+           return shoppingCartDTOList.stream().map(shoppingCartDTO  ->  {
+                WatsonsShoppingCartDTO watsonsShoppingCartDTO = new WatsonsShoppingCartDTO();
+                BeanUtils.copyProperties(shoppingCartDTO, watsonsShoppingCartDTO);
+                String deliveryType = checkDeliveryType(watsonsShoppingCartDTO.getItemCode(), erpForWatsons, organizationId);
+                if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_1)) {
+                    watsonsShoppingCartDTO.setDeliveryType("DIRECT_DELIVERY");
+                    watsonsShoppingCartDTO.setDeliveryTypeMeaning("直送");
+                }
+                if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_0)) {
+                    watsonsShoppingCartDTO.setDeliveryType("WAREHOUSE_SHOP");
+                    watsonsShoppingCartDTO.setDeliveryTypeMeaning("仓转店");
+                }
+               return watsonsShoppingCartDTO;
+           }).collect(Collectors.toList());
         }
         return shoppingCartDTOList;
+    }
+
+    private String checkDeliveryType(String itemCode, String sourceCode, Long tenantId) {
+         return allocationInfoRepository.checkDeliveryType(itemCode,sourceCode,tenantId);
     }
 
     @Override
