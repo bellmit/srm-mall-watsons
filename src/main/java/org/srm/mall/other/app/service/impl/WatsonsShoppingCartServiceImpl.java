@@ -1059,6 +1059,10 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                         if(!ObjectUtils.isEmpty(agreementLine) && !ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
                             watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
                         }
+                        if(!ObjectUtils.isEmpty(agreementLine) && !ObjectUtils.isEmpty(agreementLine.getAttributeVarchar2())){
+                            //发票类型
+                            watsonsShoppingCartDTO.setAttributeVarchar3(agreementLine.getAttributeVarchar2());
+                        }
                     }
                 }
             });
