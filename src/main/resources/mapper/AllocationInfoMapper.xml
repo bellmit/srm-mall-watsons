@@ -152,4 +152,16 @@
         AND
             hio.source_code != 'SYSTEM'
     </select>
+    <select id="checkDeliveryType" resultType="string">
+        SELECT
+            attribute_varchar1 deliveryType
+        FROM
+            smdm_item
+        WHERE
+            tenant_id = #{tenantId}
+          AND
+            item_code = #{itemCode}
+          AND
+            source_code = #{sourceCode}
+    </select>
 </mapper>
