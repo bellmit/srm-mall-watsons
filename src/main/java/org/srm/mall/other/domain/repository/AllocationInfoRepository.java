@@ -5,6 +5,7 @@ import io.choerodon.mybatis.pagehelper.domain.PageRequest;
 import org.hzero.mybatis.base.BaseRepository;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.api.dto.WatsonsRegionDTO;
+import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.api.dto.WhLovResultDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
@@ -38,4 +39,6 @@ public interface AllocationInfoRepository extends BaseRepository<AllocationInfo>
 
     //暂时弃用
     Void checkAddressByInvOrganization(OrganizationInfoDTO infoDTO);
+
+    String checkDeliveryType(String itemCode, String sourceCode, Long tenantId);
 }
