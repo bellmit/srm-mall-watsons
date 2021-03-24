@@ -164,4 +164,16 @@
           AND
             source_code = #{sourceCode}
     </select>
+    <select id="checkItemCodeByItemId" resultType="java.lang.String">
+        SELECT
+            item_code itemCode
+        FROM
+            smdm_item
+        WHERE
+            tenant_id = #{tenantId}
+          AND
+            item_id = #{itemId}
+          AND
+            source_code = #{sourceCode}
+    </select>
 </mapper>
