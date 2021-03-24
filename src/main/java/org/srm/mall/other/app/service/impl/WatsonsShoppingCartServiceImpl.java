@@ -338,16 +338,16 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 String sagaKey = SagaClient.getSagaKey();
                 ResponseEntity<String> cmsOccupyResult = spcmRemoteNewService.occupy(sagaKey, tenantId, pcOccupyDTOS);
                 if (ResponseUtils.isFailed(cmsOccupyResult)) {
-                    logger.error("occupy CMS price error! param pcOccupyDTOS: {}", pcOccupyDTOS);
+                    logger.error("occupy CMS price error! param pcOccupyDTOS: {}", JSONObject.toJSON(pcOccupyDTOS));
                     throw new CommonException("CMS金额预占出现异常!");
                 }
                 ItfBaseBO itfBaseBO  = ResponseUtils.getResponse(cmsOccupyResult, new TypeReference<ItfBaseBO>() {
                 });
                 if(itfBaseBO.getErrorFlag() == 1 && !ObjectUtils.isEmpty(itfBaseBO.getErrorMessage())){
-                    logger.error("occupy CMS price error! param pcOccupyDTOS: {}", pcOccupyDTOS);
-                    throw new CommonException("预占CMS合同号报错,错误原因:",itfBaseBO.getErrorMessage());
+                    logger.error("occupy CMS price error! param pcOccupyDTOS: {}", JSONObject.toJSON(pcOccupyDTOS));
+                    throw new CommonException("预占CMS合同号报错,错误原因: " + itfBaseBO.getErrorMessage());
                 }
-                logger.info("occupy CMS price success! param pcOccupyDTOS: {}", pcOccupyDTOS);
+                logger.info("occupy CMS price success! param pcOccupyDTOS: {}", JSONObject.toJSON(pcOccupyDTOS));
             }
         }
 
@@ -389,10 +389,10 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     }catch (Exception e){
                         message = checkCeInfoRes.getBody();
                     }
-                    logger.error("check CE info for order total amount error! {}",watsonsPreRequestOrderDTO.getCeId());
+                    logger.error("check CE info for order total amount error!  ce id is " + watsonsPreRequestOrderDTO.getCeId());
                     throw new CommonException("检验CE号"+watsonsPreRequestOrderDTO.getCeNumber()+"报错,"+message);
                 }
-                logger.info("check CE info for order total amount success! {}" ,watsonsPreRequestOrderDTO.getCeId());
+                logger.info("check CE info for order total amount success! ce id is" + watsonsPreRequestOrderDTO.getCeId());
             }
         }
 
