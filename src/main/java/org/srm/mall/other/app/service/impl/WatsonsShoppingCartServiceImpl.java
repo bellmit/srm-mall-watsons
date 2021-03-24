@@ -205,13 +205,17 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     BeanUtils.copyProperties(s, watsonsShoppingCart);
                     watsonsShoppingCart.setAllocationInfoList(map.get(s.getCartId()));
                     String itemCode = checkItemCodeByItemId(s.getItemId(),organizationId,erpForWatsons);
+                    logger.info("item code is " + itemCode);
                     String deliveryType = checkDeliveryType(itemCode, erpForWatsons, organizationId);
+                    logger.info("delivery type is "+ deliveryType);
                     if(!ObjectUtils.isEmpty(deliveryType)) {
                         if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_1)) {
+                            logger.info("set DIRECT_DELIVERY");
                             watsonsShoppingCart.setDeliveryType("DIRECT_DELIVERY");
                             watsonsShoppingCart.setDeliveryTypeMeaning("直送");
                         }
                         if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_0)) {
+                            logger.info("set WAREHOUSE_SHOP");
                             watsonsShoppingCart.setDeliveryType("WAREHOUSE_SHOP");
                             watsonsShoppingCart.setDeliveryTypeMeaning("仓转店");
                         }
@@ -223,13 +227,17 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 WatsonsShoppingCartDTO watsonsShoppingCartDTO = new WatsonsShoppingCartDTO();
                 BeanUtils.copyProperties(shoppingCartDTO, watsonsShoppingCartDTO);
                String itemCode = checkItemCodeByItemId(shoppingCartDTO.getItemId(),organizationId,erpForWatsons);
+               logger.info("item code is " + itemCode);
                String deliveryType = checkDeliveryType(itemCode, erpForWatsons, organizationId);
+               logger.info("delivery type is "+ deliveryType);
                 if(!ObjectUtils.isEmpty(deliveryType)) {
                     if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_1)) {
+                        logger.info("set DIRECT_DELIVERY");
                         watsonsShoppingCartDTO.setDeliveryType("DIRECT_DELIVERY");
                         watsonsShoppingCartDTO.setDeliveryTypeMeaning("直送");
                     }
                     if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_0)) {
+                        logger.info("set WAREHOUSE_SHOP");
                         watsonsShoppingCartDTO.setDeliveryType("WAREHOUSE_SHOP");
                         watsonsShoppingCartDTO.setDeliveryTypeMeaning("仓转店");
                     }
