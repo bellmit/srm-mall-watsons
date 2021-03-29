@@ -1,5 +1,6 @@
 package org.srm.mall.other.app.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.ctrip.framework.apollo.util.ExceptionUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -38,6 +39,8 @@ import org.srm.common.convert.bean.BeanConvertor;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.*;
 import org.srm.mall.common.feign.dto.agreemnet.AgreementLine;
+import org.srm.mall.common.feign.dto.agreemnet.PostageCalculateDTO;
+import org.srm.mall.common.feign.dto.agreemnet.PostageCalculateLineDTO;
 import org.srm.mall.common.feign.dto.product.*;
 import org.srm.mall.common.feign.dto.wflCheck.WatsonsWflCheckDTO;
 import org.srm.mall.common.feign.dto.wflCheck.WatsonsWflCheckResultVO;
@@ -280,8 +283,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 }
             }
         }
-
-
         //进行cms合同号校验
         for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
             //拆单完后的每个订单的所有商品的费用分配不一样  但是放一起做cms校验  所以每个订单所有的商品校验一次
@@ -350,8 +351,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 logger.info("occupy CMS price success! param pcOccupyDTOS: {}", JSONObject.toJSON(pcOccupyDTOS));
             }
         }
-
-
 //        进行ceNo校验
         for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
             if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
@@ -466,14 +465,10 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 //判断是否开启预算，如果有，校验是否已占用
                 checkBudgetInfo(tenantId, shoppingCartDTO, budgetSwitch);
             }
-
             //判断商品存在购物车
             validateShoppingExistCar(re);
-
             //把该采购申请下经过校验后的商品再重放入该采购申请的购物车中
             preRequestOrderDTO.setShoppingCartDTOList(re);
-
-
             // 目录化商品库存扣减
             for (ShoppingCartDTO shoppingCart : re) {
                 if (ScecConstants.SourceType.CATALOGUE.equals(shoppingCart.getProductSource())) {
@@ -732,7 +727,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             }
         return null;
     }
-
     private void checkBudgetInfo(Long tenantId, ShoppingCartDTO shoppingCartDTO, String budgetSwitch){
         if (ScecConstants.ConstantNumber.STRING_1.equals(budgetSwitch)) {
             List<BudgetInfo> budgetInfoList = shoppingCartDTO.getBudgetInfoList();
@@ -787,7 +781,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
     }
 
-
     @Override
     public List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderView(Long tenantId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
 
@@ -799,7 +792,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 throw new CommonException("必须选择同地址的商品!");
             }
         }
-
         //校验每个商品的每个费用分配当【费用承担写字楼/店铺/仓库】相同时,【地址区域】+【收货地址】是否相同
         List<AllocationInfo> allocationInfos = new ArrayList<>();
         for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
@@ -823,7 +815,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
         //如果有服务商品，从底层list取出放到上层list
         List<ShoppingCartDTO> re = new ArrayList<>();
-
         //获取名片分类的categoryId
         SkuCenterQueryDTO skuCenterQueryDTO = new SkuCenterQueryDTO();
         skuCenterQueryDTO.setCategoryCodeList(Collections.singletonList(BUSINESS_CARD_CATEGORY_CODE));
@@ -837,8 +828,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         // 批量获取价格
         // 首先更加购物车的地址和组织进行分组调用获取价格
-
-
 //        watsonsShoppingCartDTOList转换成的shoppingCartDTOList用于后续检测
         List<ShoppingCartDTO> shoppingCartDTOList = new ArrayList<>();
         for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
@@ -846,16 +835,11 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             BeanUtils.copyProperties(watsonsShoppingCartDTO, shoppingCartDTO4Transfer);
             shoppingCartDTOList.add(shoppingCartDTO4Transfer);
         }
-
-
         // eric 首先根据购物车的地址id和组织层级进行分组调用   异步获取商品价格
         Map<String, Map<Long, PriceResultDTO>> priceResultDTOMap = queryPriceResult(shoppingCartDTOList);
-
         Iterator iterator = watsonsShoppingCartDTOList.iterator();
         while (iterator.hasNext()) {
-
             ShoppingCartDTO shoppingCartDTO = (ShoppingCartDTO) iterator.next();
-
             Map<Long, PriceResultDTO> resultDTOMap = priceResultDTOMap.get(shoppingCartDTO.skuRegionGroupKey());
             if (ObjectUtils.isEmpty(resultDTOMap)) {
                 throw new CommonException(ScecConstants.ErrorCode.PRODUCT_CANNOT_SELL);
@@ -908,7 +892,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
 
         //检测条件完毕
-
         //校验收货地址
         validateShppingAddress(shoppingCartDTOList);
         //验证商品存在购物车才能生成与采购申请单
@@ -918,41 +901,22 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         boolean hideSupplier = mallOrderCenterService.checkHideField(tenantId, shoppingCartDTOList.get(0).getCompanyId(), ScecConstants.HideField.SUPPLIER);
         if (CollectionUtils.isNotEmpty(shoppingCartDTOList)) {
-
             List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList = new ArrayList<>();
             //将每一个商品根据自己的多个费用拆成多个订单行
+            PurReqMergeRule purReqMergeRule = PurReqMergeRule.getDefaultMergeRule();
+            getPostageInfo(tenantId, watsonsShoppingCartDTOList);
             splitShoppingCartByCostConfig(watsonsShoppingCartDTOList);
             //此时shoppingCartDTOList已经有   每一个商品根据自己的多个费用条拆成的多个订单行
-
-            PurReqMergeRule purReqMergeRule = PurReqMergeRule.getDefaultMergeRule();
-
-            //  拼上key  只能用watsonsShoppingCartDTO 进行数据获取  所以必须使用watsonsshoppingcart
-
-            //  shoppingCart中的addressid 和 authention中的addressid是不同的  所以必须用watsons进行合单
-
-            //  因为子订单做同样的合单操作   watsonsShoppingCartDTO中的子订单这个类型   也要改成watsonsShoppingCartDTO类型
-
-            //  需要先用默认的排一次  然后再拆单
-
             Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(s -> s.groupKey(purReqMergeRule)));
+            checkNeedToSplitByFreightType(watsonsShoppingCartDTOList, purReqMergeRule);
             result = watsonsGroupPurchaseRequest(tenantId, purReqMergeRule, result);
-
-            // eric即使是watsons中的seskulist 同样是shoppingcart类型的 天生没有合单归项的key的3个数据  所以还按原来的addressid排？差距就在addressid
-//            Map<String, List<ShoppingCartDTO>> reResult = re.stream().collect(Collectors.groupingBy(s -> s.groupKey(purReqMergeRule)));
-//            reResult = groupPurchaseRequest(tenantId, purReqMergeRule, reResult);
-
             //拆单完成后判断同一分组是否还有同一种的相同商品（有很多种不同种的商品）拆成不同的单子   因为后续业务需要这样做
             recursionSplitShoppingCart(result);
-
             //用于前端区分采购申请s
             int distinguishId = 0;
-
-
             for (Map.Entry<String, List<WatsonsShoppingCartDTO>> entry : result.entrySet()) {
                 WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO = new WatsonsPreRequestOrderDTO();
                 watsonsPreRequestOrderDTO.setKeyForView(entry.getKey());
-
-
                 List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList4Trans = entry.getValue();
                 List<ShoppingCartDTO> shoppingCartDTO4Freight= new ArrayList<>();
 
@@ -961,7 +925,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                    BeanUtils.copyProperties(watsonsShoppingCartDTO,shoppingCartDTO);
                    shoppingCartDTO4Freight.add(shoppingCartDTO);
                 }
-
                 watsonsPreRequestOrderDTO.setShoppingCartDTOList(shoppingCartDTO4Freight);
                 watsonsPreRequestOrderDTO.setDistinguishId(++distinguishId);
                 watsonsPreRequestOrderDTO.setCount(entry.getValue().stream().map(WatsonsShoppingCartDTO::getQuantity).reduce(BigDecimal.ZERO, BigDecimal::add));
@@ -1009,6 +972,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 }
                 //TODO 设置运费
                 // 测试环境存在多个京东编码
+                watsonsPreRequestOrderDTO.setFreight(BigDecimal.ZERO);
                 if (ScecConstants.ECommercePlatformCode.PLATFORM_JD.equals(entry.getValue().get(0).getProductSource()) || ScecConstants.SourceType.NJD.equals(entry.getValue().get(0).getProductSource())) {
                     //供应商为京东
                     if (freightPrice.compareTo(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_FREE)) > -1) {
@@ -1022,16 +986,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                         watsonsPreRequestOrderDTO.setFreight(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_COST_HIGN));
                     }
                 } else {
-                    //非京东商品或目录化商品
-                    //preRequestOrderDTO.setFreight(BigDecimal.ZERO);
-
-                    //计算运费
+                    //目录化商品
                     this.orderFreight(tenantId,watsonsPreRequestOrderDTO);
-                    // 这边用到了shoppingcartDTOlist做了一些事  但是仅仅是读取了watsonsPreRequestOrderDTO中的shoppingcartDTO   而并没有在shoppingcartDTO中更新数据而导致watsinsShoppingcartDTO中与shoppingcartDTO数据不一致
-//                    postageService.calculateFreight(Collections.singletonList(watsonsPreRequestOrderDTO));
                 }
-                
-                
                 //小计金额  金额+运费
                 watsonsPreRequestOrderDTO.setPrice(price.add(watsonsPreRequestOrderDTO.getFreight()));
                 if (ScecConstants.AgreementType.SALE.equals(watsonsShoppingCartDTO.getAgreementType())) {
@@ -1085,54 +1042,122 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         return null;
     }
+
+    private void checkNeedToSplitByFreightType(List<WatsonsShoppingCartDTO> shoppingCartDTOList, PurReqMergeRule purReqMergeRule) {
+        for (ShoppingCartDTO shoppingCartDTO : shoppingCartDTOList) {
+            logger.info("the postage info for each shoppingcart is {}",JSONObject.toJSON(shoppingCartDTO.getFreightPricingMethod() + "-" + shoppingCartDTO.getVolumeUnitPrice()));
+            if(!ObjectUtils.isEmpty(shoppingCartDTO.getVolumeUnitPrice()) && ScecConstants.CacheCode.ACTUAL_CALCULATION.equals(shoppingCartDTO.getFreightPricingMethod())){
+                purReqMergeRule.setFreightType(BaseConstants.Flag.YES);
+                break;
+            }else {
+                purReqMergeRule.setFreightType(BaseConstants.Flag.NO);
+            }
+        }
+    }
+    /**
+     * 在商品行上加入计价方式和单位体积价格
+     * @param tenantId
+     * @param shoppingCartDTOList
+     */
+    private void getPostageInfo(Long tenantId, List<WatsonsShoppingCartDTO> shoppingCartDTOList) {
+        //封装查询条件
+        Map<Long, List<ShoppingCartDTO>> cartByAddressId = shoppingCartDTOList.stream().collect(Collectors.groupingBy(ShoppingCartDTO::getAddressId));
+        List<PostageCalculateDTO> postageCalculateDTOS = buildPostageInfoParamsForShoppingCart(shoppingCartDTOList, cartByAddressId);
+        logger.info("query freight dto is {}", JSONObject.toJSON(postageCalculateDTOS));
+        ResponseEntity<String> queryPostageInfoRes = sagmRemoteService.queryPostageInfo(tenantId, postageCalculateDTOS);
+        if(ResponseUtils.isFailed(queryPostageInfoRes)){
+            throw new CommonException("协议服务异常: 暂时无法查询运费信息进行商品行赋值");
+        }
+        List<PostageCalculateDTO> queryPostageResult = ResponseUtils.getResponse(queryPostageInfoRes, new TypeReference<List<PostageCalculateDTO>>() {
+        });
+        logger.info("query Postage info result is {}", JSONObject.toJSON(queryPostageResult));
+        //每个订单只返回一个运费行
+        for (PostageCalculateDTO postageCalculateDTO : queryPostageResult) {
+            for (Map.Entry<Long, List<ShoppingCartDTO>> entry : cartByAddressId.entrySet()) {
+                if(entry.getKey().equals(postageCalculateDTO.getAddressId())){
+                    entry.getValue().forEach(shoppingCartDTO -> {
+                        postageCalculateDTO.getPostageCalculateLineDTOS().forEach(postageCalculateLineDTO -> {
+                            if(shoppingCartDTO.getCartId().equals(postageCalculateLineDTO.getCartId())) {
+                                //运费计价方式
+                                shoppingCartDTO.setFreightPricingMethod(postageCalculateLineDTO.getPostage().getPricingMethod());
+                                //体积单价
+                                shoppingCartDTO.setVolumeUnitPrice(postageCalculateLineDTO.getPostage().getPostageLine().getVolumeUnitPrice());
+                                //运费税率
+                                shoppingCartDTO.setFreightTaxId(postageCalculateLineDTO.getPostage().getTaxId());
+                                shoppingCartDTO.setFreightTaxCode(postageCalculateLineDTO.getPostage().getTaxCode());
+                                shoppingCartDTO.setFreightTaxRate(new BigDecimal(postageCalculateLineDTO.getPostage().getTaxRate()));
+                                //运费物料
+                                shoppingCartDTO.setFreightItemId(postageCalculateLineDTO.getPostage().getItemId());
+                                shoppingCartDTO.setFreightItemCode(postageCalculateLineDTO.getPostage().getItemCode());
+                                shoppingCartDTO.setFreightItemName(postageCalculateLineDTO.getPostage().getItemName());
+                            }
+                        });
+                    });
+                }
+            }
+        }
+        logger.info("the shopping carts after built postage {}", JSON.toJSON(shoppingCartDTOList));
+    }
+    private  List<PostageCalculateDTO>  buildPostageInfoParamsForShoppingCart(List<WatsonsShoppingCartDTO> shoppingCartDTOList, Map<Long, List<ShoppingCartDTO>> cartByAddressId) {
+        List<PostageCalculateDTO> postageCalculateDTOS = new ArrayList<>();
+        for (Map.Entry<Long, List<ShoppingCartDTO>> cart : cartByAddressId.entrySet()) {
+            List<PostageCalculateLineDTO> postageCalculateLineDTOS = new ArrayList<>();
+            List<ShoppingCartDTO> shoppingCartDTOS = cart.getValue();
+            PostageCalculateDTO postageCalculateDTO = new PostageCalculateDTO();
+            //regionId可以不给
+            postageCalculateDTO.setAddressId(shoppingCartDTOS.get(0).getAddressId());
+            shoppingCartDTOS.forEach(s -> {
+                PostageCalculateLineDTO postageCalculateLineDTO = new PostageCalculateLineDTO();
+                postageCalculateLineDTO.setAgreementLineId(s.getAgreementLineId());
+                postageCalculateLineDTO.setProductSource(s.getProductSource());
+                postageCalculateLineDTO.setPurPrice(s.getPurTotalPrice());
+                postageCalculateLineDTO.setPrice(s.getTotalPrice());
+                postageCalculateLineDTO.setQuantity(s.getQuantity());
+                postageCalculateLineDTO.setAgreementType(s.getAgreementType());
+                postageCalculateLineDTO.setCartId(s.getCartId());
+                postageCalculateLineDTOS.add(postageCalculateLineDTO);
+            });
+            postageCalculateDTO.setPostageCalculateLineDTOS(postageCalculateLineDTOS);
+            postageCalculateDTOS.add(postageCalculateDTO);
+        }
+        return postageCalculateDTOS;
+    }
+
     /**
      * 处理订单运费
      */
     private void orderFreight(Long tenantId,WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO){
-        PreRequestOrderDTO freightOrderDTO = null;
-        PreRequestOrderDTO calculateFreightPreRequestOrderDTO = new PreRequestOrderDTO();
-        BeanUtils.copyProperties(watsonsPreRequestOrderDTO,calculateFreightPreRequestOrderDTO);
-        //addressId为空  regionId传二级地址区域查询运费
-        calculateFreightPreRequestOrderDTO.getShoppingCartDTOList().forEach(watsonsShoppingCartDTO -> {watsonsShoppingCartDTO.setAddressId(null);});
-        Long lastRegionId = watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList().get(0).getAllocationInfoList().get(0).getLastRegionId();
-        //根据lastRegionId查出二级区域id  传给协议查运费
-        //每个preRequestOrderDTO中的收货地址一样 所以该preRequestOrder中所有的shoppingCartList的lastRegionId一样
-        MallRegion mallRegion = mallRegionRepository.selectByPrimaryKey(lastRegionId);
-        if(ObjectUtils.isEmpty(mallRegion)){
-            throw new CommonException("没有查到地址区域信息,无法计算运费!");
+        List<PostageCalculateDTO> postageCalculateDTOS = buildPostageInfoParamsForPreReq(watsonsPreRequestOrderDTO);
+        ResponseEntity<String> calculatePostageRes = sagmRemoteService.freightCalculateNew(tenantId, postageCalculateDTOS);
+        if(ResponseUtils.isFailed(calculatePostageRes)){
+            throw new CommonException("协议服务异常: 暂时无法查询运费");
         }
-        String levelPath = mallRegion.getLevelPath();
-        String[] split = levelPath.split("\\.");
-        if(split.length<2){
-            logger.error("商品行的地址非三级以上地址，不能查询运费!");
-            throw new CommonException("订单中有商品行的地址不完整，无法查询运费!");
-        }
-        Long secondRegionCode = Long.valueOf(split[1]);
-        List<MallRegion> mallRegions = mallRegionRepository.selectByCondition(Condition.builder(MallRegion.class).andWhere(Sqls.custom().andEqualTo(MallRegion.FIELD_REGION_CODE, secondRegionCode).andEqualTo(MallRegion.FIELD_ENABLED_FLAG,1)).build());
-        calculateFreightPreRequestOrderDTO.getShoppingCartDTOList().forEach(shoppingCartDTO -> {shoppingCartDTO.setRegionId(mallRegions.get(0).getRegionId());});
-        List<PreRequestOrderDTO> preRequestOrderDTOS = ResponseUtils.getResponse(sagmRemoteService.freightCalculate(tenantId, Collections.singletonList(calculateFreightPreRequestOrderDTO)), new TypeReference<List<PreRequestOrderDTO>>() {});
-        if(CollectionUtils.isNotEmpty(preRequestOrderDTOS)) {
-            freightOrderDTO = preRequestOrderDTOS.get(0);
-        }
-        if(Objects.isNull(freightOrderDTO)){
-            throw new CommonException(BaseConstants.ErrorCode.ERROR_NET);
-        }
-        //设置运费
-        watsonsPreRequestOrderDTO.setFreight(freightOrderDTO.getFreight());
-        Map<Long,ShoppingCartDTO> freightShoppingCartMap = freightOrderDTO.getShoppingCartDTOList().stream().collect(Collectors.toMap(ShoppingCartDTO::getCartId, Function.identity()));
-        for(WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()){
-            ShoppingCartDTO freightShoppingCartDTO = freightShoppingCartMap.get(watsonsShoppingCartDTO.getCartId());
-            //运费计价方式
-            watsonsShoppingCartDTO.setFreightPricingMethod(freightShoppingCartDTO.getFreightPricingMethod());
-            //运费税率
-            watsonsShoppingCartDTO.setFreightTaxId(freightShoppingCartDTO.getFreightTaxId());
-            watsonsShoppingCartDTO.setFreightTaxCode(freightShoppingCartDTO.getFreightTaxCode());
-            watsonsShoppingCartDTO.setFreightTaxRate(freightShoppingCartDTO.getFreightTaxRate());
-            //运费物料
-            watsonsShoppingCartDTO.setFreightItemId(freightShoppingCartDTO.getFreightItemId());
-            watsonsShoppingCartDTO.setFreightItemCode(freightShoppingCartDTO.getFreightItemCode());
-            watsonsShoppingCartDTO.setFreightItemName(freightShoppingCartDTO.getFreightItemName());
-        }
+        List<PostageCalculateDTO> calculatePostage = ResponseUtils.getResponse(calculatePostageRes, new TypeReference<List<PostageCalculateDTO>>() {
+        });
+        logger.info("calculate freight result is {}", JSONObject.toJSON(calculatePostage));
+        watsonsPreRequestOrderDTO.setFreight(calculatePostage.get(0).getFreightPrice());
+    }
+
+    private List<PostageCalculateDTO> buildPostageInfoParamsForPreReq(WatsonsPreRequestOrderDTO preRequestOrderDTO) {
+        List<PostageCalculateDTO> postageCalculateDTOS = new ArrayList<>();
+        List<PostageCalculateLineDTO> postageCalculateLineDTOS = new ArrayList<>();
+        PostageCalculateDTO postageCalculateDTO = new PostageCalculateDTO();
+        //regionId可以不给
+        postageCalculateDTO.setAddressId(preRequestOrderDTO.getShoppingCartDTOList().get(0).getAddressId());
+        preRequestOrderDTO.getShoppingCartDTOList().forEach(s -> {
+            PostageCalculateLineDTO postageCalculateLineDTO = new PostageCalculateLineDTO();
+            postageCalculateLineDTO.setAgreementLineId(s.getAgreementLineId());
+            postageCalculateLineDTO.setProductSource(s.getProductSource());
+            postageCalculateLineDTO.setPurPrice(s.getPurTotalPrice());
+            postageCalculateLineDTO.setPrice(s.getTotalPrice());
+            postageCalculateLineDTO.setQuantity(s.getQuantity());
+            postageCalculateLineDTO.setAgreementType(s.getAgreementType());
+            postageCalculateLineDTO.setCartId(s.getCartId());
+            postageCalculateLineDTOS.add(postageCalculateLineDTO);
+        });
+        postageCalculateDTO.setPostageCalculateLineDTOS(postageCalculateLineDTOS);
+        postageCalculateDTOS.add(postageCalculateDTO);
+        return postageCalculateDTOS;
     }
 
     private void splitShoppingCartByCostConfig(List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
@@ -1156,6 +1181,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         watsonsShoppingCartDTOList.addAll(splitCosttInfoList);
     }
+
 
     private Map<String, Map<Long, PriceResultDTO>> queryPriceResult(List<ShoppingCartDTO> shoppingCartDTOList) {
         Map<String, List<ShoppingCartDTO>> skuShoppingCartDTO = shoppingCartDTOList.stream().collect(Collectors.groupingBy(ShoppingCartDTO::skuRegionGroupKey));
@@ -1248,8 +1274,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             });
         }
     }
-
-
     private void validateShoppingExistCar(List<ShoppingCartDTO> shoppingCartDTOList) {
         //验证商品存在购物车才能生成与采购申请单
         String ids = "";
@@ -1570,6 +1594,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getDeliveryType()).append("-");
         keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getCostShopId()).append("-");
+        if(BaseConstants.Flag.YES.equals(purReqMergeRule.getFreightType())){
+            keyRes.append(watsonsShoppingCartDTO.getFreightPricingMethod()).append("-").append(watsonsShoppingCartDTO.getVolumeUnitPrice()).append("-");
+        }
     }
 
     private void setPurMergeRuleForWatsons(PurReqMergeRule purReqMergeRule) {
