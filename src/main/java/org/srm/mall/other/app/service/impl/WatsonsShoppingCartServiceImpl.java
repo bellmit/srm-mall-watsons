@@ -944,7 +944,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 if(entry.getKey().equals(postageCalculateDTO.getAddressId())){
                     entry.getValue().forEach(shoppingCartDTO -> {
                         postageCalculateDTO.getPostageCalculateLineDTOS().forEach(postageCalculateLineDTO -> {
-                            if(shoppingCartDTO.getCartId().equals(postageCalculateLineDTO.getCartId())) {
+                            if(shoppingCartDTO.getAgreementLineId().equals(postageCalculateLineDTO.getAgreementLineId())) {
                                 //运费计价方式
                                 shoppingCartDTO.setFreightPricingMethod(postageCalculateLineDTO.getPostage().getPricingMethod());
                                 //体积单价
