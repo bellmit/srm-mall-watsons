@@ -1078,18 +1078,22 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     entry.getValue().forEach(shoppingCartDTO -> {
                         postageCalculateDTO.getPostageCalculateLineDTOS().forEach(postageCalculateLineDTO -> {
                             if(shoppingCartDTO.getAgreementLineId().equals(postageCalculateLineDTO.getAgreementLineId())) {
-                                //运费计价方式
-                                shoppingCartDTO.setFreightPricingMethod(postageCalculateLineDTO.getPostage().getPricingMethod());
-                                //体积单价
-                                shoppingCartDTO.setVolumeUnitPrice(postageCalculateLineDTO.getPostage().getPostageLine().getVolumeUnitPrice());
-                                //运费税率
-                                shoppingCartDTO.setFreightTaxId(postageCalculateLineDTO.getPostage().getTaxId());
-                                shoppingCartDTO.setFreightTaxCode(postageCalculateLineDTO.getPostage().getTaxCode());
-                                shoppingCartDTO.setFreightTaxRate(new BigDecimal(postageCalculateLineDTO.getPostage().getTaxRate()));
-                                //运费物料
-                                shoppingCartDTO.setFreightItemId(postageCalculateLineDTO.getPostage().getItemId());
-                                shoppingCartDTO.setFreightItemCode(postageCalculateLineDTO.getPostage().getItemCode());
-                                shoppingCartDTO.setFreightItemName(postageCalculateLineDTO.getPostage().getItemName());
+                                if (!ObjectUtils.isEmpty(postageCalculateLineDTO.getPostage())) {
+                                    //运费计价方式
+                                    shoppingCartDTO.setFreightPricingMethod(postageCalculateLineDTO.getPostage().getPricingMethod());
+                                    //体积单价
+                                    shoppingCartDTO.setVolumeUnitPrice(postageCalculateLineDTO.getPostage().getPostageLine().getVolumeUnitPrice());
+                                    //运费税率
+                                    shoppingCartDTO.setFreightTaxId(postageCalculateLineDTO.getPostage().getTaxId());
+                                    shoppingCartDTO.setFreightTaxCode(postageCalculateLineDTO.getPostage().getTaxCode());
+                                    shoppingCartDTO.setFreightTaxRate(new BigDecimal(postageCalculateLineDTO.getPostage().getTaxRate()));
+                                    //运费物料
+                                    shoppingCartDTO.setFreightItemId(postageCalculateLineDTO.getPostage().getItemId());
+                                    shoppingCartDTO.setFreightItemCode(postageCalculateLineDTO.getPostage().getItemCode());
+                                    shoppingCartDTO.setFreightItemName(postageCalculateLineDTO.getPostage().getItemName());
+                                }else{
+                                    logger.info("该商品"+shoppingCartDTO.getProductId()+"查运费时没有返回运费行");
+                                }
                             }
                         });
                     });
