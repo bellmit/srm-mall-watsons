@@ -1472,6 +1472,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                             keyRes.append(itemCategoryResultOne.get(0).getParentCategoryId()).append("-");
                         }
                         String keyFinal = String.valueOf(keyRes);
+                        logger.info("the split key is"+keyFinal);
                         watsonsShoppingCartDTO.setItemCategoryId(itemCategoryResultOne.get(0).getParentCategoryId());
                         watsonsShoppingCartDTO.setItemCategoryName(itemCategoryResultOne.get(0).getParentCategoryName());
                         watsonsShoppingCartDTO.setKey(keyFinal);
@@ -1530,6 +1531,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                                     keyRes.append(aLevelRes.getCategoryId()).append("-");
                                 }
                                 String keyFinal = String.valueOf(keyRes);
+                                logger.info("the split key is"+keyFinal);
                                 watsonsShoppingCartDTO.setItemCategoryId(aLevelRes.getCategoryId());
                                 watsonsShoppingCartDTO.setItemCategoryName(aLevelRes.getCategoryName());
                                 watsonsShoppingCartDTO.setKey(keyFinal);
@@ -1542,6 +1544,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                                     keyRes.append(itemCategoryResultOne.getParentCategoryId()).append("-");
                                 }
                                 String keyFinal = String.valueOf(keyRes);
+                                logger.info("the split key is"+keyFinal);
                                 watsonsShoppingCartDTO.setItemCategoryId(itemCategoryResultOne.getParentCategoryId());
                                 //查一级品类的name
                                 ResponseEntity<String> itemCategoryALevel = smdmRemoteNewService.queryById(tenantId, String.valueOf(itemCategoryResultOne.getParentCategoryId()));
@@ -1563,6 +1566,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                                     keyRes.append(itemCategoryResultOne.getCategoryId()).append("-");
                                 }
                                 String keyFinal = String.valueOf(keyRes);
+                                logger.info("the split key is"+keyFinal);
                                 watsonsShoppingCartDTO.setItemCategoryId(itemCategoryResultOne.getCategoryId());
                                 watsonsShoppingCartDTO.setItemCategoryName(itemCategoryResultOne.getCategoryName());
                                 watsonsShoppingCartDTO.setKey(keyFinal);
@@ -1599,7 +1603,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getDeliveryType()).append("-");
         keyRes.append(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getCostShopId()).append("-");
         if(BaseConstants.Flag.YES.equals(purReqMergeRule.getFreightType())){
-            keyRes.append(watsonsShoppingCartDTO.getFreightPricingMethod()).append("-").append(watsonsShoppingCartDTO.getVolumeUnitPrice()).append("-");
+            keyRes.append(watsonsShoppingCartDTO.getVolumeUnitPrice()).append("-");
         }
     }
 
