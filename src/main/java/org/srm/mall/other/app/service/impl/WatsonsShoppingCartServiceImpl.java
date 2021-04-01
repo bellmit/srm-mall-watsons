@@ -906,6 +906,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             PurReqMergeRule purReqMergeRule = PurReqMergeRule.getDefaultMergeRule();
             getPostageInfo(tenantId, watsonsShoppingCartDTOList);
             splitShoppingCartByCostConfig(watsonsShoppingCartDTOList);
+            refreshInvOrganizationAndAddress(watsonsShoppingCartDTOList);
             //此时shoppingCartDTOList已经有   每一个商品根据自己的多个费用条拆成的多个订单行
             Map<String, List<WatsonsShoppingCartDTO>> result = watsonsShoppingCartDTOList.stream().collect(Collectors.groupingBy(s -> s.groupKey(purReqMergeRule)));
             checkNeedToSplitByFreightType(watsonsShoppingCartDTOList, purReqMergeRule);
@@ -1052,6 +1053,15 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             }else {
                 purReqMergeRule.setFreightType(BaseConstants.Flag.NO);
             }
+        }
+    }
+
+    private void refreshInvOrganizationAndAddress(List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
+        //先把addressId和ouid赋值成一样 防止影响拆单
+        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
+            watsonsShoppingCartDTO.setAddressId(watsonsShoppingCartDTOList.get(0).getAddressId());
+            watsonsShoppingCartDTO.setInvOrganizationId(watsonsShoppingCartDTOList.get(0).getInvOrganizationId());
+            watsonsShoppingCartDTO.setOuId(watsonsShoppingCartDTOList.get(0).getOuId());
         }
     }
     /**
