@@ -658,15 +658,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Override
     public List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderView(Long tenantId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
 
-        //校验所有的商品的地址是否一致  不一致的话后续默认拆单不一样 但是按费用分配的三个维度拆可能一样就会出现丢失
-        Long addressId4Check = watsonsShoppingCartDTOList.get(0).getAddressId();
-        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
-            Long addressId = watsonsShoppingCartDTO.getAddressId();
-            if(!addressId4Check.equals(addressId)){
-                throw new CommonException("必须选择同地址的商品!");
-            }
-        }
-
         //校验每个商品的每个费用分配当【费用承担写字楼/店铺/仓库】相同时,【地址区域】+【收货地址】是否相同
         List<AllocationInfo> allocationInfos = new ArrayList<>();
         for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
