@@ -790,7 +790,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             //将每一个商品根据自己的多个费用拆成多个订单行
             splitShoppingCartByCostConfig(watsonsShoppingCartDTOList);
             //此时shoppingCartDTOList已经有   每一个商品根据自己的多个费用条拆成的多个订单行
-
+            refreshInvOrganizationAndAddress(watsonsShoppingCartDTOList);
             PurReqMergeRule purReqMergeRule = PurReqMergeRule.getDefaultMergeRule();
 
             //  拼上key  只能用watsonsShoppingCartDTO 进行数据获取  所以必须使用watsonsshoppingcart
@@ -952,6 +952,16 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         return null;
     }
+
+    private void refreshInvOrganizationAndAddress(List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
+        //先把addressId和ouid赋值成一样 防止影响拆单
+        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
+            watsonsShoppingCartDTO.setAddressId(watsonsShoppingCartDTOList.get(0).getAddressId());
+            watsonsShoppingCartDTO.setInvOrganizationId(watsonsShoppingCartDTOList.get(0).getInvOrganizationId());
+            watsonsShoppingCartDTO.setOuId(watsonsShoppingCartDTOList.get(0).getOuId());
+        }
+    }
+
     /**
      * 处理订单运费
      */
