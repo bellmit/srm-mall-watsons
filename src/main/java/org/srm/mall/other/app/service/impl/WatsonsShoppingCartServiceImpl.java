@@ -220,11 +220,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                             watsonsShoppingCart.setDeliveryType("DIRECT_DELIVERY");
                             watsonsShoppingCart.setDeliveryTypeMeaning("直送");
                         }
-                        if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_0)) {
-                            logger.info("set WAREHOUSE_SHOP");
-                            watsonsShoppingCart.setDeliveryType("WAREHOUSE_SHOP");
-                            watsonsShoppingCart.setDeliveryTypeMeaning("仓转店");
-                        }
                     }
                         return watsonsShoppingCart;
                 }).collect(Collectors.toList());
@@ -241,11 +236,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                         logger.info("set DIRECT_DELIVERY");
                         watsonsShoppingCartDTO.setDeliveryType("DIRECT_DELIVERY");
                         watsonsShoppingCartDTO.setDeliveryTypeMeaning("直送");
-                    }
-                    if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_0)) {
-                        logger.info("set WAREHOUSE_SHOP");
-                        watsonsShoppingCartDTO.setDeliveryType("WAREHOUSE_SHOP");
-                        watsonsShoppingCartDTO.setDeliveryTypeMeaning("仓转店");
                     }
                 }
                return watsonsShoppingCartDTO;
