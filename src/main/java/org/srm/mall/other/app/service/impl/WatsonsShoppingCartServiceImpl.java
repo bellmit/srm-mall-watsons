@@ -264,7 +264,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
                 for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
                     for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()) {
-                        allocationInfo.setCeNumber(watsonsPreRequestOrderDTO.getCeNumber() + watsonsPreRequestOrderDTO.getItemName());
+                        allocationInfo.setCeNumber(watsonsPreRequestOrderDTO.getCeNumber());
                         if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getDiscription())){
                             allocationInfo.setCeDiscription(watsonsPreRequestOrderDTO.getDiscription());
                         }
