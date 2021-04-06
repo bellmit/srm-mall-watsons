@@ -1100,7 +1100,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         List<PostageCalculateDTO> postageCalculateDTOS = new ArrayList<>();
         List<PostageCalculateLineDTO> postageCalculateLineDTOS = new ArrayList<>();
         PostageCalculateDTO postageCalculateDTO = new PostageCalculateDTO();
-        postageCalculateDTO.setAddressId(preRequestOrderDTO.getShoppingCartDTOList().get(0).getAddressId());
         Long lastRegionId = preRequestOrderDTO.getWatsonsShoppingCartDTOList().get(0).getAllocationInfoList().get(0).getLastRegionId();
         processSecondRegionIdForWatsons(postageCalculateDTO, lastRegionId);
         preRequestOrderDTO.getShoppingCartDTOList().forEach(s -> {
