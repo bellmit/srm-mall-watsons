@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.api.dto.WatsonsRegionDTO;
+import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.api.dto.WhLovResultDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
@@ -51,6 +52,16 @@ public class AllocationInfoRepositoryImpl extends BaseRepositoryImpl<AllocationI
             throw new CommonException(infoDTO.getOrganizationCode()+ infoDTO.getOrganizationName()+"的相关地址信息不存在，请手工补充收货地址!");
         }
         return null;
+    }
+
+    @Override
+    public String checkDeliveryType(String itemCode, String sourceCode, Long tenantId) {
+        return allocationInfoMapper.checkDeliveryType(itemCode,sourceCode,tenantId);
+    }
+
+    @Override
+    public String checkItemCodeByItemId(Long itemId, Long tenantId, String sourceCode) {
+        return allocationInfoMapper.checkItemCodeByItemId(itemId,tenantId,sourceCode);
     }
 
     @Override
