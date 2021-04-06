@@ -1026,14 +1026,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         return null;
     }
-    private void refreshInvOrganizationAndAddress(List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
-        //先把addressId和ouid赋值成一样 防止影响拆单
-        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
-            watsonsShoppingCartDTO.setAddressId(watsonsShoppingCartDTOList.get(0).getAddressId());
-            watsonsShoppingCartDTO.setInvOrganizationId(watsonsShoppingCartDTOList.get(0).getInvOrganizationId());
-            watsonsShoppingCartDTO.setOuId(watsonsShoppingCartDTOList.get(0).getOuId());
-        }
-    }
 
     private void checkNeedToSplitByFreightType(List<WatsonsShoppingCartDTO> shoppingCartDTOList, PurReqMergeRule purReqMergeRule) {
         for (ShoppingCartDTO shoppingCartDTO : shoppingCartDTOList) {
