@@ -195,6 +195,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Autowired
     private WatsonsWflCheckRemoteService watsonsWflCheckRemoteService;
 
+    private static final String erpForWatsons = "SRM";
+
     @Override
     public List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart) {
         //加入了取费用分配的过程
@@ -211,12 +213,48 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     WatsonsShoppingCartDTO watsonsShoppingCart = new WatsonsShoppingCartDTO();
                     BeanUtils.copyProperties(s, watsonsShoppingCart);
                     watsonsShoppingCart.setAllocationInfoList(map.get(s.getCartId()));
-                    return watsonsShoppingCart;
+                    String itemCode = checkItemCodeByItemId(s.getItemId(),organizationId,erpForWatsons);
+                    logger.info("item code is " + itemCode);
+                    String deliveryType = checkDeliveryType(itemCode, erpForWatsons, organizationId);
+                    logger.info("delivery type is "+ deliveryType);
+                    if(!ObjectUtils.isEmpty(deliveryType)) {
+                        if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_1)) {
+                            logger.info("set DIRECT_DELIVERY");
+                            watsonsShoppingCart.setDeliveryType("DIRECT_DELIVERY");
+                            watsonsShoppingCart.setDeliveryTypeMeaning("直送");
+                        }
+                    }
+                        return watsonsShoppingCart;
                 }).collect(Collectors.toList());
             }
+           return shoppingCartDTOList.stream().map(shoppingCartDTO  ->  {
+                WatsonsShoppingCartDTO watsonsShoppingCartDTO = new WatsonsShoppingCartDTO();
+                BeanUtils.copyProperties(shoppingCartDTO, watsonsShoppingCartDTO);
+               String itemCode = checkItemCodeByItemId(shoppingCartDTO.getItemId(),organizationId,erpForWatsons);
+               logger.info("item code is " + itemCode);
+               String deliveryType = checkDeliveryType(itemCode, erpForWatsons, organizationId);
+               logger.info("delivery type is "+ deliveryType);
+                if(!ObjectUtils.isEmpty(deliveryType)) {
+                    if (deliveryType.equals(ScecConstants.ConstantNumber.STRING_1)) {
+                        logger.info("set DIRECT_DELIVERY");
+                        watsonsShoppingCartDTO.setDeliveryType("DIRECT_DELIVERY");
+                        watsonsShoppingCartDTO.setDeliveryTypeMeaning("直送");
+                    }
+                }
+               return watsonsShoppingCartDTO;
+           }).collect(Collectors.toList());
         }
         return shoppingCartDTOList;
     }
+
+    private String checkItemCodeByItemId(Long itemId, Long tenantId, String sourceCode) {
+        return allocationInfoRepository.checkItemCodeByItemId(itemId,tenantId,sourceCode);
+    }
+
+    private String checkDeliveryType(String itemCode, String sourceCode, Long tenantId) {
+         return allocationInfoRepository.checkDeliveryType(itemCode,sourceCode,tenantId);
+    }
+
 
     @Override
     @SagaStart
@@ -1165,7 +1203,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         watsonsShoppingCartDTOList.addAll(splitCosttInfoList);
     }
-
 
     private Map<String, Map<Long, PriceResultDTO>> queryPriceResult(List<ShoppingCartDTO> shoppingCartDTOList) {
         Map<String, List<ShoppingCartDTO>> skuShoppingCartDTO = shoppingCartDTOList.stream().collect(Collectors.groupingBy(ShoppingCartDTO::skuRegionGroupKey));

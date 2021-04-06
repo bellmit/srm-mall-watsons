@@ -26,7 +26,6 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
 
     private List<AllocationInfo> allocationInfoList;
 
-
     @ApiModelProperty(value = "联系电话")
     private String mobile;
 
@@ -39,6 +38,13 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
 
     @ApiModelProperty(value = "CMS合同号")
     private String cmsNumber;
+
+    @ApiModelProperty(value = "用于判断商品是否直送的标识符 1是  0否 ")
+    private String deliveryType;
+
+
+    @ApiModelProperty(value = "用于判断商品是否直送的标识符 1是  0否 ")
+    private String deliveryTypeMeaning;
 
 
     public List<AllocationInfo> getAllocationInfoList() {
@@ -85,4 +91,19 @@ public class WatsonsShoppingCartDTO extends ShoppingCartDTO {
     }
 
 
+    public String getDeliveryType() {
+        return deliveryType;
+    }
+
+    public void setDeliveryType(String deliveryType) {
+        this.deliveryType = deliveryType;
+    }
+
+    public String getDeliveryTypeMeaning() {
+        return deliveryTypeMeaning;
+    }
+
+    public void setDeliveryTypeMeaning(String deliveryTypeMeaning) {
+        this.deliveryTypeMeaning = deliveryTypeMeaning;
+    }
 }
