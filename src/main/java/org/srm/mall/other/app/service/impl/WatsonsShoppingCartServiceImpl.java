@@ -885,6 +885,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         if (CollectionUtils.isNotEmpty(shoppingCartDTOList)) {
             List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList = new ArrayList<>();
             //将每一个商品根据自己的多个费用拆成多个订单行
+            refreshInvOrganizationAndAddress(watsonsShoppingCartDTOList);
             PurReqMergeRule purReqMergeRule = PurReqMergeRule.getDefaultMergeRule();
             getPostageInfo(tenantId, watsonsShoppingCartDTOList);
             splitShoppingCartByCostConfig(watsonsShoppingCartDTOList);
@@ -1025,6 +1026,14 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         return null;
     }
+    private void refreshInvOrganizationAndAddress(List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
+        //先把addressId和ouid赋值成一样 防止影响拆单
+        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
+            watsonsShoppingCartDTO.setAddressId(watsonsShoppingCartDTOList.get(0).getAddressId());
+            watsonsShoppingCartDTO.setInvOrganizationId(watsonsShoppingCartDTOList.get(0).getInvOrganizationId());
+            watsonsShoppingCartDTO.setOuId(watsonsShoppingCartDTOList.get(0).getOuId());
+        }
+    }
 
     private void checkNeedToSplitByFreightType(List<WatsonsShoppingCartDTO> shoppingCartDTOList, PurReqMergeRule purReqMergeRule) {
         for (ShoppingCartDTO shoppingCartDTO : shoppingCartDTOList) {
@@ -1138,8 +1147,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         List<PostageCalculateDTO> postageCalculateDTOS = new ArrayList<>();
         List<PostageCalculateLineDTO> postageCalculateLineDTOS = new ArrayList<>();
         PostageCalculateDTO postageCalculateDTO = new PostageCalculateDTO();
-        //regionId可以不给
         postageCalculateDTO.setAddressId(preRequestOrderDTO.getShoppingCartDTOList().get(0).getAddressId());
+        Long lastRegionId = preRequestOrderDTO.getWatsonsShoppingCartDTOList().get(0).getAllocationInfoList().get(0).getLastRegionId();
+        processSecondRegionIdForWatsons(postageCalculateDTO, lastRegionId);
         preRequestOrderDTO.getShoppingCartDTOList().forEach(s -> {
             PostageCalculateLineDTO postageCalculateLineDTO = new PostageCalculateLineDTO();
             postageCalculateLineDTO.setAgreementLineId(s.getAgreementLineId());
@@ -1154,6 +1164,32 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         postageCalculateDTO.setPostageCalculateLineDTOS(postageCalculateLineDTOS);
         postageCalculateDTOS.add(postageCalculateDTO);
         return postageCalculateDTOS;
+    }
+
+    private void processSecondRegionIdForWatsons(PostageCalculateDTO postageCalculateDTO, Long lastRegionId) {
+        logger.info("the last region id is" + lastRegionId);
+        List<MallRegion> region = mallRegionRepository.selectByCondition(Condition.builder(MallRegion.class).andWhere(Sqls.custom()
+                .andEqualTo(MallRegion.FIELD_ENABLED_FLAG, 1)
+                .andEqualTo(MallRegion.FIELD_REGION_ID, lastRegionId)).build());
+        MallRegion param = region.get(0);
+        if(param.getLevelPath().split("\\.").length < 2){
+            throw new CommonException("该商品费用分配行上地址已经是一级地址，无法计算运费!");
+        }else if(param.getLevelPath().split("\\.").length == 2){
+            logger.info("the second region id is "+param.getRegionId());
+            postageCalculateDTO.setRegionId(param.getRegionId());
+        }else {
+            while (param.getLevelPath().split("\\.").length > 2) {
+                List<MallRegion> temp = mallRegionRepository.selectByCondition(Condition.builder(MallRegion.class).andWhere(Sqls.custom()
+                        .andEqualTo(MallRegion.FIELD_ENABLED_FLAG, 1)
+                        .andEqualTo(MallRegion.FIELD_REGION_ID, param.getRegionId())).build());
+                List<MallRegion> temp_2 = mallRegionRepository.selectByCondition(Condition.builder(MallRegion.class).andWhere(Sqls.custom()
+                        .andEqualTo(MallRegion.FIELD_ENABLED_FLAG, 1)
+                        .andEqualTo(MallRegion.FIELD_REGION_CODE, temp.get(0).getParentRegionCode())).build());
+                param = temp_2.get(0);
+            }
+            logger.info("the second region id is "+param.getRegionId());
+            postageCalculateDTO.setRegionId(param.getRegionId());
+        }
     }
 
     private void splitShoppingCartByCostConfig(List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
