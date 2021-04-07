@@ -346,24 +346,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             }
             //遍历每个可以提交的预采申请订单结束
         }
-
-        //一个商品多个店铺   一个商品一个一级分类
-        //校验wfl工作流
-        List<WatsonsPreRequestOrderDTO> watsonsCheckSubmitList = preRequestOrderDTOList.stream().filter(item -> ScecConstants.ConstantNumber.INT_1 == item.getMinPurchaseFlag()).collect(Collectors.toList());
-        List<WatsonsWflCheckDTO> watsonsWflCheckDTOS = buildWflCheckParams(tenantId, watsonsCheckSubmitList);
-        ResponseEntity<String> watsonsWflCheckResultVOResponseEntity = watsonsWflCheckRemoteService.wflStartCheck(tenantId, watsonsWflCheckDTOS);
-        if(ResponseUtils.isFailed(watsonsWflCheckResultVOResponseEntity)){
-            logger.error("协同异常:校验wfl工作流时出现网络错误");
-            throw new CommonException("协同异常:校验wfl工作流时出现网络错误");
-        }else {
-            logger.info("check wfl flow success");
-            WatsonsWflCheckResultVO response = ResponseUtils.getResponse(watsonsWflCheckResultVOResponseEntity, new TypeReference<WatsonsWflCheckResultVO>() {
-            });
-            if(response.getErrorFlag().equals(BaseConstants.Flag.YES)){
-                logger.error(response.getErrorMessage());
-                throw new CommonException(response.getErrorMessage());
-            }
-        }
+        checkWLFFlow(tenantId, preRequestOrderDTOList);
         PurchaseRequestVO result;
         if (ScecConstants.enableOrderCenterFlag(tenantId)) {
             List<WatsonsPreRequestOrderDTO> watsonsCanSubmitList = preRequestOrderDTOList.stream().filter(item -> ScecConstants.ConstantNumber.INT_1 == item.getMinPurchaseFlag()).collect(Collectors.toList());
@@ -391,6 +374,26 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             mixDeploymentService.getCataSubmitMessageAndSend(tenantId);
         }
         return preRequestOrderResponseDTO;
+    }
+
+    private void checkWLFFlow(Long tenantId, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
+        //一个商品多个店铺   一个商品一个一级分类
+        //校验wfl工作流
+        List<WatsonsPreRequestOrderDTO> watsonsCheckSubmitList = preRequestOrderDTOList.stream().filter(item -> ScecConstants.ConstantNumber.INT_1 == item.getMinPurchaseFlag()).collect(Collectors.toList());
+        List<WatsonsWflCheckDTO> watsonsWflCheckDTOS = buildWflCheckParams(tenantId, watsonsCheckSubmitList);
+        ResponseEntity<String> watsonsWflCheckResultVOResponseEntity = watsonsWflCheckRemoteService.wflStartCheck(tenantId, watsonsWflCheckDTOS);
+        if(ResponseUtils.isFailed(watsonsWflCheckResultVOResponseEntity)){
+            logger.error("协同异常:校验wfl工作流时出现网络错误");
+            throw new CommonException("协同异常:校验wfl工作流时出现网络错误");
+        }else {
+            logger.info("check wfl flow success");
+            WatsonsWflCheckResultVO response = ResponseUtils.getResponse(watsonsWflCheckResultVOResponseEntity, new TypeReference<WatsonsWflCheckResultVO>() {
+            });
+            if(response.getErrorFlag().equals(BaseConstants.Flag.YES)){
+                logger.error(response.getErrorMessage());
+                throw new CommonException(response.getErrorMessage());
+            }
+        }
     }
 
     private void checkCeInfo(Long tenantId, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
@@ -725,7 +728,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             }
         }
     }
-
     private void updateBudgetInfoResult(ShoppingCartDTO shoppingCartDTO, String budgetSwitch){
         //修改预算校验状态，2  表示生成采购申请成功
         if (ScecConstants.ConstantNumber.STRING_1.equals(budgetSwitch)){
@@ -737,7 +739,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             }
         }
     }
-
     /**
      * 阶梯价处理
      *
@@ -764,31 +765,10 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             shoppingCart.setUnitPrice(productPoolLadder.getTaxPrice());
         }
     }
-
     @Override
     public List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderView(Long tenantId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
-
         //校验每个商品的每个费用分配当【费用承担写字楼/店铺/仓库】相同时,【地址区域】+【收货地址】是否相同
-        List<AllocationInfo> allocationInfos = new ArrayList<>();
-        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
-            for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()) {
-                allocationInfo.setFromWhichShoppingCart(watsonsShoppingCartDTO.getProductName());
-                allocationInfos.add(allocationInfo);
-            }
-        }
-        Map<Long, List<AllocationInfo>> collectRes = allocationInfos.stream().collect(Collectors.groupingBy(AllocationInfo::getCostShopId));
-        for (Map.Entry<Long, List<AllocationInfo>> longListEntry : collectRes.entrySet()) {
-            List<AllocationInfo> value = longListEntry.getValue();
-            String address4Check = value.get(0).getAddressRegion()+value.get(0).getFullAddress();
-            for (AllocationInfo allocationInfo : value) {
-                if(!((allocationInfo.getAddressRegion()+allocationInfo.getFullAddress()).equals(address4Check))){
-                    throw new CommonException(
-                            "商品"+value.get(0).getFromWhichShoppingCart()+"的"+value.get(0).getCostShopCode()+value.get(0).getCostShopName()+
-                            "与商品"+allocationInfo.getFromWhichShoppingCart()+"的"+allocationInfo.getCostShopCode()+allocationInfo.getCostShopName() + "分配的地址不一致，请修改!");
-                }
-            }
-        }
-
+        checkAddressRegionAndFullAddress(watsonsShoppingCartDTOList);
         //如果有服务商品，从底层list取出放到上层list
         List<ShoppingCartDTO> re = new ArrayList<>();
         //获取名片分类的categoryId
@@ -811,7 +791,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             BeanUtils.copyProperties(watsonsShoppingCartDTO, shoppingCartDTO4Transfer);
             shoppingCartDTOList.add(shoppingCartDTO4Transfer);
         }
-        // eric 首先根据购物车的地址id和组织层级进行分组调用   异步获取商品价格
         Map<String, Map<Long, PriceResultDTO>> priceResultDTOMap = queryPriceResult(shoppingCartDTOList);
         Iterator iterator = watsonsShoppingCartDTOList.iterator();
         while (iterator.hasNext()) {
@@ -834,10 +813,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             }
             shoppingCartDTO.setAgreementLineId(priceResultDTO.getPurAgreementLineId());
             if (!ObjectUtils.isEmpty(shoppingCartDTO.getCatalogId())) {
-//                Integer count = comCategoryCatalogMapRepository.checkCatalog(shoppingCartDTO.getOwnerId(), priceResultDTO.getCatalogId(), shoppingCartDTO.getTenantId());
-//                if (count > 0) {
-//                    throw new CommonException(ScecConstants.ErrorCode.CATALOG_PERMISSION_NOT_PASS);
-//                }
                 //校验目录价格限制
                 BigDecimal priceLimit = ResponseUtils.getResponse(smpcRemoteService.queryPriceLimit(tenantId, new org.srm.mall.common.feign.dto.product.CatalogPriceLimit(shoppingCartDTO.getTenantId(), shoppingCartDTO.getOwnerId(), shoppingCartDTO.getProductId(), shoppingCartDTO.getCatalogId(), null)), BigDecimal.class) ;
 //                BigDecimal priceLimit = catalogPriceLimitService.priceLimit(new CatalogPriceLimit(shoppingCartDTO.getTenantId(), shoppingCartDTO.getOwnerId(), shoppingCartDTO.getProductId(), shoppingCartDTO.getCatalogId(), null));
@@ -866,7 +841,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             // 设置其余查询出来的参数
             convertParam(shoppingCartDTO, priceResultDTO);
         }
-
         //检测条件完毕
         //校验收货地址
         validateShppingAddress(shoppingCartDTOList);
@@ -926,55 +900,20 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 watsonsPreRequestOrderDTO.setWatsonsShoppingCartDTOList(watsonsShoppingCartDTOList4Trans);
                 // 订单总价(不含运费)
                 BigDecimal price = entry.getValue().stream().map(WatsonsShoppingCartDTO::getTotalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
-
-//                if (reResult.containsKey(entry.getKey())) {
-//                    price = reResult.get(entry.getKey()).stream()
-//                            .filter(s -> s.getSkuType().equals(ScecConstants.ProductSkuType.SERVICE_PRODUCT))
-//                            .map(ShoppingCartDTO::getTotalPrice)
-//                            .reduce(price, BigDecimal::add);
-//                }
-
                 validateMinPurchaseAmount(tenantId, watsonsShoppingCartDTO, price, watsonsPreRequestOrderDTO);
                 // 代理运费和代理总价问题处理 运费以采购价来计算
                 BigDecimal freightPrice = price;
                 if (ScecConstants.AgreementType.SALE.equals(watsonsShoppingCartDTO.getAgreementType())) {
                     //  如果是销售协议 运费需要用采购协议价来计算
                     freightPrice = entry.getValue().stream().map(WatsonsShoppingCartDTO::getPurTotalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
-//                    if (reResult.containsKey(entry.getKey())) {
-//                        freightPrice = reResult.get(entry.getKey()).stream()
-//                                .filter(s -> s.getSkuType().equals(ScecConstants.ProductSkuType.SERVICE_PRODUCT))
-//                                .map(ShoppingCartDTO::getPurTotalPrice)
-//                                .reduce(price, BigDecimal::add);
-//                    }
                 }
-                //TODO 设置运费
-                // 测试环境存在多个京东编码
-                watsonsPreRequestOrderDTO.setFreight(BigDecimal.ZERO);
-                if (ScecConstants.ECommercePlatformCode.PLATFORM_JD.equals(entry.getValue().get(0).getProductSource()) || ScecConstants.SourceType.NJD.equals(entry.getValue().get(0).getProductSource())) {
-                    //供应商为京东
-                    if (freightPrice.compareTo(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_FREE)) > -1) {
-                        //金额超过99元，免运费
-                        watsonsPreRequestOrderDTO.setFreight(BigDecimal.ZERO);
-                    } else if (freightPrice.compareTo(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_MIDDLE)) > -1) {
-                        //金额在50-99之间，低运费
-                        watsonsPreRequestOrderDTO.setFreight(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_COST_LOW));
-                    } else {
-                        //金额在0-49之间，高运费
-                        watsonsPreRequestOrderDTO.setFreight(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_COST_HIGN));
-                    }
-                } else {
-                    //目录化商品
-                    this.orderFreight(tenantId,watsonsPreRequestOrderDTO);
-                }
+                queryFreight(tenantId, entry, watsonsPreRequestOrderDTO, freightPrice);
                 //小计金额  金额+运费
                 watsonsPreRequestOrderDTO.setPrice(price.add(watsonsPreRequestOrderDTO.getFreight()));
                 if (ScecConstants.AgreementType.SALE.equals(watsonsShoppingCartDTO.getAgreementType())) {
                     //  如果是销售协议 运费需要用采购协议价来计算
                     watsonsPreRequestOrderDTO.setPurPrice(freightPrice.add(watsonsPreRequestOrderDTO.getFreight()));
                 }
-                //校验账户余额
-//                checkBalance(entry.getValue().get(0).getCompanyId(),preRequestOrderDTO);
-                // 获取缓存中电商支付信息
                 PaymentInfo paymentInfo = shoppingCartRepository.queryPaymentInfo(watsonsShoppingCartDTO);
                 if (null != paymentInfo) {
                     BeanConvertor.convert(paymentInfo, watsonsPreRequestOrderDTO);
@@ -987,37 +926,83 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
                 watsonsPreRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
             }
-            //        进行cms合同号取值
-            watsonsPreRequestOrderDTOList.stream().forEach(watsonsPreRequestOrderDTO -> {
-                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
-                    logger.info("开始调用协议中心查询cms号码");
-                    ResponseEntity<String> stringResponseEntity = watsonsSagmRemoteService.queryAgreementLineById(tenantId,watsonsShoppingCartDTO.getAgreementLineId());
-                    if(ResponseUtils.isFailed(stringResponseEntity)){
-                        logger.error("调用协议中心查询cms合同号异常!");
-                    }else {
-                        AgreementLine agreementLine = ResponseUtils.getResponse(stringResponseEntity, new TypeReference<AgreementLine>() {
-                        });
-                        //attributeVarchar1是cms合同号
-                        if(ObjectUtils.isEmpty(agreementLine)){
-                            logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的协议行!");
-                        }
-                        if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
-                            logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的CMS合同号!");
-                        }
-                        if(!ObjectUtils.isEmpty(agreementLine) && !ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
-                            watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
-                        }
-                        if(!ObjectUtils.isEmpty(agreementLine) && !ObjectUtils.isEmpty(agreementLine.getAttributeVarchar2())){
-                            //发票类型
-                            watsonsShoppingCartDTO.setAttributeVarchar3(agreementLine.getAttributeVarchar2());
-                        }
-                    }
-                }
-            });
+            setCMSInfo(tenantId, watsonsPreRequestOrderDTOList);
             // handleCheck()
             return watsonsPreRequestOrderDTOList;
         }
         return null;
+    }
+
+    private void checkAddressRegionAndFullAddress(List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
+        List<AllocationInfo> allocationInfos = new ArrayList<>();
+        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
+            for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()) {
+                allocationInfo.setFromWhichShoppingCart(watsonsShoppingCartDTO.getProductName());
+                allocationInfos.add(allocationInfo);
+            }
+        }
+        Map<Long, List<AllocationInfo>> collectRes = allocationInfos.stream().collect(Collectors.groupingBy(AllocationInfo::getCostShopId));
+        for (Map.Entry<Long, List<AllocationInfo>> longListEntry : collectRes.entrySet()) {
+            List<AllocationInfo> value = longListEntry.getValue();
+            String address4Check = value.get(0).getAddressRegion()+value.get(0).getFullAddress();
+            for (AllocationInfo allocationInfo : value) {
+                if(!((allocationInfo.getAddressRegion()+allocationInfo.getFullAddress()).equals(address4Check))){
+                    throw new CommonException(
+                            "商品"+value.get(0).getFromWhichShoppingCart()+"的"+value.get(0).getCostShopCode()+value.get(0).getCostShopName()+
+                            "与商品"+allocationInfo.getFromWhichShoppingCart()+"的"+allocationInfo.getCostShopCode()+allocationInfo.getCostShopName() + "分配的地址不一致，请修改!");
+                }
+            }
+        }
+    }
+
+    private void queryFreight(Long tenantId, Map.Entry<String, List<WatsonsShoppingCartDTO>> entry, WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO, BigDecimal freightPrice) {
+        watsonsPreRequestOrderDTO.setFreight(BigDecimal.ZERO);
+        if (ScecConstants.ECommercePlatformCode.PLATFORM_JD.equals(entry.getValue().get(0).getProductSource()) || ScecConstants.SourceType.NJD.equals(entry.getValue().get(0).getProductSource())) {
+            //供应商为京东
+            if (freightPrice.compareTo(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_FREE)) > -1) {
+                //金额超过99元，免运费
+                watsonsPreRequestOrderDTO.setFreight(BigDecimal.ZERO);
+            } else if (freightPrice.compareTo(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_MIDDLE)) > -1) {
+                //金额在50-99之间，低运费
+                watsonsPreRequestOrderDTO.setFreight(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_COST_LOW));
+            } else {
+                //金额在0-49之间，高运费
+                watsonsPreRequestOrderDTO.setFreight(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_COST_HIGN));
+            }
+        } else {
+            //目录化商品
+            this.orderFreight(tenantId, watsonsPreRequestOrderDTO);
+        }
+    }
+
+    private void setCMSInfo(Long tenantId, List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList) {
+        //        进行cms合同号取值
+        watsonsPreRequestOrderDTOList.stream().forEach(watsonsPreRequestOrderDTO -> {
+            for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+                logger.info("开始调用协议中心查询cms号码");
+                ResponseEntity<String> stringResponseEntity = watsonsSagmRemoteService.queryAgreementLineById(tenantId,watsonsShoppingCartDTO.getAgreementLineId());
+                if(ResponseUtils.isFailed(stringResponseEntity)){
+                    logger.error("调用协议中心查询cms合同号异常!");
+                }else {
+                    AgreementLine agreementLine = ResponseUtils.getResponse(stringResponseEntity, new TypeReference<AgreementLine>() {
+                    });
+                    //attributeVarchar1是cms合同号
+                    if(ObjectUtils.isEmpty(agreementLine)){
+                        logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的协议行!");
+                    }
+                    if(!ObjectUtils.isEmpty(agreementLine) && ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
+                        logger.error(watsonsShoppingCartDTO.getProductName()+"没有查询到该商品的CMS合同号!");
+                    }
+                    if(!ObjectUtils.isEmpty(agreementLine) && !ObjectUtils.isEmpty(agreementLine.getAttributeVarchar1())){
+                        watsonsShoppingCartDTO.setCmsNumber(agreementLine.getAttributeVarchar1());
+                    }
+                    if(!ObjectUtils.isEmpty(agreementLine) && !ObjectUtils.isEmpty(agreementLine.getAttributeVarchar2())){
+                        //发票类型
+                        watsonsShoppingCartDTO.setAttributeVarchar3(agreementLine.getAttributeVarchar2());
+                    }
+                }
+            }
+        });
     }
     private void refreshInvOrganizationAndAddress(List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
         //先把addressId和ouid赋值成一样 防止影响拆单
