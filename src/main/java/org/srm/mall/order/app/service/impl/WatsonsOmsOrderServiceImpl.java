@@ -107,6 +107,7 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
                             omsOrderEntry.setInvOrganizationId(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getCostShopId());
                             omsOrderEntry.setInvOrganizationCode(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getCostShopCode());
                             omsOrderEntry.setInvOrganizationName(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getCostShopName());
+                            omsOrderEntry.setNeededDate(omsOrderDto.getOrder().getNeededDate());
                             //费用承担部门
                             omsOrderEntry.setAttributeBigint7(watsonsShoppingCartDTO.getAllocationInfoList().get(0).getCostDepartmentId());
                             //仓转店收货仓
