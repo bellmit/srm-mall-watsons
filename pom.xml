@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.srm</groupId>
     <artifactId>srm-parent</artifactId>
-    <version>test-SNAPSHOT</version>
+    <version>release-SNAPSHOT</version>
   </parent>
   <artifactId>srm-mall-watsons</artifactId>
   <version>1.11.8.RELEASE</version>
@@ -11,7 +11,7 @@
     <dependency>
       <groupId>org.srm</groupId>
       <artifactId>srm-mall</artifactId>
-      <version>test-SNAPSHOT</version>
+      <version>release-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
