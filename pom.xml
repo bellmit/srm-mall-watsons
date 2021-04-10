@@ -11,7 +11,7 @@
     <dependency>
       <groupId>org.srm</groupId>
       <artifactId>srm-mall</artifactId>
-      <version>release-SNAPSHOT</version>
+      <version>test-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
