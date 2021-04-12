@@ -1,8 +1,6 @@
 package org.srm.mall.order.app.service.impl;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.TypeReference;
 import io.choerodon.core.exception.CommonException;
 import io.choerodon.core.oauth.DetailsHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +14,6 @@ import org.hzero.mybatis.util.Sqls;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 import org.srm.mall.common.constant.ScecConstants;
@@ -24,17 +21,12 @@ import org.srm.mall.common.feign.SmdmRemoteNewService;
 import org.srm.mall.common.feign.SmodrRemoteService;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.order.api.dto.*;
-import org.srm.mall.order.app.service.OmsOrderService;
-import org.srm.mall.order.app.service.WatsonsOmsOrderService;
 import org.srm.mall.order.domain.vo.PurchaseRequestVO;
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
 import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
-import org.srm.mall.platform.api.dto.PrHeaderCreateDTO;
-import org.srm.mall.platform.api.dto.PrLineCreateDTO;
 import org.srm.mall.product.api.dto.QueryItemCodeDTO;
-import org.srm.mall.region.domain.entity.Address;
 import org.srm.mall.region.domain.entity.MallRegion;
 import org.srm.mall.region.domain.repository.MallRegionRepository;
 import org.srm.web.annotation.Tenant;
@@ -47,7 +39,7 @@ import java.util.stream.Collectors;
 @Service("watsonsOmsOrderService")
 @Tenant(WatsonsConstants.TENANT_NUMBER)
 @Slf4j
-public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements WatsonsOmsOrderService {
+public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl {
     @Autowired
     private CodeRuleBuilder codeRuleBuilder;
     @Autowired
@@ -59,11 +51,15 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl implements W
 
     @Override
     @Transactional
-    public PurchaseRequestVO watsonsCreateOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOs) {
+    public PurchaseRequestVO createOrder(Long tenantId, String customizeUnitCode, List<PreRequestOrderDTO> preRequestOrderDTOs) {
         //批次号
         Map<Optional<Long>,String> batchNumMap = new HashMap<>();
         List<OmsOrderDto> omsOrderDtos = new ArrayList<>();
-        for (WatsonsPreRequestOrderDTO preRequestOrderDTO : preRequestOrderDTOs) {
+        for (PreRequestOrderDTO preRequestOrderDTOTemp : preRequestOrderDTOs) {
+            if(!(preRequestOrderDTOTemp instanceof WatsonsPreRequestOrderDTO)){
+                throw new CommonException(BaseConstants.ErrorCode.DATA_INVALID);
+            }
+            WatsonsPreRequestOrderDTO preRequestOrderDTO = (WatsonsPreRequestOrderDTO)preRequestOrderDTOTemp;
             String batchNum;
             //根据品类分组批次号
             if(batchNumMap.containsKey(Optional.ofNullable(preRequestOrderDTO.getShoppingCartDTOList().get(0).getItemCategoryId()))){
