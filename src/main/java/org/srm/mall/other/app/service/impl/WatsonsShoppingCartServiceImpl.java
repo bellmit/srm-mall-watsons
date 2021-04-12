@@ -268,11 +268,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
         checkWLFFlow(tenantId, preRequestOrderDTOList);
 
-        return super.preRequestOrder(tenantId, customizeUnitCode, preRequestOrderDTOList.stream().map(s -> {
-            PreRequestOrderDTO preRequestOrderDTO = new PreRequestOrderDTO();
-            BeanUtils.copyProperties(s, preRequestOrderDTO);
-            return preRequestOrderDTO;
-        }).collect(Collectors.toList()));
+        return super.preRequestOrder(tenantId, customizeUnitCode, new ArrayList<>(preRequestOrderDTOList));
 
     }
 
