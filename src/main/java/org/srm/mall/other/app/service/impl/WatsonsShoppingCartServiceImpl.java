@@ -270,7 +270,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
         return super.preRequestOrder(tenantId, customizeUnitCode, preRequestOrderDTOList.stream().map(s -> {
             PreRequestOrderDTO preRequestOrderDTO = new PreRequestOrderDTO();
-            BeanUtils.copyProperties(preRequestOrderDTO, s);
+            BeanUtils.copyProperties(s, preRequestOrderDTO);
             return preRequestOrderDTO;
         }).collect(Collectors.toList()));
 
