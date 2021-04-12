@@ -10,7 +10,6 @@ import io.choerodon.core.oauth.DetailsHelper;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.servicecomb.pack.omega.context.annotations.SagaStart;
 import org.hzero.core.base.BaseConstants;
-import org.hzero.core.message.MessageAccessor;
 import org.hzero.core.util.ResponseUtils;
 import org.hzero.mybatis.domian.Condition;
 import org.hzero.mybatis.util.Sqls;
@@ -18,21 +17,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.srm.boot.common.CustomizeSettingCode;
 import org.srm.boot.common.cache.impl.AbstractKeyGenerator;
-import org.srm.boot.platform.configcenter.CnfHelper;
 import org.srm.boot.platform.customizesetting.CustomizeSettingHelper;
 import org.srm.boot.saga.utils.SagaClient;
 import org.srm.common.convert.bean.BeanConvertor;
@@ -46,18 +40,11 @@ import org.srm.mall.common.feign.dto.wflCheck.WatsonsWflCheckDTO;
 import org.srm.mall.common.feign.dto.wflCheck.WatsonsWflCheckResultVO;
 import org.srm.mall.common.task.MallOrderAsyncTask;
 import org.srm.mall.common.utils.snapshot.SnapshotUtil;
-import org.srm.mall.common.utils.snapshot.SnapshotUtilErrorBean;
 import org.srm.mall.context.dto.ProductDTO;
-import org.srm.mall.context.entity.Item;
-import org.srm.mall.context.entity.ItemCategory;
 import org.srm.mall.infra.constant.WatsonsConstants;
-import org.srm.mall.order.api.dto.PreRequestOrderDTO;
 import org.srm.mall.order.api.dto.PreRequestOrderResponseDTO;
 import org.srm.mall.order.app.service.MallOrderCenterService;
 import org.srm.mall.order.app.service.MallOrderService;
-import org.srm.mall.order.app.service.OmsOrderService;
-import org.srm.mall.order.app.service.WatsonsOmsOrderService;
-import org.srm.mall.order.domain.vo.PurchaseRequestVO;
 import org.srm.mall.other.api.dto.*;
 import org.srm.mall.other.app.service.*;
 import org.srm.mall.other.domain.entity.*;
@@ -70,19 +57,14 @@ import org.srm.mall.platform.domain.repository.EcClientRepository;
 import org.srm.mall.platform.domain.repository.EcCompanyAssignRepository;
 import org.srm.mall.platform.domain.repository.EcPlatformRepository;
 import org.srm.mall.product.api.dto.ItemCategoryDTO;
-import org.srm.mall.product.api.dto.ItemCategorySearchDTO;
 import org.srm.mall.product.api.dto.LadderPriceResultDTO;
 import org.srm.mall.product.api.dto.PriceResultDTO;
 import org.srm.mall.product.app.service.ProductStockService;
-import org.srm.mall.product.domain.entity.ScecProductCategory;
 import org.srm.mall.region.api.dto.AddressDTO;
-import org.srm.mall.region.api.dto.RegionDTO;
 import org.srm.mall.region.domain.entity.Address;
 import org.srm.mall.region.domain.entity.MallRegion;
-import org.srm.mall.region.domain.entity.Region;
 import org.srm.mall.region.domain.repository.AddressRepository;
 import org.srm.mall.region.domain.repository.MallRegionRepository;
-import org.srm.mall.region.domain.repository.RegionRepository;
 import org.srm.mq.service.producer.MessageProducer;
 import org.srm.web.annotation.Tenant;
 import java.math.BigDecimal;
@@ -92,7 +74,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service("watsonsShoppingCartService")
@@ -159,9 +140,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     @Autowired
     private MixDeploymentService mixDeploymentService;
-
-    @Autowired
-    private WatsonsOmsOrderService watsonsOmsOrderService;
 
     @Autowired
     private SmdmRemoteNewService smdmRemoteNewService;
