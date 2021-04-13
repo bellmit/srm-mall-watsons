@@ -52,6 +52,7 @@ import org.srm.mall.other.domain.repository.AllocationInfoRepository;
 import org.srm.mall.other.domain.repository.BudgetInfoRepository;
 import org.srm.mall.other.domain.repository.MinPurchaseConfigRepository;
 import org.srm.mall.other.domain.repository.ShoppingCartRepository;
+import org.srm.mall.platform.api.dto.PrHeaderCreateDTO;
 import org.srm.mall.platform.domain.entity.*;
 import org.srm.mall.platform.domain.repository.EcClientRepository;
 import org.srm.mall.platform.domain.repository.EcCompanyAssignRepository;
@@ -236,18 +237,121 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Override
     @SagaStart
     @Transactional(rollbackFor = Exception.class)
-    public PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
+    public PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList) {
         //进行ceNo和discription存表
-        saveCeAndCMS(preRequestOrderDTOList);
+        saveCeAndCMS(watsonsPreRequestOrderDTOList);
         //进行cms合同号校验
-        occupyCMS(tenantId, preRequestOrderDTOList);
+        occupyCMS(tenantId, watsonsPreRequestOrderDTOList);
 //        进行ceNo校验
-        checkCeInfo(tenantId, preRequestOrderDTOList);
+        checkCeInfo(tenantId, watsonsPreRequestOrderDTOList);
+        //wlf工作流校验
+        checkWLFFlow(tenantId, watsonsPreRequestOrderDTOList);
+        //生成oms后进行错误订单ce回滚
+        List<PrHeaderCreateDTO> errorListForWatsonsPrHeaderCreateDTO = new ArrayList<>();
+        List<WatsonsPreRequestOrderDTO> errorListForWatsonsPreOrderDTO = new ArrayList<>();
+        Exception omsException = new Exception();
+        PreRequestOrderResponseDTO preRequestOrderResponseDTO = new PreRequestOrderResponseDTO();
+        try {
+                preRequestOrderResponseDTO = super.preRequestOrder(tenantId, customizeUnitCode, new ArrayList<>(watsonsPreRequestOrderDTOList));
+        }catch (Exception e){
+                logger.error("oms create order error. all orders are failed!");
+                logger.error("start to rollback ce occupy");
+                errorListForWatsonsPreOrderDTO.addAll(watsonsPreRequestOrderDTOList);
+                omsException = e;
+        }finally {
+            errorListForWatsonsPrHeaderCreateDTO.addAll(preRequestOrderResponseDTO.getPrResult().getErrorList());
+        }
+        processPrheaderCreateDTOExceptionCERollback(tenantId, watsonsPreRequestOrderDTOList, errorListForWatsonsPrHeaderCreateDTO);
+        processOmsAllFailedExceptionCERollback(tenantId, errorListForWatsonsPreOrderDTO);
+        if(!ObjectUtils.isEmpty(omsException)){
+            throw  new CommonException(omsException);
+        }
+        return preRequestOrderResponseDTO;
+    }
 
-        checkWLFFlow(tenantId, preRequestOrderDTOList);
+    private void processOmsAllFailedExceptionCERollback(Long tenantId, List<WatsonsPreRequestOrderDTO> errorListForWatsonsPreOrderDTO) {
+        if(CollectionUtils.isEmpty(errorListForWatsonsPreOrderDTO)){
+            return;
+        }
+        for (WatsonsPreRequestOrderDTO  watsonsPreRequestOrderDTO : errorListForWatsonsPreOrderDTO) {
+                    if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
+                        CheckCeInfoDTO checkCeInfoDTO = buildCECheckInfoDTO(tenantId, watsonsPreRequestOrderDTO);
+                        ResponseEntity<String> checkCeInfoRes = watsonsCeInfoRemoteService.checkCeInfo(tenantId,checkCeInfoDTO);
+                        if(ResponseUtils.isFailed(checkCeInfoRes)){
+                            String message = null;
+                            try {
+                                Exception exception = JSONObject.parseObject(checkCeInfoRes.getBody(),Exception.class);
+                                message = exception.getMessage();
+                            }catch (Exception e){
+                                message = checkCeInfoRes.getBody();
+                            }
+                            logger.error("check CE info for order total amount error!  ce id is " + watsonsPreRequestOrderDTO.getCeId());
+                            throw new CommonException("检验CE号"+watsonsPreRequestOrderDTO.getCeNumber()+"报错,"+message);
+                        }
+                        logger.info("check CE info for order total amount success! ce id is" + watsonsPreRequestOrderDTO.getCeId());
+                    }
+        }
+    }
+    private void processPrheaderCreateDTOExceptionCERollback(Long tenantId, List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList, List<PrHeaderCreateDTO> errorListForWatsonsPrHeaderCreateDTO) {
+        if(CollectionUtils.isEmpty(errorListForWatsonsPrHeaderCreateDTO)){
+            return;
+        }
+        for (PrHeaderCreateDTO prHeaderCreateDTO : errorListForWatsonsPrHeaderCreateDTO) {
+            watsonsPreRequestOrderDTOList.forEach(watsonsPreRequestOrderDTO->{
+                if(watsonsPreRequestOrderDTO.getPreRequestOrderNumber().equals(prHeaderCreateDTO.getPreRequestOrderNumber())){
+                    if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
+                        CheckCeInfoDTO checkCeInfoDTO = buildCECheckInfoDTO(tenantId, watsonsPreRequestOrderDTO);
+                        ResponseEntity<String> checkCeInfoRes = watsonsCeInfoRemoteService.checkCeInfo(tenantId,checkCeInfoDTO);
+                        if(ResponseUtils.isFailed(checkCeInfoRes)){
+                            String message = null;
+                            try {
+                                Exception exception = JSONObject.parseObject(checkCeInfoRes.getBody(),Exception.class);
+                                message = exception.getMessage();
+                            }catch (Exception e){
+                                message = checkCeInfoRes.getBody();
+                            }
+                            logger.error("check CE info for order total amount error!  ce id is " + watsonsPreRequestOrderDTO.getCeId());
+                            throw new CommonException("检验CE号"+watsonsPreRequestOrderDTO.getCeNumber()+"报错,"+message);
+                        }
+                        logger.info("check CE info for order total amount success! ce id is" + watsonsPreRequestOrderDTO.getCeId());
+                    }
+                }
+            });
+        }
+    }
+    private CheckCeInfoDTO buildCECheckInfoDTO(Long tenantId, WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO) {
+        CheckCeInfoDTO checkCeInfoDTO = new CheckCeInfoDTO();
+        checkCeInfoDTO.setCeId(watsonsPreRequestOrderDTO.getCeId());
+        BigDecimal includeTaxPriceTotal = queryIncludeTaxPrice(tenantId, watsonsPreRequestOrderDTO);
+        //释放时价格传负数  其余参数不变
+        checkCeInfoDTO.setChangeAmount(includeTaxPriceTotal.negate());
+        checkCeInfoDTO.setItemName(watsonsPreRequestOrderDTO.getItemName());
+        checkCeInfoDTO.setTranscationId(watsonsPreRequestOrderDTO.getPreRequestOrderNumber());
+        return checkCeInfoDTO;
+    }
 
-        return super.preRequestOrder(tenantId, customizeUnitCode, new ArrayList<>(preRequestOrderDTOList));
-
+    private BigDecimal queryIncludeTaxPrice(Long tenantId, WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO) {
+        //取含税价格  每个订单检验一次
+        BigDecimal includeTaxPriceTotal = new BigDecimal(0);
+        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+            ProductDTO productDTO = productService.selectByProduct(watsonsShoppingCartDTO.getProductId(), tenantId, watsonsShoppingCartDTO.getCompanyId(), watsonsShoppingCartDTO.getPurchaseType(), watsonsShoppingCartDTO.getSecondRegionId(), watsonsShoppingCartDTO.getLevelPath());
+            if (!ObjectUtils.isEmpty(productDTO.getSellPrice())) {
+                BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();
+                BigDecimal includeTaxPriceParam = productDTO.getSellPrice().multiply(quantity);
+                //加上这个商品的价格
+                includeTaxPriceTotal = includeTaxPriceTotal.add(includeTaxPriceParam);
+            }
+            if (productDTO.getLadderEnableFlag().equals(1L)) {
+                BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();
+                for (ProductPoolLadder productPoolLadder : productDTO.getProductLadderPrices()) {
+                    if (quantity.compareTo(productPoolLadder.getLadderFrom()) > -1 && quantity.compareTo(productPoolLadder.getLadderTo()) < 1) {
+                        BigDecimal includeTaxPriceParam = productPoolLadder.getTaxPrice().multiply(quantity);
+                        includeTaxPriceTotal = includeTaxPriceTotal.add(includeTaxPriceParam);
+                    }
+                }
+            }
+        }
+        return includeTaxPriceTotal;
     }
 
     private void checkWLFFlow(Long tenantId, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
@@ -276,25 +380,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 CheckCeInfoDTO checkCeInfoDTO = new CheckCeInfoDTO();
                 checkCeInfoDTO.setCeId(watsonsPreRequestOrderDTO.getCeId());
                 //取含税价格  每个订单检验一次
-                BigDecimal includeTaxPriceTotal = new BigDecimal(0);
-                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
-                    ProductDTO productDTO = productService.selectByProduct(watsonsShoppingCartDTO.getProductId(), tenantId, watsonsShoppingCartDTO.getCompanyId(), watsonsShoppingCartDTO.getPurchaseType(), watsonsShoppingCartDTO.getSecondRegionId(), watsonsShoppingCartDTO.getLevelPath());
-                    if(!ObjectUtils.isEmpty(productDTO.getSellPrice())){
-                        BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();
-                        BigDecimal includeTaxPriceParam = productDTO.getSellPrice().multiply(quantity);
-                        //加上这个商品的价格
-                        includeTaxPriceTotal = includeTaxPriceTotal.add(includeTaxPriceParam);
-                    }
-                    if(productDTO.getLadderEnableFlag().equals(1L)){
-                       BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();
-                        for (ProductPoolLadder productPoolLadder : productDTO.getProductLadderPrices()) {
-                            if(quantity.compareTo(productPoolLadder.getLadderFrom()) > -1 && quantity.compareTo(productPoolLadder.getLadderTo()) < 1){
-                                BigDecimal includeTaxPriceParam = productPoolLadder.getTaxPrice().multiply(quantity);
-                                includeTaxPriceTotal = includeTaxPriceTotal.add(includeTaxPriceParam);
-                            }
-                        }
-                    }
-                }
+                BigDecimal includeTaxPriceTotal = queryIncludeTaxPrice(tenantId, watsonsPreRequestOrderDTO);
                 checkCeInfoDTO.setChangeAmount(includeTaxPriceTotal);
                 checkCeInfoDTO.setItemName(watsonsPreRequestOrderDTO.getItemName());
                 checkCeInfoDTO.setTranscationId(watsonsPreRequestOrderDTO.getPreRequestOrderNumber());
