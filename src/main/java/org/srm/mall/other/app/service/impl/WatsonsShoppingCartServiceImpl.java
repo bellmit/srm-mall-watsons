@@ -265,10 +265,10 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         saveCeAndCMS(watsonsPreRequestOrderDTOList);
         //进行cms合同号校验
         occupyCMS(tenantId, watsonsPreRequestOrderDTOList);
-//        进行ceNo校验
-        checkCeInfo(tenantId, watsonsPreRequestOrderDTOList);
         //wlf工作流校验
         checkWLFFlow(tenantId, watsonsPreRequestOrderDTOList);
+        //        进行ceNo校验
+        checkCeInfo(tenantId, watsonsPreRequestOrderDTOList);
         //生成oms后进行错误订单ce回滚
         List<PrHeaderCreateDTO> errorListForWatsonsPrHeaderCreateDTO = new ArrayList<>();
         List<WatsonsPreRequestOrderDTO> errorListForWatsonsPreOrderDTO = new ArrayList<>();
