@@ -272,7 +272,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         //生成oms后进行错误订单ce回滚
         List<PrHeaderCreateDTO> errorListForWatsonsPrHeaderCreateDTO = new ArrayList<>();
         List<WatsonsPreRequestOrderDTO> errorListForWatsonsPreOrderDTO = new ArrayList<>();
-        Exception omsException = new Exception();
+        Exception omsException = null;
         PreRequestOrderResponseDTO preRequestOrderResponseDTO = new PreRequestOrderResponseDTO();
         try {
                 preRequestOrderResponseDTO = super.preRequestOrder(tenantId, customizeUnitCode, new ArrayList<>(watsonsPreRequestOrderDTOList));
@@ -282,8 +282,10 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 errorListForWatsonsPreOrderDTO.addAll(watsonsPreRequestOrderDTOList);
                 omsException = e;
         }finally {
-            if(!CollectionUtils.isEmpty(preRequestOrderResponseDTO.getPrResult().getErrorList())) {
-                errorListForWatsonsPrHeaderCreateDTO.addAll(preRequestOrderResponseDTO.getPrResult().getErrorList());
+            if(!ObjectUtils.isEmpty(preRequestOrderResponseDTO.getPrResult())) {
+                if(!CollectionUtils.isEmpty(preRequestOrderResponseDTO.getPrResult().getErrorList())) {
+                    errorListForWatsonsPrHeaderCreateDTO.addAll(preRequestOrderResponseDTO.getPrResult().getErrorList());
+                }
             }
         }
         processPrheaderCreateDTOExceptionCERollback(tenantId, watsonsPreRequestOrderDTOList, errorListForWatsonsPrHeaderCreateDTO);
