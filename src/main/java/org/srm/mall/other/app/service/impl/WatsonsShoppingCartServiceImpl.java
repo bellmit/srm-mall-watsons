@@ -350,36 +350,36 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     private CheckCeInfoDTO buildCECheckInfoDTO(Long tenantId, WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO) {
         CheckCeInfoDTO checkCeInfoDTO = new CheckCeInfoDTO();
         checkCeInfoDTO.setCeId(watsonsPreRequestOrderDTO.getCeId());
-        BigDecimal includeTaxPriceTotal = queryIncludeTaxPrice(tenantId, watsonsPreRequestOrderDTO);
+        BigDecimal withoutTaxPriceTotal = queryWithoutTaxPrice(tenantId, watsonsPreRequestOrderDTO);
         //释放时价格传负数  其余参数不变
-        checkCeInfoDTO.setChangeAmount(includeTaxPriceTotal.negate());
+        checkCeInfoDTO.setChangeAmount(withoutTaxPriceTotal.negate());
         checkCeInfoDTO.setItemName(watsonsPreRequestOrderDTO.getItemName());
         checkCeInfoDTO.setTranscationId(watsonsPreRequestOrderDTO.getPreRequestOrderNumber());
         return checkCeInfoDTO;
     }
 
-    private BigDecimal queryIncludeTaxPrice(Long tenantId, WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO) {
+    private BigDecimal queryWithoutTaxPrice(Long tenantId, WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO) {
         //取含税价格  每个订单检验一次
-        BigDecimal includeTaxPriceTotal = new BigDecimal(0);
+        BigDecimal withoutTaxPriceTotal = new BigDecimal(0);
         for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
             ProductDTO productDTO = productService.selectByProduct(watsonsShoppingCartDTO.getProductId(), tenantId, watsonsShoppingCartDTO.getCompanyId(), watsonsShoppingCartDTO.getPurchaseType(), watsonsShoppingCartDTO.getSecondRegionId(), watsonsShoppingCartDTO.getLevelPath());
-            if (!ObjectUtils.isEmpty(productDTO.getSellPrice())) {
+            if (!ObjectUtils.isEmpty(productDTO.getWithoutTaxPrice())) {
                 BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();
-                BigDecimal includeTaxPriceParam = productDTO.getSellPrice().multiply(quantity);
+                BigDecimal withoutTaxPriceParam = productDTO.getWithoutTaxPrice().multiply(quantity);
                 //加上这个商品的价格
-                includeTaxPriceTotal = includeTaxPriceTotal.add(includeTaxPriceParam);
+                withoutTaxPriceTotal = withoutTaxPriceTotal.add(withoutTaxPriceParam);
             }
-            if (productDTO.getLadderEnableFlag().equals(1L)) {
+            if ("LADDER_PRICE".equals(productDTO.getPriceType())) {
                 BigDecimal quantity = watsonsShoppingCartDTO.getQuantity();
-                for (ProductPoolLadder productPoolLadder : productDTO.getProductLadderPrices()) {
-                    if (productPoolLadder.getLadderFrom().compareTo(quantity) <= 0 && (ObjectUtils.isEmpty(productPoolLadder.getLadderTo()) || productPoolLadder.getLadderTo().compareTo(quantity) > 0)) {
-                        BigDecimal includeTaxPriceParam = productPoolLadder.getTaxPrice().multiply(quantity);
-                        includeTaxPriceTotal = includeTaxPriceTotal.add(includeTaxPriceParam);
+                for (LadderPriceResultDTO ladderPriceResultDTO : productDTO.getLadderPriceList()) {
+                    if (ladderPriceResultDTO.getLadderFrom().compareTo(quantity) <= 0 && (ObjectUtils.isEmpty(ladderPriceResultDTO.getLadderTo()) || ladderPriceResultDTO.getLadderTo().compareTo(quantity) > 0)) {
+                        BigDecimal withoutTaxPriceParam = ladderPriceResultDTO.getWithoutTaxPrice().multiply(quantity);
+                        withoutTaxPriceTotal = withoutTaxPriceTotal.add(withoutTaxPriceParam);
                     }
                 }
             }
         }
-        return includeTaxPriceTotal;
+        return withoutTaxPriceTotal;
     }
 
     private void checkWLFFlow(Long tenantId, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
@@ -408,8 +408,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 CheckCeInfoDTO checkCeInfoDTO = new CheckCeInfoDTO();
                 checkCeInfoDTO.setCeId(watsonsPreRequestOrderDTO.getCeId());
                 //取含税价格  每个订单检验一次
-                BigDecimal includeTaxPriceTotal = queryIncludeTaxPrice(tenantId, watsonsPreRequestOrderDTO);
-                checkCeInfoDTO.setChangeAmount(includeTaxPriceTotal);
+                BigDecimal withoutTaxPriceTotal = queryWithoutTaxPrice(tenantId, watsonsPreRequestOrderDTO);
+                checkCeInfoDTO.setChangeAmount(withoutTaxPriceTotal);
                 checkCeInfoDTO.setItemName(watsonsPreRequestOrderDTO.getItemName());
                 checkCeInfoDTO.setTranscationId(watsonsPreRequestOrderDTO.getPreRequestOrderNumber());
                 ResponseEntity<String> checkCeInfoRes = watsonsCeInfoRemoteService.checkCeInfo(tenantId,checkCeInfoDTO);
