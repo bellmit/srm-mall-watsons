@@ -282,7 +282,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 errorListForWatsonsPreOrderDTO.addAll(watsonsPreRequestOrderDTOList);
                 omsException = e;
         }finally {
-            errorListForWatsonsPrHeaderCreateDTO.addAll(preRequestOrderResponseDTO.getPrResult().getErrorList());
+            if(!CollectionUtils.isEmpty(preRequestOrderResponseDTO.getPrResult().getErrorList())) {
+                errorListForWatsonsPrHeaderCreateDTO.addAll(preRequestOrderResponseDTO.getPrResult().getErrorList());
+            }
         }
         processPrheaderCreateDTOExceptionCERollback(tenantId, watsonsPreRequestOrderDTOList, errorListForWatsonsPrHeaderCreateDTO);
         processOmsAllFailedExceptionCERollback(tenantId, errorListForWatsonsPreOrderDTO);
