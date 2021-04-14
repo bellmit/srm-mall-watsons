@@ -285,6 +285,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             if(!ObjectUtils.isEmpty(preRequestOrderResponseDTO.getPrResult())) {
                 if(!CollectionUtils.isEmpty(preRequestOrderResponseDTO.getPrResult().getErrorList())) {
                     errorListForWatsonsPrHeaderCreateDTO.addAll(preRequestOrderResponseDTO.getPrResult().getErrorList());
+                    logger.info("the errorListForWatsonsPrHeaderCreateDTO is {}",JSONObject.toJSON(errorListForWatsonsPrHeaderCreateDTO));
                 }
             }
         }
