@@ -261,6 +261,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         if (sumPercent.compareTo(new BigDecimal(100)) != 0) {
             throw new CommonException("百分比不满足100%");
         }
+        queryProjectCostInfo(organizationId, allocationInfoDTO);
         for (WatsonsShoppingCart watsonsShoppingCart : allocationInfoDTO.getWatsonsShoppingCartList()) {
             //清空该商品原来的分配
             AllocationInfo condition = new AllocationInfo();
@@ -278,6 +279,14 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                 //数量校验的没问题 该费用分配可行
                 AllocationInfo result = new AllocationInfo();
                 BeanUtils.copyProperties(allocationInfo, result);
+                if(watsonsShoppingCart.getProjectCostBatchFlag().equals(true)) {
+                    result.setProjectCostId(watsonsShoppingCart.getProjectCostId());
+                    result.setProjectCostCode(watsonsShoppingCart.getProjectCostCode());
+                    result.setProjectCostName(watsonsShoppingCart.getProjectCostName());
+                    result.setProjectCostSubcategoryCode(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getSubcategoryCode().toString());
+                    result.setProjectCostSubcategoryId(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getProjectCostSubcategoryId());
+                    result.setProjectCostSubcategoryName(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getProjectCostSubcategory());
+                }
                 result.setQuantity(quantity.longValue());
                 result.setPrice(watsonsShoppingCart.getLatestPrice());
                 result.setCartId(watsonsShoppingCart.getCartId());
@@ -286,9 +295,53 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             //此时该商品已经和所有的费用分配信息生成了一个费用分配行放入了resultList
             //2. 插入费用分配行
             watsonsShoppingCart.setAllocationInfoList(resultList);
+            //针对每个商品的每个费用分配进行落表
             create(organizationId, watsonsShoppingCart);
         }
         return allocationInfoDTO;
+    }
+
+    private void queryProjectCostInfo(Long organizationId, AllocationInfoDTO allocationInfoDTO) {
+        for (WatsonsShoppingCart watsonsShoppingCart : allocationInfoDTO.getWatsonsShoppingCartList()) {
+            watsonsShoppingCart.setProjectCostBatchFlag(0);
+            if(ObjectUtils.isEmpty(watsonsShoppingCart.getItemCategoryId()) && ObjectUtils.isEmpty(watsonsShoppingCart.getItemId())){
+                throw  new CommonException("该商品"+watsonsShoppingCart.getProductName()+"没有映射品类和物料信息!无法自动分配费用项目!");
+            }
+            List<ProjectCost> projectCosts = selectAllocationProjectLov(organizationId, watsonsShoppingCart.getItemCategoryId(), watsonsShoppingCart.getItemId(), 1000, 0);
+            if(CollectionUtils.isEmpty(projectCosts)){
+                logger.error("该商品"+watsonsShoppingCart.getProductName()+watsonsShoppingCart.getProductId()+"没有维护费用项目");
+                if(!ObjectUtils.isEmpty(watsonsShoppingCart.getItemId())){
+                    logger.info("该商品物料id是"+watsonsShoppingCart.getItemId());
+                }
+                if(!ObjectUtils.isEmpty(watsonsShoppingCart.getItemCategoryId())){
+                    logger.info("该商品物料i品类d是"+watsonsShoppingCart.getItemCategoryId());
+                }
+                break;
+            }
+            if(projectCosts.size() > ScecConstants.ConstantNumber.INT_1){
+                logger.error("该商品"+watsonsShoppingCart.getProductName()+watsonsShoppingCart.getProductId()+"维护了多个费用项目");
+                if(!ObjectUtils.isEmpty(watsonsShoppingCart.getItemId())){
+                    logger.info("该商品物料id是"+watsonsShoppingCart.getItemId());
+                }
+                if(!ObjectUtils.isEmpty(watsonsShoppingCart.getItemCategoryId())){
+                    logger.info("该商品物料品类id是"+watsonsShoppingCart.getItemCategoryId());
+                }
+                break;
+            }
+            if(CollectionUtils.isEmpty(projectCosts.get(0).getProjectCostSubcategoryList())){
+                logger.error("该费用项目"+projectCosts.get(0).getProjectCostCode()+"没有维护费用项目子分类信息!");
+                break;
+            }
+            if(projectCosts.get(0).getProjectCostSubcategoryList().size() > ScecConstants.ConstantNumber.INT_1){
+                logger.error("该费用项目"+projectCosts.get(0).getProjectCostCode()+"维护了多个费用项目子分类信息!");
+                break;
+            }
+            watsonsShoppingCart.setProjectCostId(projectCosts.get(0).getProjectCostId());
+            watsonsShoppingCart.setProjectCostCode(projectCosts.get(0).getProjectCostCode());
+            watsonsShoppingCart.setProjectCostName(projectCosts.get(0).getProjectCostName());
+            watsonsShoppingCart.setProjectCostSubcategoryList(projectCosts.get(0).getProjectCostSubcategoryList());
+            watsonsShoppingCart.setProjectCostBatchFlag(1);
+        }
     }
 
 

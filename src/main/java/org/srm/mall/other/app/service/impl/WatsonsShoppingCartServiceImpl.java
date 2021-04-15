@@ -755,6 +755,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     }
     @Override
     public List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderView(Long tenantId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
+        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOList) {
+
+        }
         //校验每个商品的每个费用分配当【费用承担写字楼/店铺/仓库】相同时,【地址区域】+【收货地址】是否相同
         checkAddressRegionAndFullAddress(watsonsShoppingCartDTOList);
         //如果有服务商品，从底层list取出放到上层list
