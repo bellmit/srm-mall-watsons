@@ -279,7 +279,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                 //数量校验的没问题 该费用分配可行
                 AllocationInfo result = new AllocationInfo();
                 BeanUtils.copyProperties(allocationInfo, result);
-                if(watsonsShoppingCart.getProjectCostBatchFlag().equals(true)) {
+                if(watsonsShoppingCart.getProjectCostBatchFlag().equals(ScecConstants.ConstantNumber.INT_1)) {
                     result.setProjectCostId(watsonsShoppingCart.getProjectCostId());
                     result.setProjectCostCode(watsonsShoppingCart.getProjectCostCode());
                     result.setProjectCostName(watsonsShoppingCart.getProjectCostName());
@@ -303,7 +303,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
 
     private void queryProjectCostInfo(Long organizationId, AllocationInfoDTO allocationInfoDTO) {
         for (WatsonsShoppingCart watsonsShoppingCart : allocationInfoDTO.getWatsonsShoppingCartList()) {
-            watsonsShoppingCart.setProjectCostBatchFlag(0);
+            watsonsShoppingCart.setProjectCostBatchFlag(ScecConstants.ConstantNumber.INT_0);
             if(ObjectUtils.isEmpty(watsonsShoppingCart.getItemCategoryId()) && ObjectUtils.isEmpty(watsonsShoppingCart.getItemId())){
                 throw  new CommonException("该商品"+watsonsShoppingCart.getProductName()+"没有映射品类和物料信息!无法自动分配费用项目!");
             }
@@ -340,7 +340,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             watsonsShoppingCart.setProjectCostCode(projectCosts.get(0).getProjectCostCode());
             watsonsShoppingCart.setProjectCostName(projectCosts.get(0).getProjectCostName());
             watsonsShoppingCart.setProjectCostSubcategoryList(projectCosts.get(0).getProjectCostSubcategoryList());
-            watsonsShoppingCart.setProjectCostBatchFlag(1);
+            watsonsShoppingCart.setProjectCostBatchFlag(ScecConstants.ConstantNumber.INT_1);
         }
     }
 
