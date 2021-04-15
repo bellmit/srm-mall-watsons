@@ -50,6 +50,7 @@ import org.srm.mall.common.utils.snapshot.SnapshotUtilErrorBean;
 import org.srm.mall.context.dto.ProductDTO;
 import org.srm.mall.context.entity.Item;
 import org.srm.mall.context.entity.ItemCategory;
+import org.srm.mall.context.entity.ECResult;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.order.api.dto.PreRequestOrderDTO;
 import org.srm.mall.order.api.dto.PreRequestOrderResponseDTO;
@@ -74,8 +75,10 @@ import org.srm.mall.product.api.dto.ItemCategoryDTO;
 import org.srm.mall.product.api.dto.ItemCategorySearchDTO;
 import org.srm.mall.product.api.dto.LadderPriceResultDTO;
 import org.srm.mall.product.api.dto.PriceResultDTO;
+import org.srm.mall.product.api.dto.SkuBaseInfoDTO;
 import org.srm.mall.product.app.service.ProductStockService;
 import org.srm.mall.product.domain.entity.ScecProductCategory;
+import org.srm.mall.product.domain.repository.ProductWorkbenchRepository;
 import org.srm.mall.region.api.dto.AddressDTO;
 import org.srm.mall.region.api.dto.RegionDTO;
 import org.srm.mall.region.domain.entity.Address;
@@ -195,6 +198,12 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     @Autowired
     private WatsonsWflCheckRemoteService watsonsWflCheckRemoteService;
+
+    @Autowired
+    private ProductWorkbenchRepository productWorkbenchRepository;
+
+    @Autowired
+    private SifgOrderRemoteService sifgOrderRemoteService;
 
     private static final String erpForWatsons = "SRM";
 
@@ -379,6 +388,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 }
             }
         }
+        withoutTaxPriceTotal = withoutTaxPriceTotal.add(watsonsPreRequestOrderDTO.getWithoutTaxFreightPrice());
         return withoutTaxPriceTotal;
     }
 
@@ -957,9 +967,94 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 //金额在0-49之间，高运费
                 watsonsPreRequestOrderDTO.setFreight(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_COST_HIGN));
             }
-        } else {
+        } else if(ScecConstants.SourceType.CATALOGUE.equals(entry.getValue().get(0).getProductSource())){
             //目录化商品
             this.orderFreight(tenantId, watsonsPreRequestOrderDTO);
+        }else {
+            processWatsonsEcFreight(tenantId, entry.getValue(), watsonsPreRequestOrderDTO);
+        }
+    }
+
+    private void processWatsonsEcFreight(Long tenantId, List<WatsonsShoppingCartDTO> shoppingCartDTOS, WatsonsPreRequestOrderDTO preRequestOrderDTO) {
+        logger.info("using yb freight");
+        //其余电商查电商平台定义决定是否调用接口
+        List<EcPlatform> ecPlatforms = ecPlatformRepository.selectByCondition(Condition.builder(EcPlatform.class).andWhere(Sqls.custom()
+                .andEqualTo(EcPlatform.FIELD_EC_PLATFORM_CODE, shoppingCartDTOS.get(0).getProductSource())).build());
+        if(ScecConstants.Flags.ENABLE_FLAG == (ecPlatforms.get(0).getFreightQueryEnabled())){
+            String countyId = null;
+            String provinceId = null;
+            String cityId = null;
+            String regionId = null;
+            String address = null;
+            List<EcSkuInfo> ecSkuInfos = new ArrayList<>();
+            Assert.notNull(shoppingCartDTOS.get(0).getRegionLevelPath(),"该电商订单商品没有地址区域，无法查询运费!");
+            String[] split = shoppingCartDTOS.get(0).getRegionLevelPath().split("\\.");
+            if(split.length<3){
+                logger.error("该电商订单商品地址区域不满足三级以上，无法查询运费!,商品信息为{}", JSONObject.toJSON(shoppingCartDTOS));
+                throw new CommonException("该电商订单商品地址区域不满足三级以上，无法查询运费!,商品信息为{}", JSONObject.toJSON(shoppingCartDTOS));
+            }else{
+                List<MallRegion> province = mallRegionRepository.selectByCondition(Condition.builder(MallRegion.class).andWhere(Sqls.custom()
+                        .andEqualTo(MallRegion.FIELD_ENABLED_FLAG, 1)
+                        .andEqualTo(MallRegion.FIELD_REGION_CODE, split[0])).build());
+                provinceId = province.get(0).getRegionCode();
+                List<MallRegion> city = mallRegionRepository.selectByCondition(Condition.builder(MallRegion.class).andWhere(Sqls.custom()
+                        .andEqualTo(MallRegion.FIELD_ENABLED_FLAG, 1)
+                        .andEqualTo(MallRegion.FIELD_REGION_CODE, split[1])).build());
+                cityId = city.get(0).getRegionCode();
+                List<MallRegion> region = mallRegionRepository.selectByCondition(Condition.builder(MallRegion.class).andWhere(Sqls.custom()
+                        .andEqualTo(MallRegion.FIELD_ENABLED_FLAG, 1)
+                        .andEqualTo(MallRegion.FIELD_REGION_CODE, split[2])).build());
+                regionId =  region.get(0).getRegionCode();
+                address += province.get(0).getRegionName()+city.get(0).getRegionName()+region.get(0).getRegionName();
+                if(split.length > 3){
+                    List<MallRegion> county = mallRegionRepository.selectByCondition(Condition.builder(MallRegion.class).andWhere(Sqls.custom()
+                            .andEqualTo(MallRegion.FIELD_ENABLED_FLAG, 1)
+                            .andEqualTo(MallRegion.FIELD_REGION_CODE, split[3])).build());
+                    countyId =  county.get(0).getRegionCode();
+                    address+=county.get(0).getRegionName();
+                }
+            }
+            if (!ObjectUtils.isEmpty(provinceId) && !ObjectUtils.isEmpty(cityId) && !ObjectUtils.isEmpty(regionId) && !ObjectUtils.isEmpty(address)) {
+                logger.info("the full address is {}",JSONObject.toJSON(address));
+                FreightPriceDto freightPriceDto = new FreightPriceDto();
+                freightPriceDto.setSupplierCode(preRequestOrderDTO.getShoppingCartDTOList().get(0).getProductSource());
+                freightPriceDto.setTenantId(tenantId);
+                freightPriceDto.setProvinceId(provinceId);
+                freightPriceDto.setCityId(cityId);
+                freightPriceDto.setCountyId(regionId);
+                freightPriceDto.setAddress(address);
+                List<Long> skuIds = new ArrayList<>();
+                shoppingCartDTOS.forEach(c->{skuIds.add(c.getProductId());});
+                List<SkuBaseInfoDTO> skuBaseInfoDTOS = productWorkbenchRepository.querySkuBaseInfoList(tenantId, skuIds);
+                for (ShoppingCartDTO cartDTO : shoppingCartDTOS) {
+                    skuBaseInfoDTOS.forEach(skuBaseInfoDTO -> {
+                        if(skuBaseInfoDTO.getSkuId().equals(cartDTO.getProductId())){
+                            EcSkuInfo ecSkuInfo = new EcSkuInfo();
+                            ecSkuInfo.setSkuId(skuBaseInfoDTO.getThirdSkuCode());
+                            ecSkuInfo.setSkuNum(cartDTO.getQuantity().intValue());
+                            ecSkuInfos.add(ecSkuInfo);
+                        }
+                    });
+                }
+                freightPriceDto.setSkuInfos(ecSkuInfos);
+                logger.info("the ec freigth param is {}", JSONObject.toJSON(freightPriceDto));
+                ResponseEntity<String> stringResponseEntity = sifgOrderRemoteService.getFreightPrice(freightPriceDto);
+                if(ResponseUtils.isFailed(stringResponseEntity)){
+                    logger.error("电商运费异常,原因为{}",JSON.toJSONString(stringResponseEntity));
+                    throw new CommonException("电商运费异常,"+JSON.toJSONString(stringResponseEntity));
+                }else {
+                    ECResult<String> response = ResponseUtils.getResponse(stringResponseEntity, new TypeReference<ECResult<String>>() {
+                    });
+                    logger.info("电商查询运费成功,运费为"+JSONObject.toJSON(response));
+                    BigDecimal includeTaxFreight = BigDecimal.valueOf(Long.parseLong(response.getResult()));
+                    preRequestOrderDTO.setFreight(includeTaxFreight);
+                    BigDecimal withoutTaxFreightPrice = includeTaxFreight.subtract(includeTaxFreight.multiply(new BigDecimal("0.06")));
+                    preRequestOrderDTO.setWithoutTaxFreightPrice(withoutTaxFreightPrice);
+                }
+            }else {
+                logger.error("该电商商品地址映射不全，请补全该商品地址区域再查运费! 商品为{}",JSONObject.toJSON(shoppingCartDTOS));
+                throw new CommonException("该电商商品地址映射不全，请补全该商品地址区域再查运费!");
+            }
         }
     }
 
@@ -1097,7 +1192,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         List<PostageCalculateDTO> calculatePostage = ResponseUtils.getResponse(calculatePostageRes, new TypeReference<List<PostageCalculateDTO>>() {
         });
         logger.info("calculate freight result is {}", JSONObject.toJSON(calculatePostage));
+
         watsonsPreRequestOrderDTO.setFreight(calculatePostage.get(0).getFreightPrice());
+        watsonsPreRequestOrderDTO.setWithoutTaxFreightPrice(calculatePostage.get(0).getWithoutTaxFreightPrice());
     }
 
     private List<PostageCalculateDTO> buildPostageInfoParamsForPreReq(WatsonsPreRequestOrderDTO preRequestOrderDTO) {
