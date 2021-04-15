@@ -40,6 +40,10 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
     @IsList
     private List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList;
 
+    @Encrypt
+    @ApiModelProperty("收货联系人id")
+    private Long receiverContactId;
+
 
     @ApiModelProperty(value = "拆单完成后每个单子的费用承担店铺的code")
     private String storeNo;
@@ -109,5 +113,13 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
 
     public void setCeId(Integer ceId) {
         this.ceId = ceId;
+    }
+
+    public Long getReceiverContactId() {
+        return receiverContactId;
+    }
+
+    public void setReceiverContactId(Long receiverContactId) {
+        this.receiverContactId = receiverContactId;
     }
 }
