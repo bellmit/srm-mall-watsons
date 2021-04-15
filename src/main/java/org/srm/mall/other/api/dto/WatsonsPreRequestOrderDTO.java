@@ -6,6 +6,7 @@ import org.srm.mall.common.utils.snapshot.annotation.Compare;
 import org.srm.mall.common.utils.snapshot.annotation.IsList;
 import org.srm.mall.order.api.dto.PreRequestOrderDTO;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -44,6 +45,8 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
     @ApiModelProperty(value = "拆单完成后每个单子的费用承担店铺的code")
     private String storeNo;
 
+    @ApiModelProperty(value = "商品不含税运费")
+    private BigDecimal withoutTaxFreightPrice;
 
 
     public String getItemName() {
@@ -109,5 +112,13 @@ public class WatsonsPreRequestOrderDTO extends PreRequestOrderDTO {
 
     public void setCeId(Integer ceId) {
         this.ceId = ceId;
+    }
+
+    public BigDecimal getWithoutTaxFreightPrice() {
+        return withoutTaxFreightPrice;
+    }
+
+    public void setWithoutTaxFreightPrice(BigDecimal withoutTaxFreightPrice) {
+        this.withoutTaxFreightPrice = withoutTaxFreightPrice;
     }
 }
