@@ -1147,8 +1147,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         List<PostageCalculateDTO> calculatePostage = ResponseUtils.getResponse(calculatePostageRes, new TypeReference<List<PostageCalculateDTO>>() {
         });
         logger.info("calculate freight result is {}", JSONObject.toJSON(calculatePostage));
-
         watsonsPreRequestOrderDTO.setFreight(calculatePostage.get(0).getFreightPrice());
+        logger.info("calculate without tax freight result is {}", JSONObject.toJSON(calculatePostage.get(0).getWithoutTaxFreightPrice()));
         watsonsPreRequestOrderDTO.setWithoutTaxFreightPrice(calculatePostage.get(0).getWithoutTaxFreightPrice());
     }
 
