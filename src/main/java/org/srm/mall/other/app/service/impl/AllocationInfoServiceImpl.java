@@ -316,7 +316,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                 if(!ObjectUtils.isEmpty(watsonsShoppingCart.getItemCategoryId())){
                     logger.info("该商品物料i品类d是"+watsonsShoppingCart.getItemCategoryId());
                 }
-                break;
+                continue;
             }
             if(projectCosts.size() > ScecConstants.ConstantNumber.INT_1){
                 logger.error("该商品"+watsonsShoppingCart.getProductName()+watsonsShoppingCart.getProductId()+"维护了多个费用项目");
@@ -326,15 +326,15 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                 if(!ObjectUtils.isEmpty(watsonsShoppingCart.getItemCategoryId())){
                     logger.info("该商品物料品类id是"+watsonsShoppingCart.getItemCategoryId());
                 }
-                break;
+                continue;
             }
             if(CollectionUtils.isEmpty(projectCosts.get(0).getProjectCostSubcategoryList())){
                 logger.error("该费用项目"+projectCosts.get(0).getProjectCostCode()+"没有维护费用项目子分类信息!");
-                break;
+                continue;
             }
             if(projectCosts.get(0).getProjectCostSubcategoryList().size() > ScecConstants.ConstantNumber.INT_1){
                 logger.error("该费用项目"+projectCosts.get(0).getProjectCostCode()+"维护了多个费用项目子分类信息!");
-                break;
+                continue;
             }
             watsonsShoppingCart.setProjectCostId(projectCosts.get(0).getProjectCostId());
             watsonsShoppingCart.setProjectCostCode(projectCosts.get(0).getProjectCostCode());
