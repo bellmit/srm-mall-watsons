@@ -254,15 +254,17 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     public PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList) {
         //进行ceNo和discription存表
         saveCeAndCMS(watsonsPreRequestOrderDTOList);
-        //进行cms合同号校验
-        occupyCMS(tenantId, watsonsPreRequestOrderDTOList);
         //wlf工作流校验
         checkWLFFlow(tenantId, watsonsPreRequestOrderDTOList);
+        //进行cms合同号校验
+        List<PcOccupyDTO> pcOccupyDTOS = occupyCMS(tenantId, watsonsPreRequestOrderDTOList);
         //        进行ceNo校验
         checkCeInfo(tenantId, watsonsPreRequestOrderDTOList);
         //生成oms后进行错误订单ce回滚
+        //如果oms全部异常 最后会抛出 cms会全部回滚
+        //如果oms部分异常 则考虑把没占用成功的去掉
         List<PrHeaderCreateDTO> errorListForWatsonsPrHeaderCreateDTO = new ArrayList<>();
-        List<WatsonsPreRequestOrderDTO> errorListForWatsonsPreOrderDTO = new ArrayList<>();
+        List<WatsonsPreRequestOrderDTO> errorListForWatsonsPreOrderDTOForCE = new ArrayList<>();
         Exception omsException = null;
         PreRequestOrderResponseDTO preRequestOrderResponseDTO = new PreRequestOrderResponseDTO();
         try {
@@ -270,7 +272,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }catch (Exception e){
                 logger.error("oms create order error. all orders are failed!");
                 logger.error("start to rollback ce occupy");
-                errorListForWatsonsPreOrderDTO.addAll(watsonsPreRequestOrderDTOList);
+            errorListForWatsonsPreOrderDTOForCE.addAll(watsonsPreRequestOrderDTOList);
                 omsException = e;
         }finally {
             if(!ObjectUtils.isEmpty(preRequestOrderResponseDTO.getPrResult())) {
@@ -280,12 +282,43 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 }
             }
         }
+        //部分出错
         processPrheaderCreateDTOExceptionCERollback(tenantId, watsonsPreRequestOrderDTOList, errorListForWatsonsPrHeaderCreateDTO);
-        processOmsAllFailedExceptionCERollback(tenantId, errorListForWatsonsPreOrderDTO);
+        processPrheaderCreateDTOExceptionCMSUpdate(tenantId, watsonsPreRequestOrderDTOList,errorListForWatsonsPrHeaderCreateDTO,pcOccupyDTOS);
+        //全部出错
+        processOmsAllFailedExceptionCERollback(tenantId, errorListForWatsonsPreOrderDTOForCE);
         if(!ObjectUtils.isEmpty(omsException)){
             throw  new CommonException(omsException);
         }
         return preRequestOrderResponseDTO;
+    }
+
+    private void processPrheaderCreateDTOExceptionCMSUpdate(Long tenantId, List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList, List<PrHeaderCreateDTO> errorListForWatsonsPrHeaderCreateDTO,List<PcOccupyDTO> pcOccupyDTOS) {
+        if(CollectionUtils.isEmpty(errorListForWatsonsPrHeaderCreateDTO) || CollectionUtils.isEmpty(pcOccupyDTOS)){
+            return;
+        }
+        List<PcOccupyDTO> pcOccupyDTOListNeedToCancelForThisOrder = new ArrayList<>();
+        for (PrHeaderCreateDTO prHeaderCreateDTO : errorListForWatsonsPrHeaderCreateDTO) {
+            for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : watsonsPreRequestOrderDTOList) {
+                if(watsonsPreRequestOrderDTO.getPreRequestOrderNumber().equals(prHeaderCreateDTO.getPreRequestOrderNumber())){
+                    logger.info("the oms error order is {}",JSONObject.toJSON(watsonsPreRequestOrderDTO));
+                    for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+                        for (PcOccupyDTO pcOccupyDTO : pcOccupyDTOS) {
+                            if(!ObjectUtils.isEmpty(watsonsShoppingCartDTO.getCmsNumber()) && pcOccupyDTO.getPcNum().equals(watsonsShoppingCartDTO.getCmsNumber())){
+                                pcOccupyDTOListNeedToCancelForThisOrder.add(pcOccupyDTO);
+                            }
+                        }
+                    }
+                }
+                pcOccupyDTOListNeedToCancelForThisOrder.forEach(pcOccupyDTO -> {
+                    pcOccupyDTO.setOperationType(WatsonsConstants.operationTypeCode.SPCM_CANCEL);
+                    Long version = pcOccupyDTO.getVersion();
+                    pcOccupyDTO.setVersion(version+1L);
+                });
+                logger.info("pcOccupyDTOListNeedToCancelForThisOrder is {}",JSONObject.toJSON(pcOccupyDTOListNeedToCancelForThisOrder));
+                cancelBySpcmForPreOrder(tenantId,pcOccupyDTOListNeedToCancelForThisOrder);
+            }
+        }
     }
 
     private void processOmsAllFailedExceptionCERollback(Long tenantId, List<WatsonsPreRequestOrderDTO> errorListForWatsonsPreOrderDTO) {
@@ -421,11 +454,11 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
     }
 
-    private void occupyCMS(Long tenantId, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
+    private List<PcOccupyDTO> occupyCMS(Long tenantId, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
+        List<PcOccupyDTO> pcOccupyDTOS = new ArrayList<>();
         for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
             //拆单完后的每个订单的所有商品的费用分配不一样  但是放一起做cms校验  所以每个订单所有的商品校验一次
-            List<PcOccupyDTO> pcOccupyDTOS = new ArrayList<>();
-            //取到该订单所有商品
+            // 取到该订单所有商品
             for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
                 //每个订单下面装的购物车是entry.getValue   entry为经过拆单后的每个经过所有费用分配行拆分后商品
                 if(!ObjectUtils.isEmpty(watsonsShoppingCartDTO.getCmsNumber())){
@@ -473,21 +506,45 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     pcOccupyDTOS.add(pcOccupyDTO);
                 }
             }
-            if(!CollectionUtils.isEmpty(pcOccupyDTOS)){
-                String sagaKey = SagaClient.getSagaKey();
-                ResponseEntity<String> cmsOccupyResult = spcmRemoteNewService.occupy(sagaKey, tenantId, pcOccupyDTOS);
-                if (ResponseUtils.isFailed(cmsOccupyResult)) {
-                    logger.error("occupy CMS price error! param pcOccupyDTOS: {}", JSONObject.toJSON(pcOccupyDTOS));
-                    throw new CommonException("CMS金额预占出现异常!");
-                }
-                ItfBaseBO itfBaseBO  = ResponseUtils.getResponse(cmsOccupyResult, new TypeReference<ItfBaseBO>() {
-                });
-                if(itfBaseBO.getErrorFlag() == 1 && !ObjectUtils.isEmpty(itfBaseBO.getErrorMessage())){
-                    logger.error("occupy CMS price error! param pcOccupyDTOS: {}", JSONObject.toJSON(pcOccupyDTOS));
-                    throw new CommonException("预占CMS合同号报错,错误原因: " + itfBaseBO.getErrorMessage());
-                }
-                logger.info("occupy CMS price success! param pcOccupyDTOS: {}", JSONObject.toJSON(pcOccupyDTOS));
+            //一个订单调用一次  一个订单所有cms商品放一起调用一次
+            occupyBySpcmForPreOrder(tenantId, pcOccupyDTOS);
+        }
+        return pcOccupyDTOS;
+    }
+
+    private void occupyBySpcmForPreOrder(Long tenantId, List<PcOccupyDTO> pcOccupyDTOS) {
+        if(!CollectionUtils.isEmpty(pcOccupyDTOS)){
+            String sagaKey = SagaClient.getSagaKey();
+            ResponseEntity<String> cmsOccupyResult = spcmRemoteNewService.occupy(sagaKey, tenantId, pcOccupyDTOS);
+            if (ResponseUtils.isFailed(cmsOccupyResult)) {
+                logger.error("occupy CMS price error! param pcOccupyDTOS: {}", JSONObject.toJSON(pcOccupyDTOS));
+                throw new CommonException("CMS金额预占出现异常!");
             }
+            ItfBaseBO itfBaseBO  = ResponseUtils.getResponse(cmsOccupyResult, new TypeReference<ItfBaseBO>() {
+            });
+            if(itfBaseBO.getErrorFlag() == 1 && !ObjectUtils.isEmpty(itfBaseBO.getErrorMessage())){
+                logger.error("occupy CMS price error! param pcOccupyDTOS: {}", JSONObject.toJSON(pcOccupyDTOS));
+                throw new CommonException("预占CMS合同号报错,错误原因: " + itfBaseBO.getErrorMessage());
+            }
+            logger.info("occupy CMS price success! param pcOccupyDTOS: {}", JSONObject.toJSON(pcOccupyDTOS));
+        }
+    }
+
+    private void cancelBySpcmForPreOrder(Long tenantId, List<PcOccupyDTO> pcOccupyDTOS) {
+        if(!CollectionUtils.isEmpty(pcOccupyDTOS)){
+            String sagaKey = SagaClient.getSagaKey();
+            ResponseEntity<String> cmsOccupyResult = spcmRemoteNewService.occupy(sagaKey, tenantId, pcOccupyDTOS);
+            if (ResponseUtils.isFailed(cmsOccupyResult)) {
+                logger.error("cancel CMS price error! param pcOccupyDTOS: {}", JSONObject.toJSON(pcOccupyDTOS));
+                throw new CommonException("CMS金额取消占用出现异常!");
+            }
+            ItfBaseBO itfBaseBO  = ResponseUtils.getResponse(cmsOccupyResult, new TypeReference<ItfBaseBO>() {
+            });
+            if(itfBaseBO.getErrorFlag() == 1 && !ObjectUtils.isEmpty(itfBaseBO.getErrorMessage())){
+                logger.error("cancel CMS price error! param pcOccupyDTOS: {}", JSONObject.toJSON(pcOccupyDTOS));
+                throw new CommonException("CMS取消占用报错,错误原因: " + itfBaseBO.getErrorMessage());
+            }
+            logger.info("cancel CMS price success! param pcOccupyDTOS: {}", JSONObject.toJSON(pcOccupyDTOS));
         }
     }
 
