@@ -25,27 +25,27 @@ import org.srm.mall.common.feign.WatsonsProjectCostRemoteService;
 import org.srm.mall.common.feign.SagmRemoteService;
 import org.srm.mall.common.feign.SmdmRemoteNewService;
 import org.srm.mall.common.feign.*;
+import org.srm.mall.common.feign.dto.product.SpuCustomAttrGroup;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.other.api.dto.*;
 import org.srm.mall.other.api.dto.WhLovResultDTO;
-import org.srm.mall.other.domain.entity.CeLovResult;
+import org.srm.mall.other.domain.entity.*;
 import org.srm.mall.other.api.dto.CeLovResultDTO;
 import org.srm.mall.other.api.dto.WhLovResultDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.app.service.AllocationInfoService;
 import org.srm.mall.other.app.service.ShoppingCartService;
-import org.srm.mall.other.domain.entity.AllocationInfo;
-import org.srm.mall.other.domain.entity.BudgetInfo;
-import org.srm.mall.other.domain.entity.ProjectCost;
-import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 import org.srm.mall.other.domain.repository.AllocationInfoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.srm.mall.other.domain.repository.CustomizedProductLineRepository;
+import org.srm.mall.other.domain.repository.CustomizedProductValueRepository;
 import org.srm.mall.product.api.dto.ItemCategoryDTO;
 import org.srm.mall.product.api.dto.PriceParamDTO;
 import org.srm.mall.product.api.dto.PriceResultDTO;
 import org.srm.mall.product.api.dto.ProductSaleCheckDTO;
+import org.srm.mall.product.domain.repository.ProductWorkbenchRepository;
 import org.srm.mall.region.domain.entity.Address;
 import org.srm.mall.region.domain.repository.AddressRepository;
 
@@ -53,6 +53,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.validation.constraints.NotBlank;
 
@@ -93,6 +94,15 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     @Autowired
     private WatsonsCeInfoRemoteService watsonsCeInfoRemoteService;
 
+    @Autowired
+    private ProductWorkbenchRepository productWorkbenchRepository;
+
+    @Autowired
+    private CustomizedProductLineRepository customizedProductLineRepository;
+
+    @Autowired
+    private CustomizedProductValueRepository customizedProductValueRepository;
+
 
 
 
@@ -123,13 +133,16 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             saleAndStockCheck(tenantId, allocationInfo, watsonsShoppingCart);
             if (allocationInfo.getAllocationId() == null) {
                 allocationInfoRepository.insert(allocationInfo);
+                if (!ObjectUtils.isEmpty(allocationInfo.getCustomizedProductLine())){
+                    allocationInfo.getCustomizedProductLine().setRelationId(allocationInfo.getAllocationId());
+                }
             } else {
                 allocationInfoRepository.updateByPrimaryKey(allocationInfo);
             }
         }
 
         //合并相同数据
-        watsonsShoppingCart.setAllocationInfoList(mergeSameAllocationInfo(watsonsShoppingCart));
+        watsonsShoppingCart.setAllocationInfoList(mergeSameAllocationInfo(tenantId,watsonsShoppingCart));
         return allocationInfoList;
     }
 
@@ -192,23 +205,54 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         allocationInfo.setAddressId(addressList.get(0).getAddressId());
     }
 
-    private List<AllocationInfo> mergeSameAllocationInfo(WatsonsShoppingCart watsonsShoppingCart) {
+    private List<AllocationInfo> mergeSameAllocationInfo(Long tenantId, WatsonsShoppingCart watsonsShoppingCart) {
         List<AllocationInfo> result = new ArrayList<>();
         List<AllocationInfo> allocationInfoList = allocationInfoRepository.select(AllocationInfo.FIELD_CART_ID, watsonsShoppingCart.getCartId());
         //按费用承担店铺id  费用承担部门id 仓转店收获仓id分组  该行商品对应的费用分配
         //按费用承担店铺id  费用承担部门id 仓转店收获仓id  这三个维度作为相同数据
-        Map<String, List<AllocationInfo>> allocationMap = allocationInfoList.stream().collect(Collectors.groupingBy(AllocationInfo::groupKey));
+        //关联定制品列表，若定制品的属性值也一样，才能合并
+        List<Long> detailIdList = new ArrayList<>();
+        if (watsonsShoppingCart.getCustomFlag() != null && watsonsShoppingCart.getCustomFlag() == 1){
+            List<SpuCustomAttrGroup> spuCustomAttrGroups = productWorkbenchRepository.selectSingleSkuCustomAttrNoException(tenantId, watsonsShoppingCart.getProductId());
+            if (!CollectionUtils.isEmpty(spuCustomAttrGroups)){
+                //此处取出前端传来的定制品数据，由于可能存在 预算和定制品数据都是新增的情况，此时预算先插入并进行合并判断，若调用查询预算对应定制品数据的接口由于定制品还未插入，是找不到的
+                //因此此处直接取shoppingCart中传来的预算对应定制品数据，不去查表
+                List<AllocationInfo> AllocationInfoWithCpList = watsonsShoppingCart.getAllocationInfoList();
+                Map<Long, AllocationInfo> allocationInfoMap = AllocationInfoWithCpList.stream().collect(Collectors.toMap(AllocationInfo::getAllocationId, Function.identity(), (k1, k2)->k1));
+                for (AllocationInfo allocationInfo : allocationInfoList){
+                    allocationInfo.setCustomizedProductLine(allocationInfoMap.get(allocationInfo.getAllocationId()) == null ? null : allocationInfoMap.get(allocationInfo.getAllocationId()).getCustomizedProductLine());
+                }
+            }
+            for (SpuCustomAttrGroup spuCustomAttrGroup : spuCustomAttrGroups){
+                detailIdList.addAll(spuCustomAttrGroup.getDetailIdList());
+            }
+        }
+
+        Map<String, List<AllocationInfo>> allocationMap = allocationInfoList.stream().collect(Collectors.groupingBy(allocationInfo -> allocationInfo.groupKey(detailIdList)));
         for (Map.Entry<String, List<AllocationInfo>> entry : allocationMap.entrySet()) {
             List<AllocationInfo> tempInfoList = entry.getValue();
             if (tempInfoList.size() > 1) {
                 AllocationInfo allocationInfo = tempInfoList.get(0);
+                CustomizedProductLine customizedProductLine = allocationInfo.getCustomizedProductLine();
                 allocationInfo.setDeliveryTypeMeaning(watsonsShoppingCart.getAllocationInfoList().get(0).getDeliveryTypeMeaning());
                 for (int i = 1; i < tempInfoList.size(); i++) {
                     //每个相同组的  费用分配组的第一个费用分配的数量设置为自己和该相同组的其他剩余费用分配的数量  即合并
                     allocationInfo.setQuantity(allocationInfo.getQuantity() + tempInfoList.get(i).getQuantity());
                     allocationInfoRepository.deleteByPrimaryKey(tempInfoList.get(i));
+                    //定制品的合并
+                    if (!ObjectUtils.isEmpty(customizedProductLine)){
+                        customizedProductLine.setCpAmount(customizedProductLine.getCpAmount().add(allocationInfoList.get(i).getCustomizedProductLine().getCpAmount()));
+                        customizedProductLine.setCpQuantity(customizedProductLine.getCpQuantity().add(allocationInfoList.get(i).getCustomizedProductLine().getCpQuantity()));
+                        customizedProductLineRepository.deleteByPrimaryKey(allocationInfoList.get(i).getCustomizedProductLine());
+                        if (!CollectionUtils.isEmpty(allocationInfoList.get(i).getCustomizedProductLine().getCustomizedProductValueList())){
+                            customizedProductValueRepository.batchDeleteByPrimaryKey(allocationInfoList.get(i).getCustomizedProductLine().getCustomizedProductValueList());
+                        }
+                    }
                 }
                 allocationInfoRepository.updateByPrimaryKey(allocationInfo);
+                if (!ObjectUtils.isEmpty(customizedProductLine)){
+                    customizedProductLineRepository.updateOptional(customizedProductLine, CustomizedProductLine.FIELD_CP_QUANTITY, CustomizedProductLine.FIELD_CP_AMOUNT);
+                }
                 result.add(allocationInfo);
             } else {
                 tempInfoList.get(0).setDeliveryTypeMeaning(watsonsShoppingCart.getAllocationInfoList().get(0).getDeliveryTypeMeaning());
@@ -223,6 +267,8 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     public WatsonsShoppingCart updateShoppingCart(WatsonsShoppingCart watsonsShoppingCart) {
         List<AllocationInfo> allocationInfoList = allocationInfoRepository.select(BudgetInfo.FIELD_CART_ID, watsonsShoppingCart.getCartId());
         BigDecimal quantity = BigDecimal.ZERO;
+        //定制品更新购物车商品金额
+        watsonsShoppingCart.calculateCustomizedProduct();
         if (!CollectionUtils.isEmpty(allocationInfoList)) {
             for (AllocationInfo allocationInfo : allocationInfoList) {
                 quantity = quantity.add(new BigDecimal(allocationInfo.getQuantity()));

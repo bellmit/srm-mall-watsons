@@ -64,4 +64,5 @@ public interface WatsonsShoppingCartService {
      */
     String checkAddressValidate(Long organizationId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS);
 
+
 }

@@ -19,8 +19,10 @@ import io.swagger.annotations.ApiModelProperty;
 import org.hzero.boot.platform.lov.annotation.LovValue;
 import org.hzero.export.annotation.ExcelColumn;
 import org.hzero.starter.keyencrypt.core.Encrypt;
+import org.springframework.util.ObjectUtils;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 屈臣氏费用分配表
@@ -65,10 +67,15 @@ public class AllocationInfo extends AuditDomain {
 //
 // 业务方法(按public protected private顺序排列)
 // ------------------------------------------------------------------------------
-    public String groupKey(){
+    public String groupKey(List<Long> detailIdList){
+        if (ObjectUtils.isEmpty(customizedProductLine)){
+            return this.costShopId + "-" +
+                    this.costDepartmentId + "-" +
+                    this.receiveWarehouseId;
+        }
         return this.costShopId + "-" +
                 this.costDepartmentId + "-" +
-                this.receiveWarehouseId;
+                this.receiveWarehouseId + "-" + customizedProductLine.groupKey(detailIdList);
     }
 
 //
@@ -164,6 +171,9 @@ public class AllocationInfo extends AuditDomain {
 
     @Transient
     private String fromWhichShoppingCart;
+
+    @Transient
+    private CustomizedProductLine customizedProductLine;
 
 //
 // getter/setter
@@ -462,5 +472,13 @@ public class AllocationInfo extends AuditDomain {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public CustomizedProductLine getCustomizedProductLine() {
+        return customizedProductLine;
+    }
+
+    public void setCustomizedProductLine(CustomizedProductLine customizedProductLine) {
+        this.customizedProductLine = customizedProductLine;
     }
 }
