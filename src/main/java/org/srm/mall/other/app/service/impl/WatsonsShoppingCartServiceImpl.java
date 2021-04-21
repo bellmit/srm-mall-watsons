@@ -47,7 +47,6 @@ import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.order.api.dto.PreRequestOrderResponseDTO;
 import org.srm.mall.order.app.service.MallOrderCenterService;
 import org.srm.mall.order.app.service.MallOrderService;
-import org.srm.mall.order.app.service.WatsonsOmsOrderService;
 import org.srm.mall.other.api.dto.*;
 import org.srm.mall.other.app.service.*;
 import org.srm.mall.other.domain.entity.*;
