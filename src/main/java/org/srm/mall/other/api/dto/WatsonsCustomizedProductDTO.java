@@ -18,7 +18,6 @@ public class WatsonsCustomizedProductDTO extends CustomizedProductDTO{
 
     private String relationType;
 
-
     @Encrypt
     private Long companyId;
 
@@ -27,6 +26,7 @@ public class WatsonsCustomizedProductDTO extends CustomizedProductDTO{
     @Encrypt
     private Long productId;
 
+    private List<AllocationInfo> allocationInfoList;
 
     public WatsonsCustomizedProductDTO() {
         this.relationIdList = new ArrayList<>();
@@ -46,10 +46,10 @@ public class WatsonsCustomizedProductDTO extends CustomizedProductDTO{
             relationType = ALLOCATION_INFO;
     }
 
-    public WatsonsCustomizedProductDTO createCustomizedProductParam(WatsonsShoppingCartDTO watsonsShoppingCartDTO) {
-        if (!CollectionUtils.isEmpty(watsonsShoppingCartDTO.getAllocationInfoList())) {
+    public WatsonsCustomizedProductDTO createCustomizedProductParam() {
+        if (!CollectionUtils.isEmpty(allocationInfoList)) {
             //获取预算idList
-            relationIdList.addAll(watsonsShoppingCartDTO.getAllocationInfoList().stream().map(AllocationInfo::getAllocationId).collect(Collectors.toList()));
+            relationIdList.addAll(allocationInfoList.stream().map(AllocationInfo::getAllocationId).collect(Collectors.toList()));
             relationType = ALLOCATION_INFO;
         }
         return this;
@@ -96,5 +96,13 @@ public class WatsonsCustomizedProductDTO extends CustomizedProductDTO{
     public WatsonsCustomizedProductDTO setRelationType(String relationType) {
         this.relationType = relationType;
         return this;
+    }
+
+    public List<AllocationInfo> getAllocationInfoList() {
+        return allocationInfoList;
+    }
+
+    public void setAllocationInfoList(List<AllocationInfo> allocationInfoList) {
+        this.allocationInfoList = allocationInfoList;
     }
 }

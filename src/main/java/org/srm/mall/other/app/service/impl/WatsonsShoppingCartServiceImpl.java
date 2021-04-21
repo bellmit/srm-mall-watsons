@@ -195,6 +195,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Autowired
     private CustomizedProductValueRepository customizedProductValueRepository;
 
+    @Autowired
+    private WatsonsCustomizedProductLineService watsonsCustomizedProductLineService;
+
     private static final String erpForWatsons = "SRM";
 
     public static final String ALLOCATION_INFO = "ALLOCATION_INFO";
@@ -1741,7 +1744,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             return;
         }
         WatsonsCustomizedProductDTO watsonsCustomizedProductDTO = new WatsonsCustomizedProductDTO(watsonsShoppingCartDTOS);
-        List<CustomizedProductLine> customizedProductLineList = customizedProductLineService.selectCustomizedProductList(tenantId, watsonsCustomizedProductDTO);
+        List<CustomizedProductLine> customizedProductLineList = watsonsCustomizedProductLineService.selectCustomizedProductList(tenantId, watsonsCustomizedProductDTO);
 
         //校验定制品属性是否有变更
         customizedProductLineService.checkCustomizedProduct(tenantId, customizedProductLineList);

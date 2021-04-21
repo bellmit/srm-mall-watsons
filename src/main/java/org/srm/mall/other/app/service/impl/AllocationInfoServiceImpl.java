@@ -215,7 +215,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         if (watsonsShoppingCart.getCustomFlag() != null && watsonsShoppingCart.getCustomFlag() == 1){
             List<SpuCustomAttrGroup> spuCustomAttrGroups = productWorkbenchRepository.selectSingleSkuCustomAttrNoException(tenantId, watsonsShoppingCart.getProductId());
             if (!CollectionUtils.isEmpty(spuCustomAttrGroups)){
-                //此处取出前端传来的定制品数据，由于可能存在 预算和定制品数据都是新增的情况，此时预算先插入并进行合并判断，若调用查询预算对应定制品数据的接口由于定制品还未插入，是找不到的
+                //此处取出前端传来的定制品数据，由于可能存在 费用分配和定制品数据都是新增的情况，此时费用分配先插入并进行合并判断，若调用查询费用分配对应定制品数据的接口由于定制品还未插入，是找不到的
                 //因此此处直接取shoppingCart中传来的预算对应定制品数据，不去查表
                 List<AllocationInfo> AllocationInfoWithCpList = watsonsShoppingCart.getAllocationInfoList();
                 Map<Long, AllocationInfo> allocationInfoMap = AllocationInfoWithCpList.stream().collect(Collectors.toMap(AllocationInfo::getAllocationId, Function.identity(), (k1, k2)->k1));
