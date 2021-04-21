@@ -1,6 +1,7 @@
 package org.srm.mall.order.app.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.choerodon.core.exception.CommonException;
 import io.choerodon.core.oauth.DetailsHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,8 @@ import org.srm.mall.other.api.dto.ShoppingCartDTO;
 import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
+import org.srm.mall.platform.domain.vo.TaxVO;
+import org.srm.mall.product.api.dto.ItemCategoryDTO;
 import org.srm.mall.product.api.dto.QueryItemCodeDTO;
 import org.srm.mall.region.domain.entity.MallRegion;
 import org.srm.mall.region.domain.repository.MallRegionRepository;
@@ -117,6 +120,18 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl {
                             //费用分配
                             omsOrderEntry.setAttributeLongtext1(JSONObject.toJSONString(watsonsShoppingCartDTO.getAllocationInfoList()));
                             log.debug("watsons allocationInfo:" + JSONObject.toJSONString(omsOrderEntry.getAttributeLongtext1()));
+                            //收货人id
+                            omsOrderEntry.setAttributeBigint9(preRequestOrderDTO.getReceiverContactId());
+                            //税率描述
+                            if(Objects.nonNull(watsonsShoppingCartDTO.getTaxId())){
+                                ResponseEntity<String> taxResponseEntity = smdmRemoteNewService.selectTaxById(tenantId, watsonsShoppingCartDTO.getTaxId());
+                                if(!ObjectUtils.isEmpty(taxResponseEntity)){
+                                    TaxVO tax = ResponseUtils.getResponse(taxResponseEntity, new TypeReference<TaxVO>() {
+                                    });
+                                    log.debug("税率：{}"+JSONObject.toJSONString(tax));
+                                    omsOrderEntry.setAttributeVarchar3(tax.getDescription());
+                                }
+                            }
                         }
                     }
                 });
