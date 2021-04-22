@@ -124,7 +124,7 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl {
                             omsOrderEntry.setAttributeBigint9(preRequestOrderDTO.getReceiverContactId());
                             //税率描述
                             if(Objects.nonNull(omsOrderEntry.getTaxId())){
-                                ResponseEntity<String> taxResponseEntity = smdmRemoteNewService.selectTaxById(tenantId, watsonsShoppingCartDTO.getTaxId());
+                                ResponseEntity<String> taxResponseEntity = smdmRemoteNewService.selectTaxById(tenantId, omsOrderEntry.getTaxId());
                                 if(!ObjectUtils.isEmpty(taxResponseEntity)){
                                     TaxVO tax = ResponseUtils.getResponse(taxResponseEntity, new TypeReference<TaxVO>() {
                                     });
