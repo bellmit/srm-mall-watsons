@@ -132,6 +132,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             //校验对应的地址商品是否可售,等待价格服务提供接口
             saleAndStockCheck(tenantId, allocationInfo, watsonsShoppingCart);
             if (allocationInfo.getAllocationId() == null) {
+                //保存费用分配的时候插入关联id
                 allocationInfoRepository.insert(allocationInfo);
                 if (!ObjectUtils.isEmpty(allocationInfo.getCustomizedProductLine())){
                     allocationInfo.getCustomizedProductLine().setRelationId(allocationInfo.getAllocationId());
@@ -210,7 +211,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         List<AllocationInfo> allocationInfoList = allocationInfoRepository.select(AllocationInfo.FIELD_CART_ID, watsonsShoppingCart.getCartId());
         //按费用承担店铺id  费用承担部门id 仓转店收获仓id分组  该行商品对应的费用分配
         //按费用承担店铺id  费用承担部门id 仓转店收获仓id  这三个维度作为相同数据
-        //关联定制品列表，若定制品的属性值也一样，才能合并
+        //关联定制品列表，若定制品的属性值也一样，才能合并   按属性map以后相同的定制品信息放在一起merge  删除多余的表中的费用分配数据 并重新插入
         List<Long> detailIdList = new ArrayList<>();
         if (watsonsShoppingCart.getCustomFlag() != null && watsonsShoppingCart.getCustomFlag() == 1){
             List<SpuCustomAttrGroup> spuCustomAttrGroups = productWorkbenchRepository.selectSingleSkuCustomAttrNoException(tenantId, watsonsShoppingCart.getProductId());
@@ -228,6 +229,8 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             }
         }
 
+        //按店铺 仓转店 定制品detailid对应的cpValue来分组map
+        //若定制品的属性值也一样，才能合并
         Map<String, List<AllocationInfo>> allocationMap = allocationInfoList.stream().collect(Collectors.groupingBy(allocationInfo -> allocationInfo.groupKey(detailIdList)));
         for (Map.Entry<String, List<AllocationInfo>> entry : allocationMap.entrySet()) {
             List<AllocationInfo> tempInfoList = entry.getValue();
@@ -241,6 +244,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                     allocationInfoRepository.deleteByPrimaryKey(tempInfoList.get(i));
                     //定制品的合并
                     if (!ObjectUtils.isEmpty(customizedProductLine)){
+                        //所有定制品行数据 都刷成所有全部的数量和金额
                         customizedProductLine.setCpAmount(customizedProductLine.getCpAmount().add(allocationInfoList.get(i).getCustomizedProductLine().getCpAmount()));
                         customizedProductLine.setCpQuantity(customizedProductLine.getCpQuantity().add(allocationInfoList.get(i).getCustomizedProductLine().getCpQuantity()));
                         customizedProductLineRepository.deleteByPrimaryKey(allocationInfoList.get(i).getCustomizedProductLine());

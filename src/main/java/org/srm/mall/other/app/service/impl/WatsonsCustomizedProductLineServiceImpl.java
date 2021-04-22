@@ -97,13 +97,12 @@ public class WatsonsCustomizedProductLineServiceImpl extends CustomizedProductLi
         }
         List<SpuCustomAttrGroup> spuCustomAttrGroups = productWorkbenchRepository.selectSingleSkuCustomAttrNoException(tenantId, customizedProductLineList.get(0).getSkuId());
         for (CustomizedProductLine customizedProductLine : customizedProductLineList){
-            //校验
+            //校验 定制品属性是否变化
             CustomizedProductCheckDTO customizedProductCheck = customizedProductLine.check(spuCustomAttrGroups);
             customizedProductCheck.updateCustomizedProductInfo(customizedProductLineRepository, customizedProductValueRepository);
             if (customizedProductCheck.getSuccess() == 0){
                 return new ArrayList<>();
             }
-
             if (customizedProductLine.getCpLineId() == null) {
                 //新增
                 processAssignmentValue(tenantId,customizedProductLine);
