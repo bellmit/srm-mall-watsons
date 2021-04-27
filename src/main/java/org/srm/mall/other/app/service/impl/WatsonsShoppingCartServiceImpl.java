@@ -268,6 +268,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         Exception omsException = null;
         PreRequestOrderResponseDTO preRequestOrderResponseDTO = new PreRequestOrderResponseDTO();
         try {
+            watsonsPreRequestOrderDTOList.forEach(watsonsPreRequestOrderDTO -> {watsonsPreRequestOrderDTO.priceFinancialPrecisionSetting();});
                 preRequestOrderResponseDTO = super.preRequestOrder(tenantId, customizeUnitCode, new ArrayList<>(watsonsPreRequestOrderDTOList));
         }catch (Exception e){
                 logger.error("oms create order error. all orders are failed!");
