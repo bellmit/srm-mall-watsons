@@ -455,8 +455,10 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     }
 
     private List<PcOccupyDTO> occupyCMS(Long tenantId, List<WatsonsPreRequestOrderDTO> preRequestOrderDTOList) {
-        List<PcOccupyDTO> pcOccupyDTOS = new ArrayList<>();
+        List<PcOccupyDTO> pcOccupyDTOS4Show = new ArrayList<>();
+        List<PcOccupyDTO> pcOccupyDTOS4Occupy = new ArrayList<>();
         for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : preRequestOrderDTOList) {
+            pcOccupyDTOS4Occupy.clear();
             //拆单完后的每个订单的所有商品的费用分配不一样  但是放一起做cms校验  所以每个订单所有的商品校验一次
             // 取到该订单所有商品
             for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
@@ -503,13 +505,14 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     pcOccupyDTO.setOperationType(WatsonsConstants.operationTypeCode.SPCM_OCCUPY);
                     pcOccupyDTO.setPcNum(watsonsShoppingCartDTO.getCmsNumber());
                     pcOccupyDTO.setVersion(1L);
-                    pcOccupyDTOS.add(pcOccupyDTO);
+                    pcOccupyDTOS4Occupy.add(pcOccupyDTO);
+                    pcOccupyDTOS4Show.add(pcOccupyDTO);
                 }
             }
             //一个订单调用一次  一个订单所有cms商品放一起调用一次
-            occupyBySpcmForPreOrder(tenantId, pcOccupyDTOS);
+            occupyBySpcmForPreOrder(tenantId, pcOccupyDTOS4Occupy);
         }
-        return pcOccupyDTOS;
+        return pcOccupyDTOS4Show;
     }
 
     private void occupyBySpcmForPreOrder(Long tenantId, List<PcOccupyDTO> pcOccupyDTOS) {
