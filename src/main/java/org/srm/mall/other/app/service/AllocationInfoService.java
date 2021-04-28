@@ -8,6 +8,7 @@ import org.srm.mall.other.api.dto.AllocationInfoDTO;
 import org.srm.mall.other.api.dto.OrganizationInfoDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
+import org.srm.mall.other.domain.entity.CustomizedProductLine;
 import org.srm.mall.other.domain.entity.ProjectCost;
 import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 
@@ -80,4 +81,11 @@ public interface AllocationInfoService {
      * @return
      */
     Page<WatsonStoreInventoryRelationDTO> selectWhLov(Long organizationId, String storeId,Integer size,Integer page);
+
+    /**
+     *  计算定制品行的金额
+     * @param customizedProductLine
+     */
+    void calculateForCpLine(CustomizedProductLine customizedProductLine);
+
 }

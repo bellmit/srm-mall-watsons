@@ -7,6 +7,7 @@ import org.srm.mall.other.api.dto.WatsonsAddressDTO;
 import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.domain.entity.ShoppingCart;
+import org.srm.mall.other.domain.entity.WatsonsShoppingCart;
 import org.srm.mall.region.api.dto.AddressDTO;
 import org.srm.mall.region.domain.entity.Address;
 
@@ -63,6 +64,13 @@ public interface WatsonsShoppingCartService {
      * @return
      */
     String checkAddressValidate(Long organizationId, List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS);
+
+    /**
+     *  当费用分配更新时调用 更新购物车时重新计算定制品价格
+     * @param watsonsShoppingCart
+     * @return
+     */
+    void  calculateCustomizedProductForShoppingCartWhenAllocationUpdate(WatsonsShoppingCart watsonsShoppingCart);
 
 
 }

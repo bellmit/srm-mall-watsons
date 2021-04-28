@@ -12,6 +12,7 @@ import org.springframework.util.ObjectUtils;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.dto.product.SkuCustomDTO;
 import org.srm.mall.common.feign.dto.product.SpuCustomAttrGroup;
+import org.srm.mall.common.utils.TransactionalComponent;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.other.api.dto.CustomizedProductCheckDTO;
 import org.srm.mall.other.api.dto.CustomizedProductDTO;
@@ -50,7 +51,12 @@ public class WatsonsCustomizedProductLineServiceImpl extends CustomizedProductLi
     @Autowired
     private ProductWorkbenchRepository productWorkbenchRepository;
 
-    public static final String ALLOCATION_INFO = "ALLOCATION_INFO";
+    @Autowired
+    private TransactionalComponent transactionalComponent;
+
+    @Autowired
+    private AllocationInfoService allocationInfoService;
+
 
 
     @Override
@@ -75,15 +81,22 @@ public class WatsonsCustomizedProductLineServiceImpl extends CustomizedProductLi
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public List<CustomizedProductLine> selectSingleProductCustomizedProduct(Long tenantId, WatsonsCustomizedProductDTO watsonsCustomizedProductDTO) {
         List<CustomizedProductLine> customizedProductLineList = selectCustomizedProductList(tenantId, watsonsCustomizedProductDTO.createCustomizedProductParam());
         List<SpuCustomAttrGroup> spuCustomAttrGroups = productWorkbenchRepository.selectSingleSkuCustomAttrNoException(tenantId, watsonsCustomizedProductDTO.getProductId());
         for (CustomizedProductLine customizedProductLine : customizedProductLineList){
+            //检查该定制品行和商品中心返回的定制品属性是否有出入
             CustomizedProductCheckDTO customizedProductCheck = customizedProductLine.check(spuCustomAttrGroups);
-            customizedProductCheck.updateCustomizedProductInfo(customizedProductLineRepository, customizedProductValueRepository);
+            transactionalComponent.requiredNew(() -> updateCustomizedProductInfo(customizedProductCheck));
+            if (customizedProductCheck.getSuccess() == 0) {
+                throw new CommonException(ScecConstants.ProductCustomized.ERROR_PRODUCT_CUSTOMIZED_CHANGE);
+            }
             if (customizedProductCheck.getSuccess() == 1){
+                //设置为定制品的最新金额
                 customizedProductLine.setLatestPrice(watsonsCustomizedProductDTO.getLatestPrice());
-                customizedProductLine.calculate();
+                //定制品行计算价格
+                allocationInfoService.calculateForCpLine(customizedProductLine);
             }
         }
         return customizedProductLineList;
@@ -99,9 +112,9 @@ public class WatsonsCustomizedProductLineServiceImpl extends CustomizedProductLi
         for (CustomizedProductLine customizedProductLine : customizedProductLineList){
             //校验 定制品属性是否变化
             CustomizedProductCheckDTO customizedProductCheck = customizedProductLine.check(spuCustomAttrGroups);
-            customizedProductCheck.updateCustomizedProductInfo(customizedProductLineRepository, customizedProductValueRepository);
+            transactionalComponent.requiredNew(() -> updateCustomizedProductInfo(customizedProductCheck));
             if (customizedProductCheck.getSuccess() == 0){
-                return new ArrayList<>();
+                throw new CommonException(ScecConstants.ProductCustomized.ERROR_PRODUCT_CUSTOMIZED_CHANGE);
             }
             if (customizedProductLine.getCpLineId() == null) {
                 //新增
@@ -128,17 +141,14 @@ public class WatsonsCustomizedProductLineServiceImpl extends CustomizedProductLi
     }
 
     private void processAssignmentValue(Long tenantId, CustomizedProductLine customizedProductLine) {
-        if (!ObjectUtils.isEmpty(customizedProductLine.getCartId()) && !ObjectUtils.isEmpty(customizedProductLine.getCpQuantity()) && !ObjectUtils.isEmpty(customizedProductLine.getLatestPrice()) && !ObjectUtils.isEmpty(customizedProductLine.getSkuId()) && !ObjectUtils.isEmpty(customizedProductLine.getShipperFlag()) && !ObjectUtils.isEmpty(customizedProductLine.getCustomizedProductValueList())) {
-            customizedProductLine.setTenantId(tenantId);
-                if (ObjectUtils.isEmpty(customizedProductLine.getAllocationId())) {
-                    throw new CommonException("error.data.check", new Object[0]);
-                }
-                customizedProductLine.setRelationId(customizedProductLine.getAllocationId());
-                customizedProductLine.setRelationType(ALLOCATION_INFO);
-                customizedProductLine.calculate();
-        } else {
-            throw new CommonException("error.data.check", new Object[0]);
+        if (ObjectUtils.isEmpty(customizedProductLine.getAllocationId()) || ObjectUtils.isEmpty(customizedProductLine.getCpQuantity()) || ObjectUtils.isEmpty(customizedProductLine.getLatestPrice())
+                || ObjectUtils.isEmpty(customizedProductLine.getSkuId()) || ObjectUtils.isEmpty(customizedProductLine.getShipperFlag()) || ObjectUtils.isEmpty(customizedProductLine.getCustomizedProductValueList())) {
+            throw new CommonException(ScecConstants.ProductCustomized.DATA_CHECK_ERROR);
         }
+        customizedProductLine.setTenantId(tenantId);
+        customizedProductLine.setRelationId(customizedProductLine.getAllocationId());
+        customizedProductLine.setRelationType(WatsonsConstants.ALLOCATION_INFO);
+        allocationInfoService.calculateForCpLine(customizedProductLine);
     }
 
 }

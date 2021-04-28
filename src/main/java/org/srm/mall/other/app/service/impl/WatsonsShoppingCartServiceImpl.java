@@ -40,6 +40,7 @@ import org.srm.mall.common.feign.dto.product.*;
 import org.srm.mall.common.feign.dto.wflCheck.WatsonsWflCheckDTO;
 import org.srm.mall.common.feign.dto.wflCheck.WatsonsWflCheckResultVO;
 import org.srm.mall.common.task.MallOrderAsyncTask;
+import org.srm.mall.common.utils.TransactionalComponent;
 import org.srm.mall.common.utils.snapshot.SnapshotUtil;
 import org.srm.mall.context.dto.ProductDTO;
 import org.srm.mall.context.entity.ECResult;
@@ -77,6 +78,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service("watsonsShoppingCartService")
@@ -144,8 +146,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Autowired
     private MixDeploymentService mixDeploymentService;
 
-    @Autowired
-    private WatsonsOmsOrderService watsonsOmsOrderService;
 
     @Autowired
     private SmdmRemoteNewService smdmRemoteNewService;
@@ -197,9 +197,14 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Autowired
     private WatsonsCustomizedProductLineService watsonsCustomizedProductLineService;
 
+    @Autowired
+    private AllocationInfoService allocationInfoService;
+
     private static final String erpForWatsons = "SRM";
 
-    public static final String ALLOCATION_INFO = "ALLOCATION_INFO";
+    @Autowired
+    private TransactionalComponent transactionalComponent;
+
 
     @Override
     public List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart) {
@@ -950,28 +955,27 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         if (CollectionUtils.isEmpty(productIdList)) {
             return;
         }
-        //todo 查询商品定制品属性信息
         List<SkuCustomDTO> skuCustomList = productWorkbenchRepository.selectSkuListCustomAttrNoException(tenantId, productIdList);
         Map<Long, SkuCustomDTO> skuCustomDTOMap = skuCustomList.stream().collect(Collectors.toMap(SkuCustomDTO::getSkuId, Function.identity(), (k1, k2) -> k1));
         //校验计价属性
         for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOS) {
             if (watsonsShoppingCartDTO.getCustomFlag() != null && watsonsShoppingCartDTO.getCustomFlag() == 1) {
                 SkuCustomDTO skuCustomDTO = skuCustomDTOMap.get(watsonsShoppingCartDTO.getProductId());
+                //校验必输字段是否填写
+                watsonsShoppingCartDTO.checkCustomizedProductInfo(skuCustomDTO.getSpuCustomGroupList());
                 //校验定制品属性是否有变更
                 if ((ObjectUtils.isEmpty(skuCustomDTO) && !CollectionUtils.isEmpty(watsonsShoppingCartDTO.getCustomizedProductLineList()))
                         || !ObjectUtils.isEmpty(skuCustomDTO) && CollectionUtils.isEmpty(watsonsShoppingCartDTO.getCustomizedProductLineList())) {
-                    throw new CommonException("定制品属性值变更，请重新输入");
+                    throw new CommonException(ScecConstants.ProductCustomized.ERROR_PRODUCT_CUSTOMIZED_CHANGE);
                 }
-
                 for (CustomizedProductLine customizedProductLine : watsonsShoppingCartDTO.getCustomizedProductLineList()) {
                     CustomizedProductCheckDTO customizedProductCheckDTO = customizedProductLine.check(skuCustomDTO.getSpuCustomGroupList());
-                    customizedProductCheckDTO.updateCustomizedProductInfo(customizedProductLineRepository, customizedProductValueRepository);
+                    customizedProductLineService.updateCustomizedProductInfo(customizedProductCheckDTO);
                     if (customizedProductCheckDTO.getSuccess() == 0) {
-                        throw new CommonException("定制品属性值变更，请重新输入");
+                        throw new CommonException(ScecConstants.ProductCustomized.ERROR_PRODUCT_CUSTOMIZED_CHANGE);
                     }
                 }
-                watsonsShoppingCartDTO.checkCustomizedProductInfo(skuCustomDTO.getSpuCustomGroupList());
-                watsonsShoppingCartDTO.calculateCustomizedProduct();
+                calculateCustomizedProductForShoppingCartDTO(watsonsShoppingCartDTO);
             }
         }
     }
@@ -1297,9 +1301,11 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     }
 
     private void splitShoppingCartByCostConfig(List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOList) {
-        //所有商品按所有的费用分配拆行
+        //所有商品按所有的费用分配拆行  每个费用分配对应一个定制品行 每个newShoppingCart一个费用分配一个定制品行
+        //前端pre-req只传了一个定制品行
         List<WatsonsShoppingCartDTO> splitCosttInfoList = new ArrayList<>();
         Iterator<WatsonsShoppingCartDTO> it = watsonsShoppingCartDTOList.iterator();
+        //还是按费用分配行分散 但是以定制品的价格为准 不以商品行的价格为准
         while (it.hasNext()) {
             WatsonsShoppingCartDTO watsonsShoppingCartDTO = it.next();
             List<AllocationInfo> allocationInfoList = watsonsShoppingCartDTO.getAllocationInfoList();
@@ -1309,7 +1315,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     BeanUtils.copyProperties(watsonsShoppingCartDTO, newWatsonsShoppingCartDTO);
                     newWatsonsShoppingCartDTO.setQuantity(new BigDecimal(allocationInfoList.get(i).getQuantity()));
                     newWatsonsShoppingCartDTO.setAllocationInfoList(Collections.singletonList(allocationInfoList.get(i)));
-                    newWatsonsShoppingCartDTO.setTotalPrice(ObjectUtils.isEmpty(allocationInfoList.get(i).getPrice()) ? BigDecimal.ZERO : allocationInfoList.get(i).getPrice().multiply(newWatsonsShoppingCartDTO.getQuantity()));
+                    newWatsonsShoppingCartDTO.setTotalPrice(ObjectUtils.isEmpty(newWatsonsShoppingCartDTO.getLatestPrice()) ? BigDecimal.ZERO : newWatsonsShoppingCartDTO.getLatestPrice().multiply(newWatsonsShoppingCartDTO.getQuantity()));
                     //定制品数据设置
                     if (newWatsonsShoppingCartDTO.getCustomFlag() != null && newWatsonsShoppingCartDTO.getCustomFlag() == 1 && !CollectionUtils.isEmpty(newWatsonsShoppingCartDTO.getCustomizedProductLineList())){
                         //如果是开启了计价属性
@@ -1317,7 +1323,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                         if (check.getShipperFlag() == 1){
                             CustomizedProductLine customizedProductLine = newWatsonsShoppingCartDTO.getCustomizedProductLineList().get(i);
                             customizedProductLine.setLatestPrice(newWatsonsShoppingCartDTO.getLatestPrice());
-                            customizedProductLine.calculate();
+                            allocationInfoService.calculateForCpLine(customizedProductLine);
                             newWatsonsShoppingCartDTO.setTotalPrice(ObjectUtils.isEmpty(customizedProductLine.getCpAmount()) ? BigDecimal.ZERO : customizedProductLine.getCpAmount());
                             newWatsonsShoppingCartDTO.setCustomizedProductLineList(Collections.singletonList(customizedProductLine));
                         } else {
@@ -1375,9 +1381,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         //punchout 不计算价格
         if (punchoutService.isPuhchout(shoppingCartDTO.getProductSource())) {
             return;
-        }
-        if (shoppingCartDTO.getTotalPrice().compareTo(totalPrice) != 0) {
-            throw new CommonException(ScecConstants.ErrorCode.ERROR_INCONSISTENT_PRODUCT_PRICE);
         }
         //开启了定制品计价属性的商品计算价格
         if (shoppingCartDTO.getCustomFlag() != null && shoppingCartDTO.getCustomFlag() == 1 && shoppingCartDTO.getShipperFlag() != null && shoppingCartDTO.getShipperFlag() == 1){
@@ -1471,22 +1474,33 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     }
 
     private void recursionSplitShoppingCart(Map<String, List<WatsonsShoppingCartDTO>> result) {
-        //拆单完成后将还未进行拆单的list再进行拆单,并将根据预算进行拆单设置为yes，与之前拆单的key区分，以防止拆单完成后key重复
-
-        //用一级品类  地址  和供应商  可能有相同的商品被分在一组  不允许 要拆成不同的商品分在一组
+        //可能存在拆完单同商品id在一个单子里 不允许 人为分开
         Map<String, List<WatsonsShoppingCartDTO>> splitResultMap = new HashMap<>();
+        List<WatsonsShoppingCartDTO> nonCustomizedProductList = new ArrayList<>();
         List<String> removeKeyList = new ArrayList<>();
+        logger.info("the all values are {}",JSONObject.toJSON(result));
         for (Map.Entry<String, List<WatsonsShoppingCartDTO>> entry : result.entrySet()) {
+            logger.info("the entry values are {}",JSONObject.toJSON(entry.getValue()));
             Set<WatsonsShoppingCartDTO> set = new TreeSet<>(Comparator.comparing(WatsonsShoppingCartDTO::getProductId));
-            set.addAll(entry.getValue());
+            nonCustomizedProductList = entry.getValue().stream().filter(watsonsShoppingCartDTO -> {
+                    return !(watsonsShoppingCartDTO.getCustomFlag() != null && watsonsShoppingCartDTO.getCustomFlag().equals(ScecConstants.ConstantNumber.INT_1));
+                }).collect(Collectors.toList());
+            logger.info("the nonCustomizedProductList are {}",JSONObject.toJSON(nonCustomizedProductList));
+            if(CollectionUtils.isEmpty(nonCustomizedProductList)){
+                logger.info("all customized product");
+                continue;
+            }
+            set.addAll(nonCustomizedProductList);
             //没有重复的商品，拆单成功
-            if (set.size() == entry.getValue().size()) {
-                splitResultMap.put(entry.getKey(), entry.getValue());
+            if (set.size() == nonCustomizedProductList.size()) {
+                logger.info("the set size is equal  nonCustomizedProductList size ");
+                splitResultMap.put(entry.getKey(), nonCustomizedProductList);
             } else {
+                logger.info("the set size is not equal  nonCustomizedProductList size start filter");
                 //有重复的商品，将重复的数据取出，继续拆单，由于该list已经是拆单好之后的list，因此只需要将重复的数据取出，生成一个新的list即可
                 //取出所有重复的商品  不止一种商品重复    拿出所有重复商品的id   把两个不同的商品组合在一起  重复的同样的商品不能组合
-                Map<Long, List<WatsonsShoppingCartDTO>> map = entry.getValue().stream().collect(Collectors.groupingBy(WatsonsShoppingCartDTO::getProductId));
-                Set<Long> productIdList = entry.getValue().stream().map(WatsonsShoppingCartDTO::getProductId).filter(Objects::nonNull).collect(Collectors.toSet());
+                Map<Long, List<WatsonsShoppingCartDTO>> map = nonCustomizedProductList.stream().collect(Collectors.groupingBy(WatsonsShoppingCartDTO::getProductId));
+                Set<Long> productIdList = nonCustomizedProductList.stream().map(WatsonsShoppingCartDTO::getProductId).filter(Objects::nonNull).collect(Collectors.toSet());
                 for (Long productId : productIdList) {
                     List<WatsonsShoppingCartDTO> list = map.get(productId);
                     //遍历
@@ -1504,13 +1518,18 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                     }
                 }
                 //需要将原来的拆单数据移除，因此记录
-                removeKeyList.add(entry.getKey());
+                if(nonCustomizedProductList.size() == entry.getValue().size()){
+                    removeKeyList.add(entry.getKey());
+                }
+                logger.info("removeKeyList are {}",JSONObject.toJSON(removeKeyList));
             }
         }
         result.putAll(splitResultMap);
         for (String key : removeKeyList) {
+            logger.info("delete keys");
             result.remove(key);
         }
+        logger.info("the final result is {}",JSONObject.toJSON(result));
     }
 
 
@@ -1738,6 +1757,11 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
 
     private void selectCustomizedProductListForWatsons(Long tenantId,List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS) {
+        for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOS) {
+            List<AllocationInfo> allocationInfoList = allocationInfoRepository.selectByCondition(Condition.builder(AllocationInfo.class).andWhere(Sqls.custom()
+                    .andEqualTo(AllocationInfo.FIELD_CART_ID, watsonsShoppingCartDTO.getCartId())).build());
+            watsonsShoppingCartDTO.setAllocationInfoList(allocationInfoList);
+        }
         List<WatsonsShoppingCartDTO> filterShoppingCart = watsonsShoppingCartDTOS.stream().filter(s -> s.getCustomFlag() != null && s.getCustomFlag() == 1).collect(Collectors.toList());
         if (CollectionUtils.isEmpty(filterShoppingCart)) {
             return;
@@ -1759,8 +1783,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         for (WatsonsShoppingCartDTO watsonsShoppingCartDTO: filterShoppingCart) {
             SkuCustomDTO skuCustomDTO = skuCustomMap.get(watsonsShoppingCartDTO.getProductId());
             watsonsShoppingCartDTO.assignmentShipperInfo(ObjectUtils.isEmpty(skuCustomDTO) ? new ArrayList<>() : skuCustomDTO.getSpuCustomGroupList());
-            watsonsShoppingCartDTO.assignmentCustomizedProductList(watsonsCustomizedProductDTO.getRelationType(), map);
-            watsonsShoppingCartDTO.calculateCustomizedProduct();
+            assignmentCustomizedProductList(map,watsonsShoppingCartDTO);
+            calculateCustomizedProductForShoppingCartDTO(watsonsShoppingCartDTO);
             watsonsShoppingCartDTO.checkCustomizedProductChange();
         }
     }
@@ -1783,8 +1807,118 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 }
             }
         }
-        //定制品商品计算
-        shoppingCartParam.calculateCustomizedProduct();
         return shoppingCartParam;
+    }
+
+    public void calculateCustomizedProductForShoppingCartWhenAllocationUpdate(WatsonsShoppingCart watsonsShoppingCart){
+        //定制品属性配置为空或者没有启用计价属性则直接返回
+        if (watsonsShoppingCart.getCustomFlag() == null || watsonsShoppingCart.getCustomFlag() != 1 || watsonsShoppingCart.getShipperFlag() == 0 || watsonsShoppingCart.getShipperFlag() == null){
+            return;
+        }
+        if (CollectionUtils.isEmpty(watsonsShoppingCart.getCustomizedProductLineList())){
+            watsonsShoppingCart.setTotalPrice(watsonsShoppingCart.getQuantity().add(watsonsShoppingCart.getLatestPrice()));
+            return;
+        }
+        //初始化总金额，通过定制品计算
+        BigDecimal calTotalPrice = null;
+        //初始化定制品总量数据
+        BigDecimal calTotalCqNum = null;
+        for (CustomizedProductLine customizedProductLine : watsonsShoppingCart.getCustomizedProductLineList()){
+            customizedProductLine.setLatestPrice(watsonsShoppingCart.getLatestPrice());
+            allocationInfoService.calculateForCpLine(customizedProductLine);
+            if (ObjectUtils.isEmpty(customizedProductLine.getCpAmount()) || ObjectUtils.isEmpty(customizedProductLine.getLineCqNum()) || ObjectUtils.isEmpty(customizedProductLine.getLineTotalCqNum())) {
+                continue;
+            }
+            //计算所有定制商品总金额
+            calTotalPrice = customizedProductLine.getCpAmount().add(calTotalPrice == null ? BigDecimal.ZERO : calTotalPrice);
+            //计算所有定制品行 定制数量
+            calTotalCqNum = customizedProductLine.getLineTotalCqNum().add(calTotalCqNum == null ? BigDecimal.ZERO : calTotalCqNum);
+        }
+        watsonsShoppingCart.setTotalPrice(calTotalPrice);
+        watsonsShoppingCart.setTotalCqNum(calTotalCqNum);
+    }
+
+    /**
+     * 计算总金额，定制品总额等
+     */
+    public void calculateCustomizedProductForShoppingCartDTO(WatsonsShoppingCartDTO watsonsShoppingCartDTO){
+        //定制品属性配置为空或者没有启用计价属性则直接返回
+        if (watsonsShoppingCartDTO.getCustomFlag() == null || watsonsShoppingCartDTO.getCustomFlag() != 1 || watsonsShoppingCartDTO.getShipperFlag() == null || watsonsShoppingCartDTO.getShipperFlag() == 0){
+            return;
+        }
+        if (org.springframework.util.CollectionUtils.isEmpty(watsonsShoppingCartDTO.getCustomizedProductLineList())){
+            watsonsShoppingCartDTO.setTotalPrice(watsonsShoppingCartDTO.getQuantity().multiply(watsonsShoppingCartDTO.getLatestPrice()));
+            return;
+        }
+        //初始化总金额，通过定制品计算
+        BigDecimal calTotalPrice = null;
+        //初始化定制品总量数据
+        BigDecimal calTotalCqNum = null;
+        for (CustomizedProductLine customizedProductLine : watsonsShoppingCartDTO.getCustomizedProductLineList()){
+            customizedProductLine.setLatestPrice(watsonsShoppingCartDTO.getLatestPrice());
+            allocationInfoService.calculateForCpLine(customizedProductLine);
+            if (ObjectUtils.isEmpty(customizedProductLine.getCpAmount()) || ObjectUtils.isEmpty(customizedProductLine.getLineCqNum()) || ObjectUtils.isEmpty(customizedProductLine.getLineTotalCqNum())) {
+                continue;
+            }
+            //计算商品行总金额
+            calTotalPrice = customizedProductLine.getCpAmount().add(calTotalPrice == null ? BigDecimal.ZERO : calTotalPrice);
+            //计算定制品总额
+            calTotalCqNum = customizedProductLine.getLineTotalCqNum().add(calTotalCqNum == null ? BigDecimal.ZERO : calTotalCqNum);
+        }
+        watsonsShoppingCartDTO.setTotalPrice(calTotalPrice);
+        watsonsShoppingCartDTO.setTotalCqNum(calTotalCqNum);
+    }
+
+    public void assignmentCustomizedProductList(Map<Long, List<CustomizedProductLine>> customizedProductMap,WatsonsShoppingCartDTO watsonsShoppingCartDTO){
+            //根据预算id关联
+            if (org.springframework.util.CollectionUtils.isEmpty(watsonsShoppingCartDTO.getAllocationInfoList())){
+                watsonsShoppingCartDTO.setCustomizedProductLineList(new ArrayList<>());
+            } else {
+                watsonsShoppingCartDTO.setCustomizedProductLineList(new ArrayList<>());
+                for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()){
+                    List<CustomizedProductLine> customizedProductLineList = customizedProductMap.getOrDefault(allocationInfo.getAllocationId(), new ArrayList<>());
+                    watsonsShoppingCartDTO.setCustomizedProductLineList(customizedProductLineList);
+                }
+            }
+    }
+
+    @Override
+    public void calculatePrice(ShoppingCart shoppingCart) {
+        //定制品属性配置为空或者没有启用计价属性则直接返回
+        if (shoppingCart.getCustomFlag() == null || shoppingCart.getCustomFlag() != 1 || shoppingCart.getShipperFlag() == 0){
+            return;
+        }
+        if (CollectionUtils.isEmpty(shoppingCart.getCustomizedProductLineList())){
+            shoppingCart.setTotalPrice(shoppingCart.getQuantity().multiply(shoppingCart.getLatestPrice()));
+            return;
+        }
+        //初始化总金额，通过定制品计算
+        BigDecimal calTotalPrice = null;
+        //初始化定制品总量数据
+        BigDecimal calTotalCqNum = null;
+        for (CustomizedProductLine customizedProductLine : shoppingCart.getCustomizedProductLineList()){
+            customizedProductLine.setLatestPrice(shoppingCart.getLatestPrice());
+            customizedProductLine.calculate();
+            if (ObjectUtils.isEmpty(customizedProductLine.getCpAmount()) || ObjectUtils.isEmpty(customizedProductLine.getLineCqNum()) || ObjectUtils.isEmpty(customizedProductLine.getLineTotalCqNum())) {
+                continue;
+            }
+            //计算商品行总金额
+            calTotalPrice = customizedProductLine.getCpAmount().add(calTotalPrice == null ? BigDecimal.ZERO : calTotalPrice);
+            //计算定制品总额
+            calTotalCqNum = customizedProductLine.getLineTotalCqNum().add(calTotalCqNum == null ? BigDecimal.ZERO : calTotalCqNum);
+        }
+        shoppingCart.setTotalPrice(calTotalPrice);
+        shoppingCart.setTotalCqNum(calTotalCqNum);
+    }
+
+    @Override
+    public CustomizedSameResultDTO checkCustomizedProductLine(ShoppingCart shoppingCart, List<ShoppingCart> existShoppingCarts) {
+        Long tenantId = DetailsHelper.getUserDetails().getTenantId();
+        SkuBaseInfoDTO skuBaseInfoDTO = productWorkbenchRepository.querySingleSkuBaseInfo(tenantId, shoppingCart.getProductId());
+        if (ObjectUtils.isEmpty(skuBaseInfoDTO) || ObjectUtils.isEmpty(skuBaseInfoDTO.getCustomFlag()) || skuBaseInfoDTO.getCustomFlag() != 1) {
+            shoppingCart.setNeedInsertCustomized(0);
+            return new CustomizedSameResultDTO(skuBaseInfoDTO.getCustomFlag());
+        }
+        return new CustomizedSameResultDTO();
     }
 }

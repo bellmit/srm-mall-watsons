@@ -29,6 +29,7 @@ import org.srm.mall.common.feign.dto.product.SpuCustomAttrGroup;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.other.api.dto.*;
 import org.srm.mall.other.api.dto.WhLovResultDTO;
+import org.srm.mall.other.app.service.WatsonsShoppingCartService;
 import org.srm.mall.other.domain.entity.*;
 import org.srm.mall.other.api.dto.CeLovResultDTO;
 import org.srm.mall.other.api.dto.WhLovResultDTO;
@@ -103,6 +104,8 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     @Autowired
     private CustomizedProductValueRepository customizedProductValueRepository;
 
+    @Autowired
+    private WatsonsShoppingCartService watsonsShoppingCartService;
 
 
 
@@ -138,6 +141,8 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                     allocationInfo.getCustomizedProductLine().setRelationId(allocationInfo.getAllocationId());
                 }
             } else {
+                AllocationInfo allocationInfoParam = allocationInfoRepository.selectByPrimaryKey(allocationInfo.getAllocationId());
+                allocationInfo.setObjectVersionNumber(allocationInfoParam.getObjectVersionNumber());
                 allocationInfoRepository.updateByPrimaryKey(allocationInfo);
             }
         }
@@ -196,16 +201,6 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
 
     }
 
-    private void handleReceiverAddress(AllocationInfo allocationInfo, Long tenantId) {
-        // 通过库存组织信息反查地址id
-
-        //TODO 在自动生成地址功能完成前，不限制ownedBy
-//        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID,tenantId).andEqualTo(Address.FIELD_OWNED_BY, -1L).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID,allocationInfo.getCostShopId())).build());
-        List<Address> addressList = addressRepository.selectByCondition(Condition.builder(Address.class).andWhere(Sqls.custom().andEqualTo(Address.FIELD_TENANTID_ID, tenantId).andEqualTo(Address.FIELD_ADDRESS_TYPE, ScecConstants.AdressType.RECEIVER).andEqualTo(Address.FIELD_INV_ORGANIZATION_ID, ObjectUtils.isEmpty(allocationInfo.getReceiveWarehouseId()) ? allocationInfo.getCostShopId() : allocationInfo.getReceiveWarehouseId())).build());
-
-        allocationInfo.setAddressId(addressList.get(0).getAddressId());
-    }
-
     private List<AllocationInfo> mergeSameAllocationInfo(Long tenantId, WatsonsShoppingCart watsonsShoppingCart) {
         List<AllocationInfo> result = new ArrayList<>();
         List<AllocationInfo> allocationInfoList = allocationInfoRepository.select(AllocationInfo.FIELD_CART_ID, watsonsShoppingCart.getCartId());
@@ -229,8 +224,9 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             }
         }
 
-        //按店铺 仓转店 定制品detailid对应的cpValue来分组map
-        //若定制品的属性值也一样，才能合并
+        //按店铺 仓转店 定制品detailid对应的cpValue来分组费用分配
+        //若定制品的属性值也一样，才能合并该费用分配
+        //如果所有的定制品属性和原有的分组都一样 则把该定制品行数据进行合并  删除原有的value 和 line
         Map<String, List<AllocationInfo>> allocationMap = allocationInfoList.stream().collect(Collectors.groupingBy(allocationInfo -> allocationInfo.groupKey(detailIdList)));
         for (Map.Entry<String, List<AllocationInfo>> entry : allocationMap.entrySet()) {
             List<AllocationInfo> tempInfoList = entry.getValue();
@@ -245,11 +241,11 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                     //定制品的合并
                     if (!ObjectUtils.isEmpty(customizedProductLine)){
                         //所有定制品行数据 都刷成所有全部的数量和金额
-                        customizedProductLine.setCpAmount(customizedProductLine.getCpAmount().add(allocationInfoList.get(i).getCustomizedProductLine().getCpAmount()));
-                        customizedProductLine.setCpQuantity(customizedProductLine.getCpQuantity().add(allocationInfoList.get(i).getCustomizedProductLine().getCpQuantity()));
-                        customizedProductLineRepository.deleteByPrimaryKey(allocationInfoList.get(i).getCustomizedProductLine());
-                        if (!CollectionUtils.isEmpty(allocationInfoList.get(i).getCustomizedProductLine().getCustomizedProductValueList())){
-                            customizedProductValueRepository.batchDeleteByPrimaryKey(allocationInfoList.get(i).getCustomizedProductLine().getCustomizedProductValueList());
+                        customizedProductLine.setCpAmount(customizedProductLine.getCpAmount().add(tempInfoList.get(i).getCustomizedProductLine().getCpAmount()));
+                        customizedProductLine.setCpQuantity(customizedProductLine.getCpQuantity().add(tempInfoList.get(i).getCustomizedProductLine().getCpQuantity()));
+                        customizedProductLineRepository.deleteByPrimaryKey(tempInfoList.get(i).getCustomizedProductLine());
+                        if (!CollectionUtils.isEmpty(tempInfoList.get(i).getCustomizedProductLine().getCustomizedProductValueList())){
+                            customizedProductValueRepository.batchDeleteByPrimaryKey(tempInfoList.get(i).getCustomizedProductLine().getCustomizedProductValueList());
                         }
                     }
                 }
@@ -272,7 +268,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         List<AllocationInfo> allocationInfoList = allocationInfoRepository.select(BudgetInfo.FIELD_CART_ID, watsonsShoppingCart.getCartId());
         BigDecimal quantity = BigDecimal.ZERO;
         //定制品更新购物车商品金额
-        watsonsShoppingCart.calculateCustomizedProduct();
+        watsonsShoppingCartService.calculateCustomizedProductForShoppingCartWhenAllocationUpdate(watsonsShoppingCart);
         if (!CollectionUtils.isEmpty(allocationInfoList)) {
             for (AllocationInfo allocationInfo : allocationInfoList) {
                 quantity = quantity.add(new BigDecimal(allocationInfo.getQuantity()));
@@ -628,6 +624,52 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         } else {
             logger.error("当前商品没有映射多级映射路径levelPath");
             throw new CommonException("当前商品没有映射多级映射路径!");
+        }
+    }
+
+
+    /**
+     *计算定制品行的最新价格 如果没有计价属性则取商品的价格作为最新单价
+     * @param customizedProductLine
+     * @author ericzhang 2021-04-26 10:48 下午
+     * @return
+     */
+    public void calculateForCpLine(CustomizedProductLine customizedProductLine) {
+        //没有开启计价属性：按照标准计算金额
+        //计价属性不开启的计算
+        if (customizedProductLine.getShipperFlag() == null || customizedProductLine.getShipperFlag() != 1) {
+            //没有开启计价属性，定制品的数量都为空
+            customizedProductLine.setLineCqNum(null);
+            customizedProductLine.setLineTotalCqNum(null);
+            //该定制品行的金额
+            customizedProductLine.setCpAmount(customizedProductLine.getLatestPrice().multiply(customizedProductLine.getCpQuantity()));
+        } else {
+            //开启了计价属性，根据定制品属性计算
+            // 属性值为空则返回空
+            if (CollectionUtils.isEmpty(customizedProductLine.getCustomizedProductValueList())) {
+                //如果属性值为空，默认采用单价乘以数量
+                customizedProductLine.setCpAmount(customizedProductLine.getLatestPrice().multiply(customizedProductLine.getCpQuantity()));
+                customizedProductLine.setLineTotalCqNum(null);
+                customizedProductLine.setLineCqNum(null);
+            } else {
+                customizedProductLine.setLineCqNum(null);
+                for (CustomizedProductValue customizedProductValue : customizedProductLine.getCustomizedProductValueList()) {
+                    if (customizedProductValue.getPricingFlag() == null || customizedProductValue.getPricingFlag() != 1) {
+                        continue;
+                    }
+                    //如果值为空，不进行计算
+                    if (ObjectUtils.isEmpty(customizedProductValue.getCpValue())) {
+                        break;
+                    }
+                    //for 循环算出所有cpvalue 和 系数的乘积   即 长乘 宽 乘系数
+                    BigDecimal num = customizedProductValue.getUnitCoefficient().multiply(new BigDecimal(ObjectUtils.isEmpty(customizedProductValue.getCpValue()) ? ScecConstants.ConstantNumber.STRING_1 : customizedProductValue.getCpValue()));
+                    customizedProductLine.setLineCqNum(num.multiply(customizedProductLine.getLineCqNum()==null?BigDecimal.ONE:customizedProductLine.getLineCqNum()));
+                }
+                //面积 * 数量 = 共多少数量
+                customizedProductLine.setLineTotalCqNum(customizedProductLine.getLineCqNum()==null?null:customizedProductLine.getLineCqNum().multiply(customizedProductLine.getCpQuantity()));
+                //共多少数量乘单价等于总金额
+                customizedProductLine.setCpAmount(customizedProductLine.getLineTotalCqNum()==null?null:customizedProductLine.getLineTotalCqNum().multiply(customizedProductLine.getLatestPrice()));
+            }
         }
     }
 }

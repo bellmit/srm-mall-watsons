@@ -2,6 +2,7 @@ package org.srm.mall.other.api.dto;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.hzero.starter.keyencrypt.core.Encrypt;
+import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.other.domain.entity.AllocationInfo;
 
 import java.math.BigDecimal;
@@ -9,12 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class WatsonsCustomizedProductDTO extends CustomizedProductDTO{
-
-    public static final String ALLOCATION_INFO = "ALLOCATION_INFO";
+public class WatsonsCustomizedProductDTO{
 
     @Encrypt
-    private List<Long> relationIdList;
+    private List<Long> relationIdList = new ArrayList<>();
 
     private String relationType;
 
@@ -35,22 +34,19 @@ public class WatsonsCustomizedProductDTO extends CustomizedProductDTO{
     //拿到relationidlist  和relationType
     public WatsonsCustomizedProductDTO(List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS) {
         relationIdList = new ArrayList<>();
-        //获取查询参数
-            //获取预算idList
             for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsShoppingCartDTOS) {
                 if (CollectionUtils.isEmpty(watsonsShoppingCartDTO.getAllocationInfoList())) {
                     continue;
                 }
                 relationIdList.addAll(watsonsShoppingCartDTO.getAllocationInfoList().stream().map(AllocationInfo::getAllocationId).collect(Collectors.toList()));
             }
-            relationType = ALLOCATION_INFO;
+            relationType = WatsonsConstants.ALLOCATION_INFO;
     }
 
     public WatsonsCustomizedProductDTO createCustomizedProductParam() {
         if (!CollectionUtils.isEmpty(allocationInfoList)) {
-            //获取预算idList
             relationIdList.addAll(allocationInfoList.stream().map(AllocationInfo::getAllocationId).collect(Collectors.toList()));
-            relationType = ALLOCATION_INFO;
+            relationType = WatsonsConstants.ALLOCATION_INFO;
         }
         return this;
     }
