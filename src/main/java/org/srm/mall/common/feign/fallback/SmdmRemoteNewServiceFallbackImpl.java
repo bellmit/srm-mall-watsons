@@ -56,6 +56,12 @@ public class SmdmRemoteNewServiceFallbackImpl implements FallbackFactory<SmdmRem
                 logger.error("query itemCategory info By itemCategoryId error! param itemCategoryId :{}",categoryId);
                 return null;
             }
+
+            @Override
+            public ResponseEntity<String> selectTaxById(Long organizationId,Long taxId){
+                logger.error("query tax By taxId error! param taxId :{}",taxId);
+                return null;
+            }
         };
     }
 }
