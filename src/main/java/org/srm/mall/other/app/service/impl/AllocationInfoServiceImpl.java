@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
@@ -105,6 +106,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     private CustomizedProductValueRepository customizedProductValueRepository;
 
     @Autowired
+    @Lazy
     private WatsonsShoppingCartService watsonsShoppingCartService;
 
 
