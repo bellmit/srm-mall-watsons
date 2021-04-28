@@ -1871,14 +1871,16 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     public void assignmentCustomizedProductList(Map<Long, List<CustomizedProductLine>> customizedProductMap,WatsonsShoppingCartDTO watsonsShoppingCartDTO){
             //根据预算id关联
+            List<CustomizedProductLine> allList = new ArrayList<>();
             if (org.springframework.util.CollectionUtils.isEmpty(watsonsShoppingCartDTO.getAllocationInfoList())){
                 watsonsShoppingCartDTO.setCustomizedProductLineList(new ArrayList<>());
             } else {
                 watsonsShoppingCartDTO.setCustomizedProductLineList(new ArrayList<>());
                 for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()){
                     List<CustomizedProductLine> customizedProductLineList = customizedProductMap.getOrDefault(allocationInfo.getAllocationId(), new ArrayList<>());
-                    watsonsShoppingCartDTO.setCustomizedProductLineList(customizedProductLineList);
+                    allList.addAll(customizedProductLineList);
                 }
+                watsonsShoppingCartDTO.setCustomizedProductLineList(allList);
             }
     }
 
