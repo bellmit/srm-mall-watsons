@@ -1768,7 +1768,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         WatsonsCustomizedProductDTO watsonsCustomizedProductDTO = new WatsonsCustomizedProductDTO(watsonsShoppingCartDTOS);
         List<CustomizedProductLine> customizedProductLineList = watsonsCustomizedProductLineService.selectCustomizedProductList(tenantId, watsonsCustomizedProductDTO);
-
+        logger.info("the customizedProductLineList are {}",JSONObject.toJSON(customizedProductLineList));
         //校验定制品属性是否有变更
         customizedProductLineService.checkCustomizedProduct(tenantId, customizedProductLineList);
         //往shoppingCartDTO赋值
@@ -1787,6 +1787,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             calculateCustomizedProductForShoppingCartDTO(watsonsShoppingCartDTO);
             watsonsShoppingCartDTO.checkCustomizedProductChange();
         }
+        logger.info("the customized shopping carts are {}",JSONObject.toJSON(watsonsShoppingCartDTOS));
     }
 
     @Override
@@ -1836,6 +1837,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         watsonsShoppingCart.setTotalPrice(calTotalPrice);
         watsonsShoppingCart.setTotalCqNum(calTotalCqNum);
+        logger.info("after calculate customized the shopping cart is {}",JSONObject.toJSON(watsonsShoppingCart));
     }
 
     /**
@@ -1867,6 +1869,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         watsonsShoppingCartDTO.setTotalPrice(calTotalPrice);
         watsonsShoppingCartDTO.setTotalCqNum(calTotalCqNum);
+        logger.info("after calculate price the watsonsShoppingCart is {}",JSONObject.toJSON(watsonsShoppingCartDTO));
     }
 
     public void assignmentCustomizedProductList(Map<Long, List<CustomizedProductLine>> customizedProductMap,WatsonsShoppingCartDTO watsonsShoppingCartDTO){
@@ -1882,6 +1885,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 }
                 watsonsShoppingCartDTO.setCustomizedProductLineList(allList);
             }
+            logger.info("after assignmentCustomizedProductList, the watsonsShoppingCart is {}",JSONObject.toJSON(watsonsShoppingCartDTO));
     }
 
     @Override
@@ -1911,6 +1915,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         }
         shoppingCart.setTotalPrice(calTotalPrice);
         shoppingCart.setTotalCqNum(calTotalCqNum);
+        logger.info("after calculate price the watsonsShoppingCart is {}",JSONObject.toJSON(shoppingCart));
     }
 
     @Override

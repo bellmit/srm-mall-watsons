@@ -1,10 +1,13 @@
 package org.srm.mall.other.app.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import io.choerodon.core.exception.CommonException;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hzero.core.base.BaseAppService;
 import org.hzero.mybatis.domian.Condition;
 import org.hzero.mybatis.util.Sqls;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,6 +60,7 @@ public class WatsonsCustomizedProductLineServiceImpl extends CustomizedProductLi
     @Autowired
     private AllocationInfoService allocationInfoService;
 
+    private Logger logger = LoggerFactory.getLogger(WatsonsCustomizedProductLineServiceImpl.class);
 
 
     @Override
@@ -77,6 +81,7 @@ public class WatsonsCustomizedProductLineServiceImpl extends CustomizedProductLi
         for (CustomizedProductLine customizedProductLine : customizedProductLineList){
             customizedProductLine.setCustomizedProductValueList(customizedProductValueMap.get(customizedProductLine.getCpLineId()));
         }
+        logger.info("the customizedProductLineList is {}", JSONObject.toJSON(customizedProductLineList));
         return customizedProductLineList;
     }
 
@@ -119,10 +124,12 @@ public class WatsonsCustomizedProductLineServiceImpl extends CustomizedProductLi
             if (customizedProductLine.getCpLineId() == null) {
                 //新增
                 processAssignmentValue(tenantId,customizedProductLine);
+                logger.info("the customizedProductLine need to be inserted is {}",JSONObject.toJSON(customizedProductLine));
                 customizedProductLineRepository.insertSelective(customizedProductLine);
             } else {
                 //更新
                 processAssignmentValue(tenantId,customizedProductLine);
+                logger.info("the customizedProductLine need to be updated is {}",JSONObject.toJSON(customizedProductLine));
                 customizedProductLineRepository.updateByPrimaryKeySelective(customizedProductLine);
             }
 
@@ -131,8 +138,10 @@ public class WatsonsCustomizedProductLineServiceImpl extends CustomizedProductLi
                 customizedProductValue.setTenantId(tenantId);
                 customizedProductValue.check();
                 if (customizedProductValue.getCpValueId() == null){
+                    logger.info("the customizedProductValue need to be inserted is {}",JSONObject.toJSON(customizedProductValue));
                     customizedProductValueRepository.insertSelective(customizedProductValue);
                 } else {
+                    logger.info("the customizedProductValue need to be updated is {}",JSONObject.toJSON(customizedProductValue));
                     customizedProductValueRepository.updateByPrimaryKeySelective(customizedProductValue);
                 }
             }

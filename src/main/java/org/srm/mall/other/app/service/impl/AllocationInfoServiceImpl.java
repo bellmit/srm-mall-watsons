@@ -1,5 +1,6 @@
 package org.srm.mall.other.app.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.choerodon.core.domain.Page;
 import io.choerodon.core.domain.PageInfo;
@@ -667,11 +668,12 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                     BigDecimal num = customizedProductValue.getUnitCoefficient().multiply(new BigDecimal(ObjectUtils.isEmpty(customizedProductValue.getCpValue()) ? ScecConstants.ConstantNumber.STRING_1 : customizedProductValue.getCpValue()));
                     customizedProductLine.setLineCqNum(num.multiply(customizedProductLine.getLineCqNum()==null?BigDecimal.ONE:customizedProductLine.getLineCqNum()));
                 }
-                //面积 * 数量 = 共多少数量
+                //面积 * 每行定制品数量 = 共多少数量
                 customizedProductLine.setLineTotalCqNum(customizedProductLine.getLineCqNum()==null?null:customizedProductLine.getLineCqNum().multiply(customizedProductLine.getCpQuantity()));
                 //共多少数量乘单价等于总金额
                 customizedProductLine.setCpAmount(customizedProductLine.getLineTotalCqNum()==null?null:customizedProductLine.getLineTotalCqNum().multiply(customizedProductLine.getLatestPrice()));
             }
         }
+        logger.info("the customizedProductLine is {}", JSONObject.toJSON(customizedProductLine));
     }
 }
