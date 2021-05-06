@@ -256,8 +256,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         saveCeAndCMS(watsonsPreRequestOrderDTOList);
         //根据ce信息修改费用项目信息
         modifyProjectCostByCeInfo(watsonsPreRequestOrderDTOList);
-        //进行cms合同号校验
-        occupyCMS(tenantId, watsonsPreRequestOrderDTOList);
         //wlf工作流校验
         checkWLFFlow(tenantId, watsonsPreRequestOrderDTOList);
         //进行cms合同号校验
