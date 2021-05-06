@@ -23,6 +23,8 @@ public class WatsonsShoppingCart extends ShoppingCart {
     private List<ProjectCostSubcategory> projectCostSubcategoryList;
     //可以默认批量分配标识
     private Integer projectCostBatchFlag;
+    //可以默认批量分配子分类的标识
+    private Integer projectCostSubCategoryBatchFlag;
     private List<AllocationInfo> allocationInfoList;
     public List<AllocationInfo> getAllocationInfoList() {
         return allocationInfoList;
@@ -86,5 +88,13 @@ public class WatsonsShoppingCart extends ShoppingCart {
 
     public void setProjectCostBatchFlag(Integer projectCostBatchFlag) {
         this.projectCostBatchFlag = projectCostBatchFlag;
+    }
+
+    public Integer getProjectCostSubCategoryBatchFlag() {
+        return projectCostSubCategoryBatchFlag;
+    }
+
+    public void setProjectCostSubCategoryBatchFlag(Integer projectCostSubCategoryBatchFlag) {
+        this.projectCostSubCategoryBatchFlag = projectCostSubCategoryBatchFlag;
     }
 }
