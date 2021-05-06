@@ -21,10 +21,12 @@ public class WatsonsShoppingCart extends ShoppingCart {
     @ApiModelProperty(value = "费用项目名称",required = false)
     private String projectCostName;
     private List<ProjectCostSubcategory> projectCostSubcategoryList;
-    //可以默认批量分配标识
+    //可以费用分配批量分配标识
     private Integer projectCostBatchFlag;
     //可以默认批量分配子分类的标识
     private Integer projectCostSubCategoryBatchFlag;
+    //采用默认分配的标识
+    private Integer useBatchProjectCostFlag;
     private List<AllocationInfo> allocationInfoList;
     public List<AllocationInfo> getAllocationInfoList() {
         return allocationInfoList;
@@ -96,5 +98,13 @@ public class WatsonsShoppingCart extends ShoppingCart {
 
     public void setProjectCostSubCategoryBatchFlag(Integer projectCostSubCategoryBatchFlag) {
         this.projectCostSubCategoryBatchFlag = projectCostSubCategoryBatchFlag;
+    }
+
+    public Integer getUseBatchProjectCostFlag() {
+        return useBatchProjectCostFlag;
+    }
+
+    public void setUseBatchProjectCostFlag(Integer useBatchProjectCostFlag) {
+        this.useBatchProjectCostFlag = useBatchProjectCostFlag;
     }
 }

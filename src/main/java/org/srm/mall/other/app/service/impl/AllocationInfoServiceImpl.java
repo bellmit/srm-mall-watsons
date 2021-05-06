@@ -285,9 +285,15 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                     result.setProjectCostName(watsonsShoppingCart.getProjectCostName());
                 }
                 if(watsonsShoppingCart.getProjectCostSubCategoryBatchFlag().equals(ScecConstants.ConstantNumber.INT_1)) {
-                    result.setProjectCostSubcategoryCode(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getSubcategoryCode().toString());
-                    result.setProjectCostSubcategoryId(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getProjectCostSubcategoryId());
-                    result.setProjectCostSubcategoryName(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getProjectCostSubcategory());
+                    if(!ObjectUtils.isEmpty(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getSubcategoryCode())) {
+                        result.setProjectCostSubcategoryCode(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getSubcategoryCode().toString());
+                    }
+                    if(!ObjectUtils.isEmpty(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getProjectCostSubcategoryId())) {
+                        result.setProjectCostSubcategoryId(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getProjectCostSubcategoryId());
+                    }
+                    if(!ObjectUtils.isEmpty(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getProjectCostSubcategory())) {
+                        result.setProjectCostSubcategoryName(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getProjectCostSubcategory());
+                    }
                 }
                 result.setQuantity(quantity.longValue());
                 result.setPrice(watsonsShoppingCart.getLatestPrice());
@@ -307,6 +313,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
         for (WatsonsShoppingCart watsonsShoppingCart : allocationInfoDTO.getWatsonsShoppingCartList()) {
             watsonsShoppingCart.setProjectCostBatchFlag(ScecConstants.ConstantNumber.INT_0);
             watsonsShoppingCart.setProjectCostSubCategoryBatchFlag(ScecConstants.ConstantNumber.INT_0);
+            watsonsShoppingCart.setUseBatchProjectCostFlag(ScecConstants.ConstantNumber.INT_0);
             if(ObjectUtils.isEmpty(watsonsShoppingCart.getItemCategoryId()) && ObjectUtils.isEmpty(watsonsShoppingCart.getItemId())){
                 throw  new CommonException("该商品"+watsonsShoppingCart.getProductName()+"没有映射品类和物料信息!无法自动分配费用项目!");
             }
@@ -335,17 +342,22 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
             watsonsShoppingCart.setProjectCostCode(projectCosts.get(0).getProjectCostCode());
             watsonsShoppingCart.setProjectCostName(projectCosts.get(0).getProjectCostName());
             watsonsShoppingCart.setProjectCostBatchFlag(ScecConstants.ConstantNumber.INT_1);
-            // 子分类只有一个才带出
+            // 子分类只有一个或者没有才允许带出
             if(projectCosts.get(0).getProjectCostSubcategoryList().size() > ScecConstants.ConstantNumber.INT_1){
                 logger.error("该费用项目"+projectCosts.get(0).getProjectCostCode()+"维护了多个费用项目子分类信息!");
                 continue;
             }
             if(CollectionUtils.isEmpty(projectCosts.get(0).getProjectCostSubcategoryList())){
                 logger.error("该费用项目"+projectCosts.get(0).getProjectCostCode()+"没有维护费用项目子分类信息!");
+                watsonsShoppingCart.setProjectCostSubCategoryBatchFlag(ScecConstants.ConstantNumber.INT_1);
                 continue;
             }
             watsonsShoppingCart.setProjectCostSubcategoryList(projectCosts.get(0).getProjectCostSubcategoryList());
             watsonsShoppingCart.setProjectCostSubCategoryBatchFlag(ScecConstants.ConstantNumber.INT_1);
+            if(watsonsShoppingCart.getProjectCostSubCategoryBatchFlag().equals(ScecConstants.ConstantNumber.INT_1) && watsonsShoppingCart.getProjectCostBatchFlag().equals(ScecConstants.ConstantNumber.INT_1)){
+                watsonsShoppingCart.setUseBatchProjectCostFlag(ScecConstants.ConstantNumber.INT_1);
+            }
+            logger.info("the auto set project cost res is {}",JSONObject.toJSON(watsonsShoppingCart));
         }
     }
 
