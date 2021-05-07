@@ -1813,7 +1813,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     public void calculateCustomizedProductForShoppingCartWhenAllocationUpdate(WatsonsShoppingCart watsonsShoppingCart){
         //定制品属性配置为空或者没有启用计价属性则直接返回
-        if (watsonsShoppingCart.getCustomFlag() == null || watsonsShoppingCart.getCustomFlag() != 1 || watsonsShoppingCart.getShipperFlag() == 0 || watsonsShoppingCart.getShipperFlag() == null){
+        if (ObjectUtils.isEmpty(watsonsShoppingCart.getCustomFlag()) || watsonsShoppingCart.getCustomFlag() != 1 || ObjectUtils.isEmpty(watsonsShoppingCart.getShipperFlag()) || watsonsShoppingCart.getShipperFlag() == 0 ){
             return;
         }
         if (CollectionUtils.isEmpty(watsonsShoppingCart.getCustomizedProductLineList())){
@@ -1891,7 +1891,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Override
     public void calculatePrice(ShoppingCart shoppingCart) {
         //定制品属性配置为空或者没有启用计价属性则直接返回
-        if (shoppingCart.getCustomFlag() == null || shoppingCart.getCustomFlag() != 1 || shoppingCart.getShipperFlag() == 0){
+        if (ObjectUtils.isEmpty(shoppingCart.getCustomFlag()) || shoppingCart.getCustomFlag() != 1 || ObjectUtils.isEmpty(shoppingCart.getShipperFlag()) || shoppingCart.getShipperFlag() == 0){
             return;
         }
         if (CollectionUtils.isEmpty(shoppingCart.getCustomizedProductLineList())){
