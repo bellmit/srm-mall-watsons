@@ -285,13 +285,13 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                     result.setProjectCostName(watsonsShoppingCart.getProjectCostName());
                 }
                 if(watsonsShoppingCart.getProjectCostSubCategoryBatchFlag().equals(ScecConstants.ConstantNumber.INT_1)) {
-                    if(!ObjectUtils.isEmpty(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getSubcategoryCode())) {
+                    if(!ObjectUtils.isEmpty(watsonsShoppingCart.getProjectCostSubcategoryList())) {
                         result.setProjectCostSubcategoryCode(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getSubcategoryCode().toString());
                     }
-                    if(!ObjectUtils.isEmpty(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getProjectCostSubcategoryId())) {
+                    if(!ObjectUtils.isEmpty(watsonsShoppingCart.getProjectCostSubcategoryList())) {
                         result.setProjectCostSubcategoryId(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getProjectCostSubcategoryId());
                     }
-                    if(!ObjectUtils.isEmpty(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getProjectCostSubcategory())) {
+                    if(!ObjectUtils.isEmpty(watsonsShoppingCart.getProjectCostSubcategoryList())) {
                         result.setProjectCostSubcategoryName(watsonsShoppingCart.getProjectCostSubcategoryList().get(0).getProjectCostSubcategory());
                     }
                 }
