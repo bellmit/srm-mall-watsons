@@ -2,7 +2,10 @@ package org.srm.mall.other.domain.entity;
 
 import io.swagger.annotations.ApiModelProperty;
 import org.hzero.starter.keyencrypt.core.Encrypt;
+import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.util.ObjectUtils;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class WatsonsShoppingCart extends ShoppingCart {
