@@ -198,6 +198,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     private WatsonsCustomizedProductLineService watsonsCustomizedProductLineService;
 
     @Autowired
+    @Lazy
     private AllocationInfoService allocationInfoService;
 
     private static final String erpForWatsons = "SRM";
