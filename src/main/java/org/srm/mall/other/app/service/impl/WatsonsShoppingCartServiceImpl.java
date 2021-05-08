@@ -268,6 +268,8 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     public PreRequestOrderResponseDTO watsonsPreRequestOrder(Long tenantId, String customizeUnitCode, List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList) {
         //进行ceNo和discription存表
         saveCeAndCMS(watsonsPreRequestOrderDTOList);
+        //根据ce信息修改费用项目信息
+        modifyProjectCostByCeInfo(watsonsPreRequestOrderDTOList);
         //wlf工作流校验
         checkWLFFlow(tenantId, watsonsPreRequestOrderDTOList);
         //进行cms合同号校验
@@ -305,6 +307,19 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             throw  new CommonException(omsException);
         }
         return preRequestOrderResponseDTO;
+    }
+
+    private void modifyProjectCostByCeInfo(List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList) {
+        for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : watsonsPreRequestOrderDTOList) {
+            if(!ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getCeNumber())){
+                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+                    for (AllocationInfo allocationInfo : watsonsShoppingCartDTO.getAllocationInfoList()) {
+                        allocationInfo.setProjectCostCode("1406");
+                        allocationInfo.setProjectCostName("固定资产采购");
+                    }
+                }
+            }
+        }
     }
 
     private void processPrheaderCreateDTOExceptionCMSUpdate(Long tenantId, List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList, List<PrHeaderCreateDTO> errorListForWatsonsPrHeaderCreateDTO,List<PcOccupyDTO> pcOccupyDTOS) {
