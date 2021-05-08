@@ -25,7 +25,6 @@ import org.srm.mall.common.feign.SmodrRemoteService;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.order.api.dto.*;
 import org.srm.mall.order.app.service.OmsOrderService;
-import org.srm.mall.order.app.service.WatsonsOmsOrderService;
 import org.srm.mall.order.domain.vo.PurchaseRequestVO;
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
 import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
