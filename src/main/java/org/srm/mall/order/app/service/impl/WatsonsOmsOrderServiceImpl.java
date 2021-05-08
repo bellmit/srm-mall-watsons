@@ -1,6 +1,8 @@
 package org.srm.mall.order.app.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.choerodon.core.exception.CommonException;
 import io.choerodon.core.oauth.DetailsHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +16,7 @@ import org.hzero.mybatis.util.Sqls;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 import org.srm.mall.common.constant.ScecConstants;
@@ -21,12 +24,17 @@ import org.srm.mall.common.feign.SmdmRemoteNewService;
 import org.srm.mall.common.feign.SmodrRemoteService;
 import org.srm.mall.infra.constant.WatsonsConstants;
 import org.srm.mall.order.api.dto.*;
+import org.srm.mall.order.app.service.OmsOrderService;
+import org.srm.mall.order.app.service.WatsonsOmsOrderService;
 import org.srm.mall.order.domain.vo.PurchaseRequestVO;
 import org.srm.mall.other.api.dto.ShoppingCartDTO;
 import org.srm.mall.other.api.dto.WatsonsPreRequestOrderDTO;
 import org.srm.mall.other.api.dto.WatsonsShoppingCartDTO;
 import org.srm.mall.other.domain.entity.AllocationInfo;
+import org.srm.mall.platform.domain.vo.TaxVO;
+import org.srm.mall.product.api.dto.ItemCategoryDTO;
 import org.srm.mall.product.api.dto.QueryItemCodeDTO;
+import org.srm.mall.region.domain.entity.Address;
 import org.srm.mall.region.domain.entity.MallRegion;
 import org.srm.mall.region.domain.repository.MallRegionRepository;
 import org.srm.web.annotation.Tenant;
@@ -117,6 +125,18 @@ public class WatsonsOmsOrderServiceImpl extends OmsOrderServiceImpl {
                             //费用分配
                             omsOrderEntry.setAttributeLongtext1(JSONObject.toJSONString(watsonsShoppingCartDTO.getAllocationInfoList()));
                             log.debug("watsons allocationInfo:" + JSONObject.toJSONString(omsOrderEntry.getAttributeLongtext1()));
+                            //收货人id
+                            omsOrderEntry.setAttributeBigint9(preRequestOrderDTO.getReceiverContactId());
+                            //税率描述
+                            if(Objects.nonNull(omsOrderEntry.getTaxId())){
+                                ResponseEntity<String> taxResponseEntity = smdmRemoteNewService.selectTaxById(tenantId, omsOrderEntry.getTaxId());
+                                if(!ObjectUtils.isEmpty(taxResponseEntity)){
+                                    TaxVO tax = ResponseUtils.getResponse(taxResponseEntity, new TypeReference<TaxVO>() {
+                                    });
+                                    log.debug("税率：{}"+JSONObject.toJSONString(tax));
+                                    omsOrderEntry.setAttributeVarchar3(tax.getDescription());
+                                }
+                            }
                         }
                     }
                 });
