@@ -6,7 +6,7 @@
     <version>release-SNAPSHOT</version>
   </parent>
   <artifactId>srm-mall-watsons</artifactId>
-  <version>release-SNAPSHOT</version>
+  <version>1.15.0.RELEASE</version>
   <dependencies>
     <dependency>
       <groupId>org.srm</groupId>
