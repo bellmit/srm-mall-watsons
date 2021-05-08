@@ -208,7 +208,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
 
     @Override
-    public List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart) {
+    public List<ShoppingCartDTO> watsonsShppingCartEnter(Long organizationId, ShoppingCart shoppingCart) {
         //加入了取费用分配的过程
         List<ShoppingCartDTO> shoppingCartDTOList = super.shppingCartEnter(organizationId, shoppingCart);
         List<WatsonsShoppingCartDTO> watsonsShoppingCartDTOS = transferToWatsonsShoppingCartDTOS(shoppingCartDTOList);

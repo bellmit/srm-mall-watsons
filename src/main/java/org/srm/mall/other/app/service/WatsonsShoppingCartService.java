@@ -18,7 +18,7 @@ import java.util.List;
  *
  * @author jianhao.zhang01@hand-china.com 2020/12/23 17:31
  */
-public interface WatsonsShoppingCartService {
+public interface WatsonsShoppingCartService extends ShoppingCartService{
 
     /**
      * 预采购申请预览
@@ -34,7 +34,7 @@ public interface WatsonsShoppingCartService {
      * @param shoppingCart
      * @return list
      */
-    List<ShoppingCartDTO> shppingCartEnter(Long organizationId, ShoppingCart shoppingCart);
+    List<ShoppingCartDTO> watsonsShppingCartEnter(Long organizationId, ShoppingCart shoppingCart);
 
 
     /**

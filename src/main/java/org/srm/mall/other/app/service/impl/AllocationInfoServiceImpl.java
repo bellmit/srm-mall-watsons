@@ -81,9 +81,6 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
     @Autowired
     private SagmRemoteService sagmRemoteService;
 
-    @Autowired
-    @Qualifier("watsonsShoppingCartService")
-    private ShoppingCartService shoppingCartService;
 
     @Autowired
     private WatsonsProjectCostRemoteService watsonsProjectCostRemoteService;
@@ -277,7 +274,7 @@ public class AllocationInfoServiceImpl extends BaseAppService implements Allocat
                 allocationInfo.setDeliveryTypeMeaning(watsonsShoppingCart.getAllocationInfoList().get(0).getDeliveryTypeMeaning());
             }
             watsonsShoppingCart.setQuantity(quantity);
-            shoppingCartService.create(watsonsShoppingCart);
+            watsonsShoppingCartService.create(watsonsShoppingCart);
         }
         watsonsShoppingCart.setAllocationInfoList(allocationInfoList);
         return watsonsShoppingCart;
