@@ -192,11 +192,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     @Autowired
     private SifgOrderRemoteService sifgOrderRemoteService;
 
-    @Autowired
-    private ProductWorkbenchRepository productWorkbenchRepository;
-
-    @Autowired
-    private SifgOrderRemoteService sifgOrderRemoteService;
 
     @Autowired
     private CustomizedProductLineService customizedProductLineService;
