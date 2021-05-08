@@ -50,4 +50,13 @@ public interface SmdmRemoteNewService {
      */
     @RequestMapping(method = RequestMethod.GET, path = "/{organizationId}/item-categories/{categoryId}")
     ResponseEntity<String> queryItemById(@PathVariable Long organizationId, @Encrypt @PathVariable Long categoryId);
+
+    /**
+     * 税率
+     * @param organizationId
+     * @param taxId
+     * @return
+     */
+    @RequestMapping(method = RequestMethod.GET, path = "/{organizationId}/taxes/{taxId}")
+    ResponseEntity<String> selectTaxById(@PathVariable Long organizationId, @Encrypt @PathVariable Long taxId);
 }
