@@ -65,7 +65,7 @@ public class WatsonsShoppingCartController {
     @ParamLog
     public ResponseEntity<List<ShoppingCartDTO>> shppingCartEnter(@PathVariable("organizationId") Long organizationId, @Encrypt ShoppingCart shoppingCart) {
         shoppingCart.setTenantId(organizationId);
-        List<ShoppingCartDTO> shoppingCartDTOS = watsonsShoppingCartService.shppingCartEnter(organizationId, shoppingCart);
+        List<ShoppingCartDTO> shoppingCartDTOS = watsonsShoppingCartService.watsonsShppingCartEnter(organizationId, shoppingCart);
         return Results.success(shoppingCartDTOS);
     }
 
