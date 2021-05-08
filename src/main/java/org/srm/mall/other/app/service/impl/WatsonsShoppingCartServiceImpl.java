@@ -76,6 +76,7 @@ import org.srm.mall.product.api.dto.LadderPriceResultDTO;
 import org.srm.mall.product.api.dto.PriceResultDTO;
 import org.srm.mall.product.api.dto.SkuBaseInfoDTO;
 import org.srm.mall.product.app.service.ProductStockService;
+import org.srm.mall.product.domain.repository.ProductWorkbenchRepository;
 import org.srm.mall.product.domain.entity.ScecProductCategory;
 import org.srm.mall.product.domain.repository.ProductWorkbenchRepository;
 import org.srm.mall.region.api.dto.AddressDTO;
@@ -260,7 +261,6 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
     private String checkDeliveryType(String itemCode, String sourceCode, Long tenantId) {
          return allocationInfoRepository.checkDeliveryType(itemCode,sourceCode,tenantId);
     }
-
 
     @Override
     @SagaStart
@@ -768,31 +768,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             }
         return null;
     }
-    private void checkBudgetInfo(Long tenantId, ShoppingCartDTO shoppingCartDTO, String budgetSwitch){
-        if (ScecConstants.ConstantNumber.STRING_1.equals(budgetSwitch)) {
-            List<BudgetInfo> budgetInfoList = shoppingCartDTO.getBudgetInfoList();
-            if (CollectionUtils.isEmpty(budgetInfoList)){
-                throw new CommonException("请选择预算信息");
-            }
-            for (BudgetInfo budgetInfo : budgetInfoList){
-                //判断是否进行了预算校验
-                if (budgetInfo.getOccupancyFlag() == ScecConstants.ConstantNumber.INT_0) {
-                    throw new CommonException(ScecConstants.ErrorCode.BUDGET_OCCUPANCY);
-                }
-            }
-        }
-    }
-    private void updateBudgetInfoResult(ShoppingCartDTO shoppingCartDTO, String budgetSwitch){
-        //修改预算校验状态，2  表示生成采购申请成功
-        if (ScecConstants.ConstantNumber.STRING_1.equals(budgetSwitch)){
-            if (!CollectionUtils.isEmpty(shoppingCartDTO.getBudgetInfoList())) {
-                for (BudgetInfo budgetInfo : shoppingCartDTO.getBudgetInfoList()) {
-                    budgetInfo.setOccupancyFlag(ScecConstants.Budget.OCCUPANCY_CREATE_PURCHASE);
-                    budgetInfoRepository.updateByPrimaryKey(budgetInfo);
-                }
-            }
-        }
-    }
+
     /**
      * 阶梯价处理
      *
@@ -1240,6 +1216,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
      * 处理订单运费
      */
     private void orderFreight(Long tenantId,WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO){
+        BigDecimal withoutTaxFreightPrice = new BigDecimal("0L");
         List<PostageCalculateDTO> postageCalculateDTOS = buildPostageInfoParamsForPreReq(watsonsPreRequestOrderDTO);
         ResponseEntity<String> calculatePostageRes = sagmRemoteService.freightCalculateNew(tenantId, postageCalculateDTOS);
         if(ResponseUtils.isFailed(calculatePostageRes)){
@@ -1250,7 +1227,11 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         logger.info("calculate freight result is {}", JSONObject.toJSON(calculatePostage));
         watsonsPreRequestOrderDTO.setFreight(calculatePostage.get(0).getFreightPrice());
         logger.info("calculate without tax freight result is {}", JSONObject.toJSON(calculatePostage.get(0).getWithoutTaxFreightPrice()));
-        watsonsPreRequestOrderDTO.setWithoutTaxFreightPrice(calculatePostage.get(0).getWithoutTaxFreightPrice());
+        withoutTaxFreightPrice = calculatePostage.get(0).getWithoutTaxFreightPrice();
+        if(ObjectUtils.isEmpty(calculatePostage.get(0).getWithoutTaxFreightPrice())){
+            withoutTaxFreightPrice = new BigDecimal(0L);
+        }
+        watsonsPreRequestOrderDTO.setWithoutTaxFreightPrice(withoutTaxFreightPrice);
     }
 
     private List<PostageCalculateDTO> buildPostageInfoParamsForPreReq(WatsonsPreRequestOrderDTO preRequestOrderDTO) {
