@@ -1312,7 +1312,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
      * 处理订单运费
      */
     private void orderFreight(Long tenantId,WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO){
-        BigDecimal withoutTaxFreightPrice = new BigDecimal("0L");
+        BigDecimal withoutTaxFreightPrice = BigDecimal.ZERO;
         List<PostageCalculateDTO> postageCalculateDTOS = buildPostageInfoParamsForPreReq(watsonsPreRequestOrderDTO);
         ResponseEntity<String> calculatePostageRes = sagmRemoteService.freightCalculateNew(tenantId, postageCalculateDTOS);
         if (ResponseUtils.isFailed(calculatePostageRes)) {
@@ -1325,7 +1325,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         logger.info("calculate without tax freight result is {}", JSONObject.toJSON(calculatePostage.get(0).getWithoutTaxFreightPrice()));
         withoutTaxFreightPrice = calculatePostage.get(0).getWithoutTaxFreightPrice();
         if(ObjectUtils.isEmpty(calculatePostage.get(0).getWithoutTaxFreightPrice())){
-            withoutTaxFreightPrice = new BigDecimal(0L);
+            withoutTaxFreightPrice = BigDecimal.ZERO;
         }
         watsonsPreRequestOrderDTO.setWithoutTaxFreightPrice(withoutTaxFreightPrice);
     }
