@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -289,6 +290,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         watsonsPreRequestOrderDTOList.forEach(watsonsPreRequestOrderDTO -> {
             checkCustomizedProductInfoForWatsons(tenantId, watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList());
         });
+        processNormalReceiveContactId(watsonsPreRequestOrderDTOList);
         //进行ceNo和discription存表
         saveCeAndCMS(watsonsPreRequestOrderDTOList);
         //根据ce信息修改费用项目信息
@@ -331,6 +333,14 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             throw  new CommonException(omsException);
         }
         return preRequestOrderResponseDTO;
+    }
+
+    private void processNormalReceiveContactId(List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList) {
+        for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : watsonsPreRequestOrderDTOList) {
+            if(ObjectUtils.isEmpty(watsonsPreRequestOrderDTO.getReceiverContactId())){
+                watsonsPreRequestOrderDTO.setReceiverContactId(DetailsHelper.getUserDetails().getUserId());
+            }
+        }
     }
 
     private void modifyProjectCostByCeInfo(List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList) {
