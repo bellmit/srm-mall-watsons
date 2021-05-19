@@ -1068,6 +1068,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     private void queryFreight(Long tenantId, Map.Entry<String, List<WatsonsShoppingCartDTO>> entry, WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO, BigDecimal freightPrice) {
         watsonsPreRequestOrderDTO.setFreight(BigDecimal.ZERO);
+        watsonsPreRequestOrderDTO.setWithoutTaxFreightPrice(BigDecimal.ZERO);
         if (ScecConstants.ECommercePlatformCode.PLATFORM_JD.equals(entry.getValue().get(0).getProductSource()) || ScecConstants.SourceType.NJD.equals(entry.getValue().get(0).getProductSource())) {
             //供应商为京东
             if (freightPrice.compareTo(new BigDecimal(ScecConstants.JDFreightLevel.FREIGHT_FREE)) > -1) {
