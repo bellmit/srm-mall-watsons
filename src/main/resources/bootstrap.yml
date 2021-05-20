@@ -40,7 +40,7 @@ eureka:
     leaseRenewalIntervalInSeconds: 10
     leaseExpirationDurationInSeconds: 30
     metadata-map:
-      VERSION: 1.15.4
+      VERSION: 1.15.5
       nodeGroupId: ${HZERO_NODE_GROUP_ID:0}
     hostname: srm-mall
   client:
@@ -60,6 +60,7 @@ apollo:
     interestedKeyPrefixes: null
     eagerLoad:
       enabled: ${APOLLO_BOOTSTRAP_EAGERLOAD_ENABLED:false}
+
 
 
 
