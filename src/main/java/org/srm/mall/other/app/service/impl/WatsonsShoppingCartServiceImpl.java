@@ -290,6 +290,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
         watsonsPreRequestOrderDTOList.forEach(watsonsPreRequestOrderDTO -> {
             checkCustomizedProductInfoForWatsons(tenantId, watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList());
         });
+        processOrderRemark(watsonsPreRequestOrderDTOList);
         processNormalReceiveContactId(watsonsPreRequestOrderDTOList);
         //进行ceNo和discription存表
         saveCeAndCMS(watsonsPreRequestOrderDTOList);
@@ -333,6 +334,18 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
             throw  new CommonException(omsException);
         }
         return preRequestOrderResponseDTO;
+    }
+
+    private void processOrderRemark(List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList) {
+        for (WatsonsPreRequestOrderDTO watsonsPreRequestOrderDTO : watsonsPreRequestOrderDTOList) {
+            for (ShoppingCartDTO shoppingCartDTO : watsonsPreRequestOrderDTO.getShoppingCartDTOList()) {
+                for (WatsonsShoppingCartDTO watsonsShoppingCartDTO : watsonsPreRequestOrderDTO.getWatsonsShoppingCartDTOList()) {
+                    if(watsonsShoppingCartDTO.getCartId().equals(shoppingCartDTO.getCartId())){
+                        watsonsShoppingCartDTO.setRemark(shoppingCartDTO.getRemark());
+                    }
+                }
+            }
+        }
     }
 
     private void processNormalReceiveContactId(List<WatsonsPreRequestOrderDTO> watsonsPreRequestOrderDTOList) {
