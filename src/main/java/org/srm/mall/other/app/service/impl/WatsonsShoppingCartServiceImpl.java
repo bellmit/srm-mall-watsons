@@ -32,6 +32,7 @@ import org.srm.boot.common.cache.impl.AbstractKeyGenerator;
 import org.srm.boot.platform.customizesetting.CustomizeSettingHelper;
 import org.srm.boot.saga.utils.SagaClient;
 import org.srm.common.convert.bean.BeanConvertor;
+import org.srm.mall.common.app.service.CommonService;
 import org.srm.mall.common.constant.ScecConstants;
 import org.srm.mall.common.feign.*;
 import org.srm.mall.common.feign.dto.agreemnet.AgreementLine;
@@ -214,6 +215,9 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
 
     @Autowired
     private TransactionalComponent transactionalComponent;
+
+    @Autowired
+    private CommonService commonService;
 
 
     @Override
@@ -1017,7 +1021,7 @@ public class WatsonsShoppingCartServiceImpl extends ShoppingCartServiceImpl impl
                 CustomUserDetails userDetails = DetailsHelper.getUserDetails();
                 watsonsPreRequestOrderDTO.setReceiverContactName(userDetails.getRealName());
                 watsonsPreRequestOrderDTO.setStoreNo(watsonsShoppingCartDTOList4Trans.get(0).getAllocationInfoList().get(0).getCostShopCode());
-                snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, 5, TimeUnit.MINUTES);
+                snapshotUtil.saveSnapshot(AbstractKeyGenerator.getKey(ScecConstants.CacheCode.SERVICE_NAME, ScecConstants.CacheCode.PURCHASE_REQUISITION_PREVIEW, watsonsPreRequestOrderDTO.getPreRequestOrderNumber()), watsonsPreRequestOrderDTO.getPreRequestOrderNumber(), watsonsPreRequestOrderDTO, commonService.queryDelayTime(tenantId), TimeUnit.SECONDS);
                 watsonsPreRequestOrderDTOList.add(watsonsPreRequestOrderDTO);
             }
             setCMSInfo(tenantId, watsonsPreRequestOrderDTOList);
